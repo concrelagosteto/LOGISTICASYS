@@ -311,11 +311,22 @@
   .cc-tbl tr.cc-edit td{background:var(--surface-2);} .cc-tbl tr.cc-edit-info td{white-space:normal; font-size:12px; border-top:0;}
   .cc-tbl .silo-mat small{display:block; font-weight:600; font-size:10px; opacity:.85; text-transform:none;}
   .cc-tbl .silo-mat.cc-fora{background:var(--surface-2); color:var(--text); border:1px dashed var(--danger);}
-  .bd-abas{display:flex; gap:4px; flex-wrap:nowrap; overflow-x:auto; border-bottom:1px solid var(--border); margin:0 0 16px; scrollbar-width:thin;}
-  .bd-aba{flex:0 0 auto; background:none; border:0; border-bottom:2px solid transparent; color:var(--text-muted); font:inherit; font-size:13px; font-weight:600; padding:10px 14px; cursor:pointer; white-space:nowrap; margin-bottom:-1px;}
-  .bd-aba:hover{color:var(--text);} .bd-aba.on{color:var(--text); border-bottom-color:var(--accent);}
-  .bd-n{display:inline-block; min-width:18px; padding:0 6px; margin-left:4px; border-radius:99px; background:var(--surface-2); color:var(--text-muted); font-size:11px; text-align:center;}
-  .bd-aba.on .bd-n{background:var(--accent-soft); color:var(--accent-strong);}
+  .enc-tbl .enc-in{width:100%; min-width:120px; background:transparent; color:var(--text); border:1px solid transparent; border-radius:5px; padding:6px 8px; font:inherit; font-size:12.5px;}
+  .enc-tbl .enc-in:hover{border-color:var(--border);} .enc-tbl .enc-in:focus{border-color:var(--accent); outline:none; background:var(--surface-2);}
+  .enc-tbl tr.enc-off .enc-in{opacity:.6;}
+  select.enc-sel{background:var(--surface-2); color:var(--text); border:1px solid var(--border-strong); border-radius:6px; padding:5px 7px; font:inherit; font-size:12.5px; max-width:200px;}
+  select.enc-sel.vazio{border-color:var(--warning); color:var(--warning);}
+  .cod-tabs{display:flex; flex-wrap:wrap; gap:6px; padding-bottom:4px;}
+  .cod-tab{background:var(--surface); color:var(--text-muted); border:1px solid var(--border-strong); border-radius:99px; padding:5px 12px; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;}
+  .cod-tab span{font-size:11px; opacity:.8; margin-left:2px;} .cod-tab.on{background:var(--accent-btn); border-color:var(--accent-btn); color:#fff;}
+  .cod-como{display:flex; flex-direction:column; gap:6px; font-size:12.5px; max-width:900px;}
+  .cod-como textarea, .cod-tbl input, .cod-tbl select, .bd-edit input, .bd-edit select{background:var(--surface-2); color:var(--text); border:1px solid var(--border-strong); border-radius:6px; padding:6px 8px; font:inherit; font-size:12.5px;}
+  .cod-como textarea{resize:vertical;} .cod-tbl input{font-family:ui-monospace,monospace; width:160px;} .cod-tbl select{max-width:220px;}
+  .cod-aviso{font-size:11px; color:var(--warning); margin-top:4px;}
+  tr.bd-edit td{background:var(--surface-2); vertical-align:top;} .bd-edit input{width:100%; min-width:90px;} .bd-edit input[type=date]{min-width:130px; color-scheme:dark;}
+  :root[data-theme="light"] .bd-edit input[type=date]{color-scheme:light;}
+  .bd-acoes{display:flex; gap:4px; white-space:nowrap;}
+  #usinasCadastroBody td:first-child input{min-width:140px; font-weight:600;}
   .bd-lead{margin:0 0 14px; font-size:13px; color:var(--text-muted); max-width:900px;}
   .silo-filtros{display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
   .silo-filtros input, .silo-filtros select{background:var(--surface-2); color:var(--text); border:1px solid var(--border-strong); border-radius:6px; padding:7px 10px; font-size:12.5px; font-family:inherit;}
@@ -801,8 +812,8 @@
       <div class="nav-group" id="navCimento" data-group="cimento">
         <div class="nav-group-label" data-toggle="cimento"><span class="nav-group-chevron">▾</span>Cimento — em foco</div>
       </div>
-      <div class="nav-group dim" id="navDados" data-group="dados">
-        <div class="nav-group-label" data-toggle="dados"><span class="nav-group-chevron">▾</span>Dados</div>
+      <div class="nav-group" id="navDados" data-group="dados">
+        <div class="nav-group-label" data-toggle="dados"><span class="nav-group-chevron">▾</span>Base de Dados</div>
       </div>
       <div class="nav-group" id="navAdm" data-group="adm" hidden>
         <div class="nav-group-label" data-toggle="adm"><span class="nav-group-chevron">▾</span>Administração</div>
@@ -832,6 +843,8 @@
       <section class="view active" id="view-programacao-cimento"></section>
       <section class="view" id="view-solicitacoes"></section>
       <section class="view" id="view-base-dados-cimento"></section>
+      <section class="view" id="view-bd-usinas"><p class="bd-lead">Uma linha por usina: os dados da usina (sigla, CNPJ, regional, contatos, nome na PUZL) e o <b>encarregado</b> responsável. Os encarregados (nome, WhatsApp, e-mail) ficam logo abaixo. É daqui que o sistema reconhece a usina nas notas e nas entradas, e o que cada encarregado vê no link de Solicitação de Cimento.</p><div id="usinasCadastroCard" style="margin-bottom:16px;"></div><div id="encarregadosCard" style="margin-bottom:16px;"></div></section>
+      <section class="view" id="view-bd-fabricas"><p class="bd-lead">De onde vem o cimento: cada fornecedor e os materiais que ele entrega (as “fábricas” usadas na Programação e no Controle de cimento), o que conta como cimento na importação e os códigos de cada fornecedor.</p><div id="fabricasCatalogoCard" style="margin-bottom:16px;"></div><div id="catalogoCimentoCard" style="margin-bottom:16px;"></div><div id="codigosCimentoCard"></div></section>
       <section class="view" id="view-notas-sefaz"></section>
       <section class="view" id="view-lancamentos-puzl"></section>
       <section class="view" id="view-silos"></section>
@@ -1297,7 +1310,9 @@
     {id:"vpo", label:"VPO", icon:"🧾"}
   ];
   var NAV_DADOS = [
-    {id:"base-dados-cimento", label:"Base de Dados", icon:"🗄️"},
+    {id:"base-dados-cimento", label:"Importar arquivos", icon:"📥"},
+    {id:"bd-usinas", label:"Usinas e encarregados", icon:"🏭"},
+    {id:"bd-fabricas", label:"Fábricas e cimentos", icon:"🏗️"},
     {id:"notas-sefaz", label:"Notas SEFAZ", icon:"🧾"},
     {id:"lancamentos-puzl", label:"Lançamentos PUZL", icon:"📋"}
   ];
@@ -1314,7 +1329,7 @@
     {id:"auditoria", label:"Auditoria", icon:"🔍"}
   ];
   var TITLES = {
-    "solicitacoes":"Solicitações de Cimento", "programacao-cimento":"Programação de Cimento", "base-dados-cimento":"Base de Dados",
+    "solicitacoes":"Solicitações de Cimento", "programacao-cimento":"Programação de Cimento", "base-dados-cimento":"Importar arquivos", "bd-usinas":"Usinas e encarregados", "bd-fabricas":"Fábricas e cimentos",
     "notas-sefaz":"Notas Fiscais (SEFAZ)", "lancamentos-puzl":"Lançamentos (PUZL)", "silos":"Controle de cimento",
     "controle-pedidos-cimento":"Controle de Pedidos de Cimento", "consultas":"Consultas",
     dashboard:"Dashboard", operacoes:"Operação", vpo:"VPO — Vale Pedágio Obrigatório", exececoes:"Fila de Exceções",
@@ -1323,9 +1338,11 @@
   var CRUMBS = {
     "solicitacoes":"Cimento <b>›</b> Solicitações — o que cada usina precisa",
     "programacao-cimento":"Cimento <b>›</b> Programação — envio diário por usina",
-    "base-dados-cimento":"Dados <b>›</b> Base de Dados — importar arquivos e cadastros (usinas, encarregados, fábricas)",
-    "notas-sefaz":"Dados <b>›</b> Notas Fiscais (SEFAZ) — todas as notas importadas",
-    "lancamentos-puzl":"Dados <b>›</b> Lançamentos (PUZL) — todos os lançamentos importados",
+    "base-dados-cimento":"Base de Dados <b>›</b> Importar arquivos — SEFAZ, PUZL, Inbound e Programação antiga, com o histórico",
+    "bd-usinas":"Base de Dados <b>›</b> Usinas e encarregados — cada usina e quem responde por ela",
+    "bd-fabricas":"Base de Dados <b>›</b> Fábricas e cimentos — fornecedores, materiais, catálogo e códigos",
+    "notas-sefaz":"Base de Dados <b>›</b> Notas Fiscais (SEFAZ) — todas as notas importadas",
+    "lancamentos-puzl":"Base de Dados <b>›</b> Lançamentos (PUZL) — todos os lançamentos importados",
     "silos":"Outros <b>›</b> Controle de cimento — cimento atual e trocas de cada usina",
     "controle-pedidos-cimento":"Cimento <b>›</b> Controle de Pedidos — conferência automática",
     "vpo":"Cimento <b>›</b> VPO — pedágio por roteiro",
@@ -3210,39 +3227,9 @@
     });
   }
 
-  /* Base de Dados em abas: importar arquivos / usinas / encarregados / fábricas e cimentos / histórico.
-     Só reorganiza onde cada cartão aparece — o conteúdo e as funções de cada um são os mesmos. */
-  var BD_ABAS = [["importar", "📥 Importar arquivos"], ["usinas", "🏭 Usinas"], ["encarregados", "👷 Encarregados"], ["fabricas", "🏗️ Fábricas e cimentos"], ["historico", "🕘 Histórico de importações"]];
-  var BD_ABA = (function(){ try { var a = localStorage.getItem("cl_bd_aba"); return BD_ABAS.some(function(x){ return x[0] === a; }) ? a : "importar"; } catch (e){ return "importar"; } })();
-  function bdContagem(id){
-    try {
-      if (id === "usinas") return usinasCadastro.length;
-      if (id === "encarregados") return ENC.d ? ENC.d.encarregados.filter(function(e){ return e.ativo !== false; }).length : null;
-      if (id === "fabricas") return FABRICAS_CATALOGO.length;
-      if (id === "historico") return importHistorico.length;
-    } catch (e){ }
-    return null;
-  }
-  function bdAbasHtml(){
-    return '<div class="bd-abas" role="tablist" aria-label="Partes da Base de Dados">' + BD_ABAS.map(function(a){
-      var n = bdContagem(a[0]);
-      return '<button type="button" role="tab" class="bd-aba' + (a[0] === BD_ABA ? " on" : "") + '" aria-selected="' + (a[0] === BD_ABA) + '" data-bdaba="' + a[0] + '">' + a[1] + (n != null ? ' <span class="bd-n">' + n + '</span>' : "") + '</button>';
-    }).join("") + '</div>';
-  }
-  function bdAbasPintar(){
-    var t = document.querySelector("#view-base-dados-cimento .bd-abas"); if (!t) return;
-    t.outerHTML = bdAbasHtml();
-  }
-  function bdAbaMostrar(id){
-    BD_ABA = id; try { localStorage.setItem("cl_bd_aba", id); } catch (e){ }
-    document.querySelectorAll("#view-base-dados-cimento .bd-painel").forEach(function(p){ p.hidden = p.dataset.bdp !== id; });
-    bdAbasPintar();
-  }
-  function bdAbrir(id){ showView("base-dados-cimento"); bdAbaMostrar(id); }
-  (function(){
-    var v = el("view-base-dados-cimento"); if (!v) return;
-    v.addEventListener("click", function(ev){ var b = ev.target.closest && ev.target.closest("[data-bdaba]"); if (b) bdAbaMostrar(b.dataset.bdaba); });
-  })();
+  /* Base de Dados: Importar arquivos (com o histórico) / Usinas e encarregados / Fábricas e cimentos
+     / Notas SEFAZ / Lançamentos PUZL — cada um é um módulo do menu. */
+  function bdAbrir(id){ showView(id === "fabricas" ? "bd-fabricas" : id === "usinas" ? "bd-usinas" : "base-dados-cimento"); }
 
   function renderBaseDados(){
     function impCard(o){
@@ -3259,10 +3246,9 @@
         '<details class="imp-more"><summary>Como funciona</summary>'+o.como+'</details>' +
         '</div>';
     }
-    el("view-base-dados-cimento").innerHTML = bdAbasHtml() +
-      '<div class="bd-painel" data-bdp="importar">' +
+    el("view-base-dados-cimento").innerHTML =
       '<div class="imp-intro"><p>Importe aqui os arquivos do SEFAZ e da PUZL. Tudo é salvo no banco e as telas se ligam sozinhas.</p>' +
-      '<details><summary>Como as telas se ligam</summary><p>Área central de importação de dados externos. <b>Entradas</b> é calculada automaticamente a partir dos <b>Lançamentos (PUZL)</b>, com a ligação já cruzada contra Programação e contra Notas Fiscais (SEFAZ) — usada em Controle de Pedidos e na Programação de Cimento. <b>Notas Fiscais (SEFAZ)</b> é a exportação das notas emitidas — é ela quem forma o Controle de Pedidos, ligada à Programação de Cimento por usina/placa/pedido; <b>Lançamentos (PUZL)</b> traz o mesmo universo de notas com o material mais limpo (inclusive pozolana), usado tanto pra confirmar o material de uma nota do SEFAZ quanto pra formar as Entradas. Pra ver e filtrar tudo o que já foi importado, veja os módulos <b>Notas SEFAZ</b> e <b>Lançamentos PUZL</b>, logo abaixo de Base de Dados no menu.</p></details></div>' +
+      '<details><summary>Como as telas se ligam</summary><p>Área central de importação de dados externos. <b>Entradas</b> é calculada automaticamente a partir dos <b>Lançamentos (PUZL)</b>, com a ligação já cruzada contra Programação e contra Notas Fiscais (SEFAZ) — usada em Controle de Pedidos e na Programação de Cimento. <b>Notas Fiscais (SEFAZ)</b> é a exportação das notas emitidas — é ela quem forma o Controle de Pedidos, ligada à Programação de Cimento por usina/placa/pedido; <b>Lançamentos (PUZL)</b> traz o mesmo universo de notas com o material mais limpo (inclusive pozolana), usado tanto pra confirmar o material de uma nota do SEFAZ quanto pra formar as Entradas. Pra ver e filtrar tudo o que já foi importado, veja os módulos <b>Notas SEFAZ</b> e <b>Lançamentos PUZL</b>, no grupo Base de Dados do menu.</p></details></div>' +
       '<div id="materiaisNovosCard"></div>' +
       '<div id="baseDadosStats"></div>' +
       '<div class="imp-grid">' +
@@ -3278,18 +3264,8 @@
         impCard({id:'programacao', tom:'warning', icone:'🗓️', titulo:'Programação de Cimento', sub:'Planilha antiga, por dia', res:'importProgramacaoResult', txt:'importProgramacaoText', btn:'importProgramacaoBtn', ph:'PROGRAMAÇÃO PARA O DIA 24/09/2026 ( QUINTA-FEIRA )\nUsina\tPLACA\tFÁBRICA\tPEDIDO\nGARDÊNIA\tHGJ4049\tCP 3 CSN SCZ\t9042814',
           lead:'Traz a programação da planilha antiga: usina, placa, fábrica e pedido, por dia.',
           como:'<p>Uma linha “PROGRAMAÇÃO PARA O DIA DD/MM/AAAA (...)” seguida das linhas Usina / Placa / Fábrica / Pedido; pode ter vários dias de uma vez. Usina marcada com *** fica em branco. Usinas da Base de Usinas são casadas sozinhas; as outras entram como linha extra.</p>'}) +
-      '</div></div>' +
-      '<div class="bd-painel" data-bdp="usinas" hidden><p class="bd-lead">As usinas da Concrelagos: nome, sigla, CNPJ, regional, contatos e o nome que aparece na PUZL. É daqui que o sistema reconhece a usina nas notas e nas entradas.</p>' +
-        '<div id="usinasCadastroCard" style="margin-bottom:16px;"></div></div>' +
-      '<div class="bd-painel" data-bdp="encarregados" hidden><p class="bd-lead">Quem cuida de cada usina. Cada usina tem um único encarregado; isso define o que cada um vê no link de Solicitação de Cimento.</p>' +
-        '<div id="encarregadosCard" style="margin-bottom:16px;"></div></div>' +
-      '<div class="bd-painel" data-bdp="fabricas" hidden><p class="bd-lead">De onde vem o cimento: cada fornecedor e os materiais que ele entrega (as “fábricas” usadas na Programação e no Controle de cimento), o que conta como cimento na importação e os códigos de cada fornecedor.</p>' +
-        '<div id="fabricasCatalogoCard" style="margin-bottom:16px;"></div>' +
-        '<div id="catalogoCimentoCard" style="margin-bottom:16px;"></div>' +
-        '<div id="codigosCimentoCard"></div></div>' +
-      '<div class="bd-painel" data-bdp="historico" hidden><p class="bd-lead">Cada arquivo importado: quando, por quem e quantas linhas entraram.</p>' +
-        '<div id="historicoCard" style="margin-bottom:16px;"></div></div>';
-    bdAbaMostrar(BD_ABA);
+      '</div>' +
+      '<div id="historicoCard" style="margin-bottom:16px;"></div>';
 
     // Cada importação tem 2 caminhos pro MESMO ponto de entrada (runImportX):
     // colar na caixa de texto + clicar "Importar", ou soltar/escolher o
@@ -3427,7 +3403,17 @@
   function paintPuzl(){
     var cardEl = el("puzlCard");
     if (!cardEl) return;
+    var podeEd = bdPodeEditar();
     var rows = puzlEntradas.map(function(p){
+      if (PZ_ED === p.id && podeEd){
+        return '<tr class="bd-edit"><td class="cell-strong">'+esc(p.documento)+'</td>' +
+          '<td>'+bdIn("data-pze", "emissaoNF", toIsoDate(p.emissaoNF), "date")+'</td><td>'+bdIn("data-pze", "dataEntrada", toIsoDate(p.dataEntrada), "date")+'</td>' +
+          '<td>'+bdIn("data-pze", "fornecedor", p.fornecedor, "text", "dlBdForn")+'</td><td>'+bdIn("data-pze", "item", p.item)+'</td>' +
+          '<td class="muted" title="A central faz parte da identificação do lançamento e não muda">'+esc(p.centralEntrada)+'</td>' +
+          '<td>'+bdIn("data-pze", "quantidade", p.quantidade)+'</td><td>'+bdIn("data-pze", "pedido", p.pedido)+'</td>' +
+          '<td>'+bdIn("data-pze", "observacoes", p.observacoes)+'</td><td>'+bdIn("data-pze", "chaveNota", p.chaveNota)+'</td>' +
+          '<td><div class="bd-acoes"><button class="btn-primary btn-inline" data-pzsave="'+p.id+'">Salvar</button><button class="btn-ghost" data-pzcancel="1">Cancelar</button></div></td></tr>';
+      }
       return '<tr>' +
         '<td class="cell-strong">'+esc(p.documento)+'</td>' +
         '<td class="muted">'+esc(brDate(p.emissaoNF))+'</td>' +
@@ -3439,7 +3425,7 @@
         '<td class="cell-strong">'+esc(p.pedido || "")+'</td>' +
         '<td class="muted" title="'+esc(p.observacoes || "")+'" style="max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(p.observacoes || "")+'</td>' +
         '<td class="muted" style="font-family:monospace;font-size:11px;white-space:nowrap;">'+esc(p.chaveNota || "")+'</td>' +
-        '<td style="padding:4px 6px;"><button class="btn-ghost" data-delpuzl="'+p.id+'" style="padding:5px 8px;">🗑</button></td>' +
+        '<td style="padding:4px 6px;"><div class="bd-acoes">'+(podeEd ? '<button class="btn-ghost" data-edpz="'+p.id+'" title="Alterar este lançamento" style="padding:5px 8px;">✏️</button>' : '')+'<button class="btn-ghost" data-delpuzl="'+p.id+'" style="padding:5px 8px;">🗑</button></div></td>' +
         '</tr>';
     }).join("");
     cardEl.innerHTML =
@@ -3450,6 +3436,16 @@
         : '<p class="prog-empty">Nenhum lançamento da PUZL importado ainda.</p>') +
       '</div></details>';
     cardEl.querySelector("details").addEventListener("toggle", function(e){ puzlListOpen = e.target.open; });
+    if (!el("bdListas")) document.body.insertAdjacentHTML("beforeend", '<div id="bdListas" hidden></div>');
+    el("bdListas").innerHTML = bdListas();
+    cardEl.querySelectorAll("[data-edpz]").forEach(function(btn){ btn.addEventListener("click", function(){ PZ_ED = parseInt(btn.dataset.edpz, 10); paintPuzl(); var p0 = cardEl.querySelector('tr.bd-edit input'); if (p0) p0.focus(); }); });
+    cardEl.querySelectorAll("[data-pzcancel]").forEach(function(btn){ btn.addEventListener("click", function(){ PZ_ED = null; paintPuzl(); }); });
+    cardEl.querySelectorAll("[data-pzsave]").forEach(function(btn){ btn.addEventListener("click", function(){
+      var p = puzlEntradas.find(function(x){ return x.id === parseInt(btn.dataset.pzsave, 10); }), tr = btn.closest("tr"); if (!p || !tr) return;
+      tr.querySelectorAll("[data-pze]").forEach(function(i){ p[i.dataset.pze] = String(i.value || "").trim(); });
+      PZ_ED = null; recomputeEntradasFromPuzl(); paintPuzl(); paintNFes(); paintBaseDados(); renderMateriaisNovos();
+    }); });
+    cardEl.querySelectorAll("tr.bd-edit input").forEach(function(i){ i.addEventListener("keydown", function(ev){ if (ev.key === "Enter"){ ev.preventDefault(); var sv = cardEl.querySelector("[data-pzsave]"); if (sv) sv.click(); } else if (ev.key === "Escape"){ PZ_ED = null; paintPuzl(); } }); });
     cardEl.querySelectorAll("[data-delpuzl]").forEach(function(btn){
       btn.addEventListener("click", function(){
         puzlEntradas = puzlEntradas.filter(function(x){ return x.id !== parseInt(btn.dataset.delpuzl,10); });
@@ -3759,18 +3755,31 @@
     return {dias: Object.keys(diasSet).length, atualizadas: atualizadas, novasNaoReconhecidas: novasNaoReconhecidas, linhasIgnoradas: linhasIgnoradas};
   }
 
+  var usinasRepintar = null;
   function renderUsinasCadastro(){
     var cardEl = el("usinasCadastroCard");
     if (!cardEl) return;
     var fields = [["usina","Usina"],["sigla","Sigla"],["cnpj","CNPJ"],["regional","Regional"],["whatsappUsina","WhatsApp Usina"],["whatsappRegional","WhatsApp Regional"],["emailUsina","E-mail Usina"],["emailRegional","E-mail Regional"],["codigo","Código"],["filial","Filial"],["puzl","Formato PUZL"]];
+    // Coluna "Encarregado" (vem de ENC — Usinas e encarregados numa tabela só)
+    function celEnc(u){
+      var D = ENC.d, k = String(u.usina || "").trim().toUpperCase();
+      if (!D) return '<td class="faint" style="padding:4px 8px;font-size:12px">…</td>';
+      var db = D.usinas.find(function(x){ return String(x.usina || "").trim().toUpperCase() === k; });
+      if (!db) return '<td class="faint" style="padding:4px 8px;font-size:11.5px" title="A usina precisa estar salva no banco para ter encarregado">salve a usina</td>';
+      var pode = D.pode && ME && ME.papel !== "leitura";
+      var ativos = D.encarregados.filter(function(e){ return e.ativo || e.id === db.encarregado_id; });
+      if (!pode){ var en = D.encarregados.find(function(e){ return e.id === db.encarregado_id; }); return '<td style="padding:4px 8px;font-size:12.5px">' + (en ? esc(en.nome) : '<span class="faint">—</span>') + '</td>'; }
+      return '<td style="padding:4px 6px;"><select class="enc-sel' + (db.encarregado_id ? "" : " vazio") + '" data-uenc="' + esc(db.usina_id) + '" aria-label="Encarregado de ' + esc(u.usina) + '"><option value="">— sem encarregado —</option>' +
+        ativos.map(function(e){ return '<option value="' + esc(e.id) + '"' + (e.id === db.encarregado_id ? " selected" : "") + '>' + esc(e.nome) + (e.ativo ? "" : " (desativado)") + '</option>'; }).join("") + '</select></td>';
+    }
     function paint(){
       var rows = usinasCadastro.map(function(u, i){
-        return '<tr>' + fields.map(function(f){
-          return '<td style="padding:4px 6px;"><input value="'+esc(u[f[0]])+'" placeholder="'+esc(f[1])+'" data-uidx="'+i+'" data-ufield="'+f[0]+'" style="width:100%;border:1px solid transparent;border-radius:5px;padding:6px 8px;font-size:12.5px;background:transparent;color:var(--text);" onfocus="this.style.borderColor=\'var(--accent)\'" onblur="this.style.borderColor=\'transparent\'"/></td>';
+        return '<tr>' + fields.map(function(f, fi){
+          return '<td style="padding:4px 6px;"><input value="'+esc(u[f[0]])+'" placeholder="'+esc(f[1])+'" data-uidx="'+i+'" data-ufield="'+f[0]+'" style="width:100%;border:1px solid transparent;border-radius:5px;padding:6px 8px;font-size:12.5px;background:transparent;color:var(--text);" onfocus="this.style.borderColor=\'var(--accent)\'" onblur="this.style.borderColor=\'transparent\'"/></td>' + (fi === 0 ? celEnc(u) : "");
         }).join("") + '<td style="padding:4px 6px;"><button class="btn-ghost" data-udel="'+i+'" style="padding:5px 8px;">🗑</button></td></tr>';
       }).join("");
       cardEl.innerHTML =
-        '<details open style="margin-bottom:0;"><summary style="cursor:pointer;padding:12px 18px;font-size:12.5px;font-weight:600;color:var(--accent-strong);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">🏭 Base de Usinas — CNPJ por filial ('+usinasCadastro.length+')</summary>' +
+        '<details open style="margin-bottom:0;"><summary style="cursor:pointer;padding:12px 18px;font-size:12.5px;font-weight:600;color:var(--accent-strong);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">🏭 Usinas ('+usinasCadastro.length+')</summary>' +
         '<div class="card" style="margin-top:8px;">' +
         '<p class="import-card-desc" style="margin:0 0 10px;">Usina, sigla, CNPJ, regional e contatos (WhatsApp/e-mail de usina e de regional) — nessa ordem, igual à planilha-modelo de cadastro de filiais. Código/Filial/Formato PUZL (colunas finais) são internos: é o Formato PUZL (ex: "32 | CGL | CARANGOLA") que bate a usina contra os Lançamentos PUZL, e o CNPJ aqui cadastrado é reconhecido automaticamente na Descrição Complementar de uma nota do SEFAZ. Alimente colando um arquivo/planilha abaixo (mesma ordem de colunas do modelo) ou edite direto nos campos da tabela.</p>' +
         '<div class="import-paste" style="margin-bottom:14px;">' +
@@ -3779,12 +3788,11 @@
           '<textarea id="importUsinasText" rows="4" placeholder="USINA\tSIGLA\tCNPJ\tREGIONAL\tWHATSAPP USINA\tWHATSAPP REGIONAL\tE-MAIL USINA\tE-MAIL REGIONAL"></textarea>' +
           '<div class="import-paste-foot"><button class="btn-primary" id="importUsinasBtn" style="padding:7px 13px;">Importar</button><span id="importUsinasResult" style="font-size:11.5px;color:var(--text-muted);"></span></div>' +
         '</div>' +
-        '<div class="table-wrap"><table><thead><tr>' + fields.map(function(f){ return '<th>'+esc(f[1])+'</th>'; }).join("") + '<th></th></tr></thead><tbody id="usinasCadastroBody">' +
-        (rows || '<tr><td colspan="'+(fields.length+1)+'" style="padding:16px 14px;font-size:12px;font-style:italic;color:var(--text-faint);">Nenhuma usina cadastrada ainda.</td></tr>') +
+        '<div class="table-wrap"><table><thead><tr>' + fields.map(function(f, fi){ return '<th>'+esc(f[1])+'</th>' + (fi === 0 ? '<th>Encarregado</th>' : ""); }).join("") + '<th></th></tr></thead><tbody id="usinasCadastroBody">' +
+        (rows || '<tr><td colspan="'+(fields.length+2)+'" style="padding:16px 14px;font-size:12px;font-style:italic;color:var(--text-faint);">Nenhuma usina cadastrada ainda.</td></tr>') +
         '</tbody></table></div>' +
         '<div class="prog-add" id="usinasCadastroAdd">+ adicionar usina</div>' +
         '</div></details>';
-      if (typeof bdAbasPintar === "function") bdAbasPintar();
       el("usinasCadastroBody").querySelectorAll("input").forEach(function(inp){
         inp.addEventListener("change", function(){
           usinasCadastro[parseInt(inp.dataset.uidx, 10)][inp.dataset.ufield] = inp.value;
@@ -3816,16 +3824,37 @@
         el("importUsinasResult").textContent = msg;
         paintHistorico();
       });
-      xlEnhance(cardEl, "usinas-cadastro", [fields.length]);
+      xlEnhance(cardEl, "usinas-cadastro", [fields.length + 1]);
     }
+    usinasRepintar = paint;
     paint();
   }
 
   var nfesListOpen = true;
+  /* Edição de uma linha (Notas SEFAZ / Lançamentos PUZL): ✏️ abre os campos na própria linha.
+     O número da nota / documento da PUZL não muda (é a chave do registro). Salva sozinho no banco. */
+  var NF_ED = null, PZ_ED = null;
+  function bdPodeEditar(){ return !!ME && ME.papel !== "leitura"; }
+  function bdIn(attr, campo, val, tipo, lista){ return '<input ' + attr + '="' + campo + '" type="' + (tipo || "text") + '"' + (lista ? ' list="' + lista + '"' : "") + ' value="' + esc(val == null ? "" : val) + '">'; }
+  function bdListas(){
+    return '<datalist id="dlBdUsinas">' + usinasCadastro.map(function(u){ return '<option value="' + esc(u.usina) + '">'; }).join("") + '</datalist>' +
+      '<datalist id="dlBdForn">' + FABRICAS_CATALOGO.map(function(f){ return '<option value="' + esc(f.fornecedor) + '">'; }).join("") + '</datalist>';
+  }
   function paintNFes(){
     var el3 = el("nfesCard");
     if (!el3) return;
+    var podeEd = bdPodeEditar();
     var rows = cementNFes.map(function(nf){
+      if (NF_ED === nf.id && podeEd){
+        return '<tr class="bd-edit" data-nfid="'+nf.id+'"><td class="cell-strong">'+esc(nf.numero)+'</td>' +
+          '<td>'+bdIn("data-nfe", "emissao", toIsoDate(nf.emissao), "date")+'</td>' +
+          '<td>'+bdIn("data-nfe", "fornecedor", nf.fornecedor, "text", "dlBdForn")+'</td>' +
+          '<td>'+bdIn("data-nfe", "material", nf.material)+'</td><td class="faint" style="font-size:11px">automático</td>' +
+          '<td>'+bdIn("data-nfe", "pedido", nf.pedido)+'</td><td>'+bdIn("data-nfe", "placa", nf.placa)+'</td><td>'+bdIn("data-nfe", "motorista", nf.motorista)+'</td>' +
+          '<td>'+bdIn("data-nfe", "usina", nf.usina, "text", "dlBdUsinas")+'</td>' +
+          '<td><select data-nfe="status"><option'+(nf.status !== "Cancelada" ? " selected" : "")+'>Autorizada</option><option'+(nf.status === "Cancelada" ? " selected" : "")+'>Cancelada</option></select></td>' +
+          '<td><div class="bd-acoes"><button class="btn-primary btn-inline" data-nfsave="'+nf.id+'">Salvar</button><button class="btn-ghost" data-nfcancel="1">Cancelar</button></div></td></tr>';
+      }
       var confirmada = nfEntradaMatch(nf) !== null;
       var statusBadge = nfCancelada(nf)
         ? '<span class="badge danger">🚫 CANCELADA — só registro</span>'
@@ -3849,7 +3878,7 @@
         '<td class="muted">'+esc(nf.motorista||"")+'</td>' +
         '<td class="muted">'+esc(nf.usina)+'</td>' +
         '<td>'+statusBadge+'</td>' +
-        '<td style="padding:4px 6px;"><button class="btn-ghost" data-delnf="'+nf.id+'" style="padding:5px 8px;">🗑</button></td>' +
+        '<td style="padding:4px 6px;"><div class="bd-acoes">'+(podeEd ? '<button class="btn-ghost" data-ednf="'+nf.id+'" title="Alterar esta nota" style="padding:5px 8px;">✏️</button>' : '')+'<button class="btn-ghost" data-delnf="'+nf.id+'" style="padding:5px 8px;">🗑</button></div></td>' +
         '</tr>';
     }).join("");
     el3.innerHTML =
@@ -3861,6 +3890,16 @@
         : '<p class="prog-empty">Nenhuma nota importada ainda.</p>') +
       '</div></details>';
     el3.querySelector("details").addEventListener("toggle", function(e){ nfesListOpen = e.target.open; });
+    if (!el("bdListas")) document.body.insertAdjacentHTML("beforeend", '<div id="bdListas" hidden></div>');
+    el("bdListas").innerHTML = bdListas();
+    el3.querySelectorAll("[data-ednf]").forEach(function(btn){ btn.addEventListener("click", function(){ NF_ED = parseInt(btn.dataset.ednf, 10); paintNFes(); var p0 = el3.querySelector('tr.bd-edit input[data-nfe="emissao"]'); if (p0) p0.focus(); }); });
+    el3.querySelectorAll("[data-nfcancel]").forEach(function(btn){ btn.addEventListener("click", function(){ NF_ED = null; paintNFes(); }); });
+    el3.querySelectorAll("[data-nfsave]").forEach(function(btn){ btn.addEventListener("click", function(){
+      var nf = cementNFes.find(function(x){ return x.id === parseInt(btn.dataset.nfsave, 10); }), tr = btn.closest("tr"); if (!nf || !tr) return;
+      tr.querySelectorAll("[data-nfe]").forEach(function(i){ var v = String(i.value || "").trim(); if (i.dataset.nfe === "placa") v = v.toUpperCase(); nf[i.dataset.nfe] = v; });
+      NF_ED = null; recomputeEntradasFromPuzl(); paintNFes(); paintBaseDados();
+    }); });
+    el3.querySelectorAll("tr.bd-edit input").forEach(function(i){ i.addEventListener("keydown", function(ev){ if (ev.key === "Enter"){ ev.preventDefault(); var sv = el3.querySelector("[data-nfsave]"); if (sv) sv.click(); } else if (ev.key === "Escape"){ NF_ED = null; paintNFes(); } }); });
     el3.querySelectorAll("[data-delnf]").forEach(function(btn){
       btn.addEventListener("click", function(){
         cementNFes = cementNFes.filter(function(x){ return x.id !== parseInt(btn.dataset.delnf,10); });
@@ -3900,7 +3939,6 @@
       });
     });
     xlEnhance(el("historicoCard"), "historico", [5]);
-    if (typeof bdAbasPintar === "function") bdAbasPintar();
     paintBaseDadosStats();
   }
 
@@ -3928,7 +3966,6 @@
   // duplicada saiu daqui; o que resta em Base de Dados é o resumo (stats).
   function paintBaseDados(){
     paintBaseDadosStats();
-    bdAbasPintar();
   }
 
   /* ---------------- Controle de Pedidos de Cimento ---------------- */
@@ -4359,54 +4396,109 @@
     }
   }
 
-  /* ---------------- Códigos por Fornecedor ---------------- */
-  function renderCodigosCimento(){
-    var tabs = cementSuppliers.map(function(s){ return '<button class="btn-ghost" data-sup="'+s.id+'" style="font-weight:600;">'+esc(s.nome)+'</button>'; }).join("");
-    el("codigosCimentoCard").innerHTML =
-      '<details open style="margin-bottom:16px;">' +
-      '<summary style="cursor:pointer;padding:12px 18px;font-size:12.5px;font-weight:600;color:var(--accent-strong);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">🔑 Cadastros — Códigos por Fornecedor</summary>' +
-      '<div style="margin-top:8px;">' +
-      '<div class="card banner" style="margin-bottom:16px;display:flex;gap:10px;align-items:flex-start;">' +
-      '<span>🛡️</span><span>Login, senha e URL de portal de cada fornecedor não aparecem aqui de propósito — ficam fora do sistema por enquanto. Esta tela mostra apenas o código de cliente por usina e um resumo de como marcar o pedido.</span></div>' +
-      '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;" id="supTabs">'+tabs+'</div>' +
-      '<div class="card" id="supCard"></div>' +
-      '</div></details>';
-
-    function paint(id){
-      var s = cementSuppliers.find(function(x){ return x.id === id; });
-      el("supTabs").querySelectorAll("button").forEach(function(b){
-        var active = b.dataset.sup === id;
-        b.style.background = active ? "var(--accent-btn)" : "var(--surface)";
-        b.style.color = active ? "#fff" : "var(--text-muted)";
-        b.style.borderColor = active ? "var(--accent-btn)" : "var(--border-strong)";
-      });
-      var rows = s.codigos.map(function(c, i){
-        return '<tr>' +
-          '<td style="padding:4px 6px;"><input value="'+esc(c[0])+'" placeholder="Nome da usina" data-sup="'+id+'" data-idx="'+i+'" data-field="0" style="width:100%;border:1px solid transparent;border-radius:5px;padding:6px 8px;font-size:12.5px;background:transparent;color:var(--text);font-weight:600;" onfocus="this.style.borderColor=\'var(--accent)\'" onblur="this.style.borderColor=\'transparent\'"/></td>' +
-          '<td style="padding:4px 6px;"><input value="'+esc(c[1])+'" placeholder="Código de cliente" data-sup="'+id+'" data-idx="'+i+'" data-field="1" style="width:100%;border:1px solid transparent;border-radius:5px;padding:6px 8px;font-size:12.5px;background:transparent;color:var(--text);font-family:ui-monospace,monospace;" onfocus="this.style.borderColor=\'var(--accent)\'" onblur="this.style.borderColor=\'transparent\'"/></td></tr>';
-      }).join("");
-      var body =
-        '<div class="table-wrap"><table><thead><tr><th>Usina</th><th>Código de cliente</th></tr></thead><tbody id="supBody">' +
-        (rows || '<tr><td colspan="2" style="padding:16px 14px;font-size:12px;font-style:italic;color:var(--text-faint);">Este fornecedor ainda não tem código de cliente cadastrado por usina (ver observação acima).</td></tr>') +
-        '</tbody></table></div>' +
-        '<div class="prog-add" id="supAdd">+ adicionar código</div>';
-      el("supCard").innerHTML = '<div class="card-head"><div><h2>Códigos — '+esc(s.nome)+'</h2><p>'+esc(s.como)+'</p></div></div>' + body;
-
-      el("supBody").querySelectorAll("input").forEach(function(inp){
-        inp.addEventListener("change", function(){
-          s.codigos[parseInt(inp.dataset.idx,10)][parseInt(inp.dataset.field,10)] = inp.value;
-        });
-      });
-      el("supAdd").addEventListener("click", function(){
-        s.codigos.push(["", ""]);
-        paint(id);
-      });
-    }
-    el("supTabs").querySelectorAll("button").forEach(function(b){
-      b.addEventListener("click", function(){ paint(b.dataset.sup); });
+  /* ---------------- Códigos por Fornecedor ----------------
+     Código de cliente de cada usina em cada fornecedor + "como pedir". Fica no banco
+     (fornecedor_codigos / fornecedores.como_pedir) e é editável aqui. O que estava fixo
+     no código (cementSuppliers) e ainda não tem usina cadastrada aparece como pendente. */
+  var COD = { d: null, sel: null, msg: "", ruim: false, novo: {}, sure: null };
+  var COD_ANTIGO = JSON.parse(JSON.stringify(cementSuppliers));
+  function codAplicarNoSistema(){
+    // mantém cementSuppliers (usado na leitura das notas: código do cliente -> usina) igual ao banco
+    if (!COD.d) return;
+    COD.d.fornecedores.forEach(function(f){
+      if (!f.slug) return;
+      var alvo = cementSuppliers.find(function(x){ return x.id === f.slug; });
+      var cods = f.codigos.map(function(c){ return [c.usina, c.codigo]; });
+      (codPendentes(f) || []).forEach(function(pc){ cods.push([pc[0], pc[1]]); });
+      if (alvo){ alvo.codigos = cods; if (f.como) alvo.como = f.como; alvo.nome = f.nome; }
+      else cementSuppliers.push({ id: f.slug, nome: f.nome, como: f.como || "", codigos: cods });
     });
-    paint(cementSuppliers[0].id);
   }
+  function codPendentes(f){
+    var antigo = COD_ANTIGO.find(function(x){ return x.id === f.slug; }); if (!antigo) return [];
+    return antigo.codigos.filter(function(pc){ return !f.codigos.some(function(c){ return c.codigo === pc[1]; }) && !(COD.ignorar || {})[f.slug + "|" + pc[1]]; });
+  }
+  async function codCarregar(){
+    if (!ME || !sb) return;
+    var r; try { r = await sb.rpc("fornecedor_codigos_listar"); } catch (e){ r = { error: e }; }
+    if (r.error){ COD.msg = dbErr(r.error); COD.ruim = true; }
+    else if (r.data && Array.isArray(r.data.fornecedores)){ COD.d = r.data; codAplicarNoSistema(); if (!COD.sel || !COD.d.fornecedores.some(function(f){ return f.id === COD.sel; })){ var c1 = COD.d.fornecedores.find(function(f){ return f.codigos.length; }); COD.sel = (c1 || COD.d.fornecedores[0] || {}).id || null; } }
+    codPintar();
+  }
+  function renderCodigosCimento(){ codPintar(); codCarregar(); }
+  function codUsinaOpts(sel){
+    var us = (ENC.d && ENC.d.usinas) ? ENC.d.usinas.map(function(u){ return [u.usina_id, u.usina]; }) : [];
+    if (!us.length && COD.d) COD.d.fornecedores.forEach(function(f){ f.codigos.forEach(function(c){ if (!us.some(function(x){ return x[0] === c.usina_id; })) us.push([c.usina_id, c.usina]); }); });
+    return '<option value="">— escolha a usina —</option>' + us.map(function(u){ return '<option value="' + esc(u[0]) + '"' + (u[0] === sel ? " selected" : "") + '>' + esc(u[1]) + '</option>'; }).join("");
+  }
+  function codPintar(){
+    var card = el("codigosCimentoCard"); if (!card) return;
+    var D = COD.d, pode = !!D && D.pode && ME && ME.papel !== "leitura";
+    var h = '<div class="card"><div class="card-head"><div><h2>🔑 Códigos por fornecedor</h2><p>O código de cliente de cada usina em cada fornecedor e como fazer o pedido. Clique no campo para alterar — salva sozinho.' + (D && !pode ? " Somente leitura." : "") + '</p></div></div>' +
+      '<div class="adm-pad" style="padding-bottom:0"><div class="card banner" style="display:flex;gap:10px;align-items:flex-start;margin:0"><span>🛡️</span><span>Login, senha e endereço de portal de cada fornecedor não ficam aqui de propósito.</span></div></div>';
+    if (COD.msg) h += '<div class="adm-msg ' + (COD.ruim ? "bad" : "ok") + '" role="status">' + esc(COD.msg) + '</div>';
+    if (!D){ card.innerHTML = h + '<div class="adm-pad faint">Carregando…</div></div>'; return; }
+    var f = D.fornecedores.find(function(x){ return x.id === COD.sel; }) || D.fornecedores[0];
+    h += '<div class="adm-pad cod-tabs">' + D.fornecedores.map(function(x){ var n = x.codigos.length; return '<button type="button" class="cod-tab' + (f && x.id === f.id ? " on" : "") + '" data-cod="tab" data-f="' + esc(x.id) + '">' + esc(x.nome) + (n ? ' <span>' + n + '</span>' : "") + '</button>'; }).join("") + '</div>';
+    if (f){
+      var pend = codPendentes(f);
+      h += '<div class="adm-pad"><label class="cod-como"><b>Como pedir — ' + esc(f.nome) + '</b>' + (pode ? '<textarea data-cod="como" rows="2" maxlength="1000" placeholder="Ex.: pelo portal do cliente; informar código, quantidade, fábrica e placa.">' + esc(f.como || "") + '</textarea>' : '<span>' + (f.como ? esc(f.como) : '<span class="faint">—</span>') + '</span>') + '</label></div>';
+      h += '<div class="table-wrap"><table class="adm-tbl cod-tbl"><thead><tr><th>Usina</th><th>Código de cliente</th>' + (pode ? '<th></th>' : "") + '</tr></thead><tbody>';
+      f.codigos.forEach(function(c){
+        h += '<tr data-cid="' + esc(c.id) + '"><td>' + (pode ? '<select data-cod="usina">' + codUsinaOpts(c.usina_id) + '</select>' : esc(c.usina)) + '</td><td>' + (pode ? '<input data-cod="codigo" maxlength="40" value="' + esc(c.codigo) + '">' : '<code>' + esc(c.codigo) + '</code>') + '</td>' +
+          (pode ? '<td><button class="btn-ghost" data-cod="del" style="color:var(--danger)">' + (COD.sure === c.id ? "Confirmar excluir" : "🗑") + '</button></td>' : "") + '</tr>';
+      });
+      pend.forEach(function(pc){
+        h += '<tr class="cod-pend" data-pend="' + esc(pc[1]) + '"><td>' + (pode ? '<select data-cod="usina">' + codUsinaOpts("") + '</select>' : "") + '<div class="cod-aviso">⚠️ estava como “' + esc(pc[0]) + '” — escolha a usina cadastrada</div></td><td>' + (pode ? '<input data-cod="codigo" maxlength="40" value="' + esc(pc[1]) + '">' : '<code>' + esc(pc[1]) + '</code>') + '</td>' +
+          (pode ? '<td><button class="btn-ghost" data-cod="ignorar" title="Não usar este código">🗑</button></td>' : "") + '</tr>';
+      });
+      if (pode) h += '<tr class="cod-novo"><td><select data-cod="usina">' + codUsinaOpts(COD.novo.usina || "") + '</select></td><td><input data-cod="codigo" maxlength="40" placeholder="Novo código" value="' + esc(COD.novo.codigo || "") + '"></td><td><button class="btn-ghost" data-cod="add">+ Adicionar</button></td></tr>';
+      if (!f.codigos.length && !pend.length && !pode) h += '<tr><td colspan="2" class="faint">Nenhum código cadastrado para este fornecedor.</td></tr>';
+      h += '</tbody></table></div>';
+    }
+    card.innerHTML = h + '</div>';
+  }
+  (function(){
+    var card = el("codigosCimentoCard"); if (!card) return;
+    var forn = function(){ return COD.d && COD.d.fornecedores.find(function(x){ return x.id === COD.sel; }); };
+    var ok = function(m){ COD.msg = m; COD.ruim = false; };
+    var ruim = function(e){ COD.msg = typeof e === "string" ? e : dbErr(e); COD.ruim = true; codPintar(); };
+    async function salvarLinha(tr){
+      var f = forn(); if (!f) return;
+      var us = tr.querySelector('[data-cod="usina"]').value, cod = tr.querySelector('[data-cod="codigo"]').value.trim();
+      if (!us || !cod) return;   // ainda incompleto
+      var id = tr.dataset.cid || null;
+      var r = await sb.rpc("fornecedor_codigo_salvar", { p_id: id, p_fornecedor: f.id, p_usina: us, p_codigo: cod });
+      if (r.error) return ruim(r.error);
+      ok(f.nome + ": código salvo."); if (tr.classList.contains("cod-novo")) COD.novo = {};
+      await codCarregar();
+    }
+    card.addEventListener("change", async function(ev){
+      var t = ev.target, a = t.dataset && t.dataset.cod; if (!a) return;
+      if (a === "como"){ var f = forn(); if (!f) return; var r = await sb.rpc("fornecedor_como_salvar", { p_fornecedor: f.id, p_como: t.value }); if (r.error) return ruim(r.error); f.como = t.value.trim() || null; ok(f.nome + ": como pedir salvo."); codAplicarNoSistema(); codPintar(); return; }
+      var tr = t.closest("tr"); if (!tr) return;
+      if (tr.classList.contains("cod-novo")){ COD.novo[a] = t.value; return; }
+      salvarLinha(tr);
+    });
+    card.addEventListener("click", async function(ev){
+      var b = ev.target.closest && ev.target.closest("[data-cod]"); if (!b || b.tagName === "SELECT" || b.tagName === "INPUT" || b.tagName === "TEXTAREA") return;
+      var a = b.dataset.cod, tr = b.closest("tr");
+      if (a !== "del") COD.sure = null;
+      if (a === "tab"){ COD.sel = b.dataset.f; COD.msg = ""; COD.novo = {}; codPintar(); return; }
+      if (a === "add"){
+        var us = tr.querySelector('[data-cod="usina"]').value, cod = tr.querySelector('[data-cod="codigo"]').value.trim();
+        if (!us || !cod) return ruim("Escolha a usina e informe o código.");
+        b.disabled = true; return salvarLinha(tr);
+      }
+      if (a === "ignorar"){ COD.ignorar = COD.ignorar || {}; COD.ignorar[(forn() || {}).slug + "|" + tr.dataset.pend] = true; codAplicarNoSistema(); codPintar(); return; }
+      if (a === "del"){
+        var id = tr.dataset.cid; if (COD.sure !== id){ COD.sure = id; codPintar(); return; }
+        COD.sure = null; b.disabled = true;
+        var r = await sb.rpc("fornecedor_codigo_excluir", { p_id: id }); if (r.error) return ruim(r.error);
+        ok("Código excluído."); await codCarregar();
+      }
+    });
+  })();
 
   // Base de Fábricas: Fornecedor x Material — o que padroniza o campo
   // "Fábrica" na Programação (ver FABRICAS_CATALOGO). Sem usina/localização
@@ -5956,9 +6048,9 @@
     var semChaveEnc = C.encarregados.filter(function(e){ return e.ativo && !e.chave; }).length;
     var semChave = C.usinas.filter(function(u){ return !u.chave; }).length;
     var hEnc = "", hUs = "";
-    hEnc += '<div class="adm-pad faint" style="padding-top:0">O cadastro dos encarregados e das usinas de cada um fica em <b>Dados › Base de Dados</b>. Aqui você gera, copia e desativa as chaves.</div>';
+    hEnc += '<div class="adm-pad faint" style="padding-top:0">O cadastro dos encarregados e das usinas de cada um fica em <b>Base de Dados › Usinas e encarregados</b>. Aqui você gera, copia e desativa as chaves.</div>';
     hEnc += admKBarra("enc", "Buscar encarregado, usina ou final da chave…", '<button class="btn-ghost" data-cact="lote-enc"' + (semChaveEnc ? "" : " disabled") + '>Gerar chaves dos ' + semChaveEnc + ' encarregado(s) sem chave</button>');
-    if (!C.encarregados.length) hEnc += '<div class="adm-pad faint">Nenhum encarregado cadastrado ainda (cadastre em Base de Dados).</div>';
+    if (!C.encarregados.length) hEnc += '<div class="adm-pad faint">Nenhum encarregado cadastrado ainda (cadastre em Base de Dados › Usinas e encarregados).</div>';
     else hEnc += admKTabela("enc", ["Encarregado", "Usinas"], C.encarregados.map(function(e){
       var us = (e.usinas || []).map(function(id){ var u = C.usinas.find(function(x){ return x.usina_id === id; }); return u ? u.usina : "?"; });
       return admKLinha("enc", { attr: 'data-eid="' + esc(e.id) + '"', nome: e.nome, rel: us.join(", "), chave: e.chave,
@@ -6333,7 +6425,7 @@
     c.title = !on ? "Sem conexão em tempo real: a tela se atualiza sozinha a cada 45 s e no botão Atualizar." :
       (PRES.peers.length ? PRES.peers.map(function(p){ return p.nome + " — " + (p.key ? "editando " + p.key + " (" + (p.iso.split("-").reverse().slice(0, 2).join("/")) + ")" : "em " + (p.ver || "…")); }).join("\n") : "Você está sozinho(a) agora. Alterações de outras pessoas aparecem aqui na hora.");
   }
-  window.__onView = function(id){ presTrack(); if (id === "solicitacoes"){ SOL.filtro = "todas"; solCarregar(false); } if (id === "base-dados-cimento") encCarregar(); };
+  window.__onView = function(id){ presTrack(); if (id === "solicitacoes"){ SOL.filtro = "todas"; solCarregar(false); } if (id === "bd-usinas" || id === "bd-fabricas") encCarregar(); if (id === "bd-fabricas") codCarregar(); };
   function presIniciar(){
     if (!ME || PRES.ch) return;
     var ch = sb.channel("prog-" + ME.empresa_id, { config: { private: true, presence: { key: ME.id } } });
@@ -6643,62 +6735,77 @@
     encPintar();
   }
   function encPintar(){
+    if (typeof usinasRepintar === "function") usinasRepintar();   // coluna Encarregado da tabela de usinas
     var v = el("encarregadosCard"); if (!v) return;
     var D = ENC.d, pode = !!D && D.pode && ME && ME.papel !== "leitura";
-    var h = '<div class="card"><div class="card-head"><div><h2>👷 Encarregados e usinas</h2><p>Cada usina tem um único encarregado. Essas associações são a base do link de Solicitação de Cimento e do resto do sistema.' + (D && !pode ? " Somente leitura." : "") + '</p></div></div>';
+    var h = '<div class="card"><div class="card-head"><div><h2>👷 Encarregados</h2><p>Quem responde pelas usinas. Escolha o encarregado de cada usina na coluna <b>Encarregado</b> da tabela acima; aqui ficam o nome e os contatos de cada um (clique no campo para alterar — salva sozinho).' + (D && !pode ? " Somente leitura." : "") + '</p></div></div>';
     if (ENC.msg) h += '<div class="adm-msg ' + (ENC.ruim ? "bad" : "ok") + '" role="status">' + esc(ENC.msg) + '</div>';
     if (!D){ h += '<div class="adm-pad faint">' + (ENC.carregando ? "Carregando…" : "Sem dados ainda. Reabra esta tela.") + '</div></div>'; v.innerHTML = h; return; }
+    var sem = D.usinas.filter(function(u){ return !u.encarregado_id; });
+    h += '<div class="adm-pad" style="font-size:12.5px;color:var(--text-muted);padding-bottom:0">' + (sem.length ? '<span class="badge warning">' + sem.length + ' usina(s) sem encarregado</span> ' + esc(sem.map(function(u){ return u.usina; }).join(", ")) : '✔ Todas as usinas têm encarregado.') + '</div>';
     if (pode) h += '<div class="adm-pad adm-novo"><input type="text" id="encNovo" maxlength="80" placeholder="Nome do novo encarregado" value="' + esc(ENC.novo) + '"><button type="button" class="btn-ghost" data-enc="novo">+ Adicionar encarregado</button></div>';
     var nome = {}; D.usinas.forEach(function(u){ nome[u.usina_id] = u.usina; });
     if (!D.encarregados.length) h += '<div class="adm-pad faint">Nenhum encarregado cadastrado ainda.</div>';
     else {
-      h += '<div class="table-wrap"><table class="adm-tbl enc-tbl"><thead><tr><th>Encarregado</th><th>Contato</th><th>Usinas</th>' + (pode ? '<th></th>' : "") + '</tr></thead><tbody>';
+      var campo = function(e, f, ph, tipo){ return pode ? '<input class="enc-in" type="' + (tipo || "text") + '" data-encf="' + f + '" maxlength="' + (f === "email" ? 120 : f === "nome" ? 80 : 30) + '" placeholder="' + ph + '" value="' + esc(e[f] || "") + '">' : (e[f] ? esc(e[f]) : '<span class="faint">—</span>'); };
+      h += '<div class="table-wrap"><table class="adm-tbl enc-tbl"><thead><tr><th>Encarregado</th><th>WhatsApp</th><th>E-mail</th><th>Usinas</th>' + (pode ? '<th></th>' : "") + '</tr></thead><tbody>';
       D.encarregados.forEach(function(e){
         var us = (e.usinas || []).map(function(id){ return nome[id] || "?"; }).sort();
-        h += '<tr data-eid="' + esc(e.id) + '"><td class="cell-strong">' + esc(e.nome) + (e.ativo ? "" : ' <span class="badge danger">desativado</span>') + '</td>' +
-          '<td class="muted" style="white-space:normal;font-size:12px">' + (e.whatsapp ? esc(e.whatsapp) : '<span class="faint">sem WhatsApp</span>') + '<br>' + (e.email ? esc(e.email) : '<span class="faint">sem e-mail</span>') + '</td>' +
-          '<td class="muted" style="white-space:normal">' + (us.length ? '<b>' + us.length + '</b> · ' + esc(us.join(", ")) : '<span class="faint">nenhuma usina</span>') + '</td>' +
-          (pode ? '<td><div class="adm-acoes"><button class="btn-ghost" data-enc="usinas">' + (ENC.edit === e.id ? "Fechar" : "Associar usinas") + '</button>' +
-            '<button class="btn-ghost" data-enc="ativo">' + (e.ativo ? (ENC.sure === e.id ? "Confirmar desativar" : "Desativar") : "Ativar") + '</button></div></td>' : "") + '</tr>';
-        if (pode && ENC.edit === e.id){
-          h += '<tr class="adm-edit"><td colspan="4"><div class="adm-pad"><b>Usinas de ' + esc(e.nome) + '</b> <span class="faint">(marcar uma usina de outro encarregado passa ela para este)</span><div class="adm-grid-us">' +
-            D.usinas.map(function(u){
-              var outro = u.encarregado_id && u.encarregado_id !== e.id ? D.encarregados.find(function(x){ return x.id === u.encarregado_id; }) : null;
-              return '<label class="adm-us"><input type="checkbox" data-encu="' + esc(u.usina_id) + '"' + (ENC.sel.indexOf(u.usina_id) >= 0 ? " checked" : "") + '> ' + esc(u.usina) + (outro ? ' <span class="faint">(' + esc(outro.nome) + ')</span>' : "") + '</label>';
-            }).join("") + '</div><div class="adm-acoes" style="margin-top:10px"><button class="btn-primary btn-inline" data-enc="salvar">Salvar usinas</button><button class="btn-ghost" data-enc="cancelar">Cancelar</button></div></div></td></tr>';
-        }
+        h += '<tr data-eid="' + esc(e.id) + '"' + (e.ativo ? "" : ' class="enc-off"') + '><td class="cell-strong">' + campo(e, "nome", "Nome") + (e.ativo ? "" : ' <span class="badge danger">desativado</span>') + '</td>' +
+          '<td>' + campo(e, "whatsapp", "+55 …", "tel") + '</td><td>' + campo(e, "email", "nome@concrelagos.com", "email") + '</td>' +
+          '<td class="muted" title="' + esc(us.join(", ")) + '">' + (us.length ? '<b>' + us.length + '</b> usina' + (us.length > 1 ? "s" : "") : '<span class="faint">nenhuma</span>') + '</td>' +
+          (pode ? '<td><div class="adm-acoes"><button class="btn-ghost" data-enc="ativo">' + (e.ativo ? (ENC.sure === e.id ? "Confirmar desativar" : "Desativar") : "Ativar") + '</button></div></td>' : "") + '</tr>';
       });
       h += '</tbody></table></div>';
     }
-    var sem = D.usinas.filter(function(u){ return !u.encarregado_id; });
-    h += '<div class="adm-pad" style="font-size:12.5px;color:var(--text-muted)">' + (sem.length ? '<span class="badge warning">' + sem.length + ' usina(s) sem encarregado</span> ' + esc(sem.map(function(u){ return u.usina; }).join(", ")) : '✔ Todas as usinas têm encarregado.') + '</div>';
     h += '</div>';
-    v.innerHTML = h; bdAbasPintar();
+    v.innerHTML = h;
+  }
+  async function encDefinirUsina(usinaId, encId, sel){
+    if (sel) sel.disabled = true;
+    var r; try { r = await sb.rpc("encarregado_da_usina", { p_usina: usinaId, p_encarregado: encId || null }); } catch (e){ r = { error: e }; }
+    if (r.error){ ENC.msg = dbErr(r.error); ENC.ruim = true; }
+    else { var u = ENC.d && ENC.d.usinas.find(function(x){ return x.usina_id === usinaId; }); var en = encId && ENC.d.encarregados.find(function(x){ return x.id === encId; });
+      ENC.msg = (u ? u.usina : "Usina") + (en ? ": encarregado agora é " + en.nome + "." : ": ficou sem encarregado."); ENC.ruim = false; }
+    await encCarregar();
   }
   (function(){
-    var v = el("view-base-dados-cimento"); if (!v) return;
+    var v = el("view-bd-usinas"); if (!v) return;
     v.addEventListener("input", function(ev){ if (ev.target.id === "encNovo") ENC.novo = ev.target.value; });
-    v.addEventListener("change", function(ev){
-      var t = ev.target; if (!t.dataset || t.dataset.encu === undefined) return;
-      var i = ENC.sel.indexOf(t.dataset.encu);
-      if (t.checked && i < 0) ENC.sel.push(t.dataset.encu); else if (!t.checked && i >= 0) ENC.sel.splice(i, 1);
+    v.addEventListener("keydown", function(ev){
+      if (ev.key !== "Enter") return;
+      if (ev.target.id === "encNovo"){ ev.preventDefault(); var b = v.querySelector('[data-enc="novo"]'); if (b) b.click(); }
+      else if (ev.target.dataset && ev.target.dataset.encf){ ev.preventDefault(); ev.target.blur(); }
+    });
+    v.addEventListener("change", async function(ev){
+      var t = ev.target;
+      if (t.dataset && t.dataset.uenc !== undefined){ encDefinirUsina(t.dataset.uenc, t.value, t); return; }
+      if (!t.dataset || !t.dataset.encf || !ENC.d) return;
+      var tr = t.closest("tr"), e = ENC.d.encarregados.find(function(x){ return x.id === (tr && tr.dataset.eid); }); if (!e) return;
+      var f = t.dataset.encf, val = t.value.trim(), r;
+      if (f === "nome"){
+        if (val.length < 2){ ENC.msg = "Informe o nome do encarregado (2 a 80 letras)."; ENC.ruim = true; encPintar(); return; }
+        r = await sb.rpc("admin_encarregado_salvar", { p_id: e.id, p_nome: val, p_ativo: e.ativo });
+      } else {
+        var w = f === "whatsapp" ? val : (e.whatsapp || ""), m = f === "email" ? val : (e.email || "");
+        r = await sb.rpc("encarregado_contato_salvar", { p_id: e.id, p_whatsapp: w || null, p_email: m || null });
+      }
+      if (r.error){ ENC.msg = dbErr(r.error); ENC.ruim = true; encPintar(); return; }
+      e[f] = f === "email" ? val.toLowerCase() : val; ENC.msg = e.nome + ": " + (f === "nome" ? "nome" : f === "email" ? "e-mail" : "WhatsApp") + " salvo."; ENC.ruim = false;
+      var foco = document.activeElement && document.activeElement.dataset ? [document.activeElement.closest("tr") && document.activeElement.closest("tr").dataset.eid, document.activeElement.dataset.encf] : null;
+      encPintar();
+      if (foco && foco[0]){ var n = v.querySelector('tr[data-eid="' + foco[0] + '"] [data-encf="' + foco[1] + '"]'); if (n) n.focus(); }
     });
     v.addEventListener("click", async function(ev){
       var b = ev.target.closest && ev.target.closest("[data-enc]"); if (!b || b.disabled || !ENC.d) return;
       var a = b.dataset.enc, tr = b.closest("tr"), eid = tr && tr.dataset.eid;
-      var falha = function(e){ ENC.msg = dbErr(e); ENC.ruim = true; ENC.sure = null; encPintar(); };
-      if (a === "usinas"){ var e0 = ENC.d.encarregados.find(function(x){ return x.id === eid; }); ENC.edit = ENC.edit === eid ? null : eid; ENC.sel = e0 ? (e0.usinas || []).slice() : []; ENC.msg = ""; encPintar(); return; }
-      if (a === "cancelar"){ ENC.edit = null; encPintar(); return; }
+      var falha = function(e){ ENC.msg = dbErr(e); ENC.ruim = true; ENC.sure = null; b.disabled = false; encPintar(); };
       b.disabled = true;
       if (a === "novo"){
         var nm = (ENC.novo || "").trim(); if (nm.length < 2){ ENC.msg = "Informe o nome do encarregado."; ENC.ruim = true; encPintar(); return; }
         var r = await sb.rpc("admin_encarregado_salvar", { p_id: null, p_nome: nm, p_ativo: true });
         if (r.error) return falha(r.error);
-        ENC.novo = ""; ENC.msg = "Encarregado “" + nm + "” cadastrado. Agora associe as usinas dele."; ENC.ruim = false; await encCarregar();
-      } else if (a === "salvar"){
-        var r2 = await sb.rpc("admin_encarregado_usinas", { p_encarregado: ENC.edit, p_usinas: ENC.sel });
-        if (r2.error) return falha(r2.error);
-        ENC.edit = null; ENC.msg = "Usinas do encarregado atualizadas."; ENC.ruim = false; await encCarregar();
+        ENC.novo = ""; ENC.msg = "Encarregado “" + nm + "” cadastrado. Escolha as usinas dele na coluna Encarregado da tabela de usinas."; ENC.ruim = false; await encCarregar();
       } else if (a === "ativo"){
         var e = ENC.d.encarregados.find(function(x){ return x.id === eid; }); if (!e) return;
         if (e.ativo && ENC.sure !== eid){ ENC.sure = eid; encPintar(); return; }
@@ -6785,7 +6892,7 @@
     });
     h += '<td class="cc-ini"><input id="ccObs" maxlength="200" placeholder="Observação" value="' + esc(e.obs || "") + '"></td>' +
       '<td><div class="adm-acoes"><button class="btn-primary btn-inline" data-cc="salvar">Salvar</button><button class="btn-ghost" data-cc="fechar">Cancelar</button></div></td></tr>';
-    h += '<tr class="cc-edit-info"><td colspan="12"><span class="faint">As opções são as fábricas da <b>Base de Fábricas</b> (Base de Dados). Troca planejada: escolha o cimento novo em <b>Troca de cimento</b> e a <b>Data da troca</b>; quando a troca acontecer, use <b>✔ Feita</b>. Mudar o <b>Cimento atual</b> direto também fica no histórico, com a data de hoje.</span>' +
+    h += '<tr class="cc-edit-info"><td colspan="12"><span class="faint">As opções são as fábricas de <b>Base de Dados › Fábricas e cimentos</b>. Troca planejada: escolha o cimento novo em <b>Troca de cimento</b> e a <b>Data da troca</b>; quando a troca acontecer, use <b>✔ Feita</b>. Mudar o <b>Cimento atual</b> direto também fica no histórico, com a data de hoje.</span>' +
       (e.erro ? '<div style="color:var(--danger);font-size:12.5px;margin-top:4px">' + esc(e.erro) + '</div>' : "") + '</td></tr>';
     return h;
   }
