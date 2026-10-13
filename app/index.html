@@ -324,13 +324,32 @@
   .cod-tab span{font-size:11px; opacity:.8; margin-left:2px;} .cod-tab.on{background:var(--accent-btn); border-color:var(--accent-btn); color:#fff;}
   .cod-como{display:flex; flex-direction:column; gap:6px; font-size:12.5px; max-width:900px;}
   .cod-como textarea, .cod-tbl input, .cod-tbl select, .bd-edit input, .bd-edit select{background:var(--surface-2); color:var(--text); border:1px solid var(--border-strong); border-radius:6px; padding:6px 8px; font:inherit; font-size:12.5px;}
-  .cod-como textarea{resize:vertical;} .cod-tbl input{font-family:ui-monospace,monospace; width:160px;} .cod-tbl select{max-width:220px;}
+  .cod-como textarea{resize:vertical;} .cod-tbl input{font-family:ui-monospace,monospace; width:100%; min-width:100px;} .cod-tbl select{max-width:220px;}
   .cod-aviso{font-size:11px; color:var(--warning); margin-top:4px;}
   tr.bd-edit td{background:var(--surface-2); vertical-align:top;} .bd-edit input{width:100%; min-width:90px;} .bd-edit input[type=date]{min-width:130px; color-scheme:dark;}
   :root[data-theme="light"] .bd-edit input[type=date]{color-scheme:light;}
   .bd-acoes{display:flex; gap:4px; white-space:nowrap;}
   #usinasCadastroBody td:first-child input{min-width:140px; font-weight:600;}
   #encarregadosCard .table-wrap{max-height:none;} .enc-tbl td{vertical-align:middle;}
+  .fab-top{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:12px;}
+  .fab-top input, .fab-addmat input, .fab-cnpj input{background:var(--surface-2); color:var(--text); border:1px solid var(--border-strong); border-radius:6px; padding:7px 10px; font:inherit; font-size:12.5px;}
+  .fab-top > input{flex:0 1 280px;} .fab-novo{display:flex; gap:6px; flex:0 1 420px;} .fab-novo input{flex:1;}
+  .fab-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:12px; align-items:start;}
+  .fab-box{background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:12px 14px; transition:border-color .15s;}
+  .fab-box:hover{border-color:var(--border-strong);}
+  .fab-box.aberto{grid-column:1 / -1; border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset;}
+  .fab-head{display:flex; justify-content:space-between; gap:8px; align-items:flex-start; cursor:pointer;}
+  .fab-head b{display:block; font-size:14px;} .fab-cont{display:block; font-size:11.5px; color:var(--text-muted); margin-top:2px;}
+  .fab-seta{font-size:11.5px; color:var(--text-faint); white-space:nowrap;}
+  .fab-mats{display:flex; flex-wrap:wrap; gap:5px; margin-top:10px;}
+  .fab-mat{display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:700; padding:3px 9px; border-radius:99px; background:var(--success-soft); color:var(--success);}
+  .fab-mat button{background:none; border:0; color:inherit; cursor:pointer; font-weight:800; padding:0 0 0 2px; font-size:11px;}
+  .fab-addmat{display:flex; gap:6px; margin-top:10px; max-width:420px;} .fab-addmat input{flex:1;}
+  .fab-det{display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:18px; margin-top:16px; padding-top:14px; border-top:1px solid var(--border);}
+  .fab-sub{font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--text-faint); margin:10px 0 6px;}
+  .fab-col > .fab-sub:first-child{margin-top:0;}
+  .fab-cnpj td{padding:4px 6px !important;} .fab-cnpj input{width:100%;} .fab-cnpj input.mono{font-family:ui-monospace,monospace; min-width:160px;}
+  .fab-rodape{margin-top:14px; padding-top:10px; border-top:1px solid var(--border); text-align:right;}
   .bd-lead{margin:0 0 14px; font-size:13px; color:var(--text-muted); max-width:900px;}
   .silo-filtros{display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
   .silo-filtros input, .silo-filtros select{background:var(--surface-2); color:var(--text); border:1px solid var(--border-strong); border-radius:6px; padding:7px 10px; font-size:12.5px; font-family:inherit;}
@@ -848,7 +867,7 @@
       <section class="view" id="view-solicitacoes"></section>
       <section class="view" id="view-base-dados-cimento"></section>
       <section class="view" id="view-bd-usinas"><p class="bd-lead">Uma linha por usina: os dados da usina (sigla, CNPJ, regional, contatos, nome na PUZL) e o <b>encarregado</b> responsável. Os encarregados (nome, WhatsApp, e-mail) ficam logo abaixo. É daqui que o sistema reconhece a usina nas notas e nas entradas, e o que cada encarregado vê no link de Solicitação de Cimento.</p><div id="usinasCadastroCard" style="margin-bottom:16px;"></div><div id="encarregadosCard" style="margin-bottom:16px;"></div></section>
-      <section class="view" id="view-bd-fabricas"><p class="bd-lead">De onde vem o cimento: cada fornecedor e os materiais que ele entrega (as “fábricas” usadas na Programação e no Controle de cimento), o que conta como cimento na importação e os códigos de cada fornecedor.</p><div id="fabricasCatalogoCard" style="margin-bottom:16px;"></div><div id="catalogoCimentoCard" style="margin-bottom:16px;"></div><div id="codigosCimentoCard"></div></section>
+      <section class="view" id="view-bd-fabricas"><p class="bd-lead">Uma caixa para cada fornecedor, com os materiais que ele entrega (as “fábricas” usadas na Programação e no Controle de cimento). Clique na caixa para ver e alterar tudo dela: materiais, como pedir, códigos de cliente por usina e CNPJs.</p><div id="fabricasCatalogoCard" style="margin-bottom:16px;"></div><div id="catalogoCimentoCard" style="margin-bottom:16px;"></div></section>
       <section class="view" id="view-notas-sefaz"></section>
       <section class="view" id="view-lancamentos-puzl"></section>
       <section class="view" id="view-silos"></section>
@@ -3557,7 +3576,7 @@
       }).join(" ");
       var inputCss = 'flex:1;border:1px solid var(--border-strong);border-radius:6px;padding:7px 10px;font-size:12.5px;background:var(--surface);color:var(--text);';
       cardEl.innerHTML =
-        '<details open style="margin-bottom:0;"><summary style="cursor:pointer;padding:12px 18px;font-size:12.5px;font-weight:600;color:var(--accent-strong);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">🏷️ Catálogo de Cimentos — o que conta como cimento na importação ('+CEMENTO_CATALOGO.length+' termos, '+CEMENTO_EXCLUIR.length+' exceção(ões))</summary>' +
+        '<details style="margin-bottom:0;"><summary style="cursor:pointer;padding:12px 18px;font-size:12.5px;font-weight:600;color:var(--accent-strong);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">🏷️ Catálogo de Cimentos — o que conta como cimento na importação ('+CEMENTO_CATALOGO.length+' termos, '+CEMENTO_EXCLUIR.length+' exceção(ões))</summary>' +
         '<div class="card" style="margin-top:8px;">' +
         '<p class="import-card-desc" style="margin:0 0 10px;">Ao importar Notas Fiscais (SEFAZ) e Lançamentos (PUZL), só entra a linha cujo Material contenha um destes termos (sem diferenciar maiúsculas, acentos, espaços ou pontuação). Adicione aqui quando surgir um cimento novo. As alterações são gravadas no banco automaticamente.</p>' +
         '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">'+(chips || '<span class="faint" style="font-style:italic;">Nenhum termo cadastrado — nada será reconhecido como cimento.</span>')+'</div>' +
@@ -4431,43 +4450,44 @@
     var r; try { r = await sb.rpc("fornecedor_codigos_listar"); } catch (e){ r = { error: e }; }
     if (r.error){ COD.msg = dbErr(r.error); COD.ruim = true; }
     else if (r.data && Array.isArray(r.data.fornecedores)){ COD.d = r.data; codAplicarNoSistema(); if (!COD.sel || !COD.d.fornecedores.some(function(f){ return f.id === COD.sel; })){ var c1 = COD.d.fornecedores.find(function(f){ return f.codigos.length; }); COD.sel = (c1 || COD.d.fornecedores[0] || {}).id || null; } }
-    codPintar();
+    renderFabricasCatalogo();
   }
   function renderCodigosCimento(){ codPintar(); codCarregar(); }
+  function codUsinaPorNome(nome){
+    var k = siloNorm(nome).trim(), us = (ENC.d && ENC.d.usinas) || [];
+    var u = us.find(function(x){ return siloNorm(x.usina).trim() === k; }); return u ? u.usina_id : "";
+  }
   function codUsinaOpts(sel){
     var us = (ENC.d && ENC.d.usinas) ? ENC.d.usinas.map(function(u){ return [u.usina_id, u.usina]; }) : [];
     if (!us.length && COD.d) COD.d.fornecedores.forEach(function(f){ f.codigos.forEach(function(c){ if (!us.some(function(x){ return x[0] === c.usina_id; })) us.push([c.usina_id, c.usina]); }); });
     return '<option value="">— escolha a usina —</option>' + us.map(function(u){ return '<option value="' + esc(u[0]) + '"' + (u[0] === sel ? " selected" : "") + '>' + esc(u[1]) + '</option>'; }).join("");
   }
+  function codFornDb(nome){ return COD.d ? COD.d.fornecedores.find(function(x){ return String(x.nome).trim().toUpperCase() === String(nome || "").trim().toUpperCase(); }) : null; }
   function codPintar(){
-    var card = el("codigosCimentoCard"); if (!card) return;
+    var card = el("fabCodBox"); if (!card) return;
     var D = COD.d, pode = !!D && D.pode && ME && ME.papel !== "leitura";
-    var h = '<div class="card"><div class="card-head"><div><h2>🔑 Códigos por fornecedor</h2><p>O código de cliente de cada usina em cada fornecedor e como fazer o pedido. Clique no campo para alterar — salva sozinho.' + (D && !pode ? " Somente leitura." : "") + '</p></div></div>' +
-      '<div class="adm-pad" style="padding-bottom:0"><div class="card banner" style="display:flex;gap:10px;align-items:flex-start;margin:0"><span>🛡️</span><span>Login, senha e endereço de portal de cada fornecedor não ficam aqui de propósito.</span></div></div>';
-    if (COD.msg) h += '<div class="adm-msg ' + (COD.ruim ? "bad" : "ok") + '" role="status">' + esc(COD.msg) + '</div>';
-    if (!D){ card.innerHTML = h + '<div class="adm-pad faint">Carregando…</div></div>'; return; }
-    var f = D.fornecedores.find(function(x){ return x.id === COD.sel; }) || D.fornecedores[0];
-    h += '<div class="adm-pad cod-tabs">' + D.fornecedores.map(function(x){ var n = x.codigos.length; return '<button type="button" class="cod-tab' + (f && x.id === f.id ? " on" : "") + '" data-cod="tab" data-f="' + esc(x.id) + '">' + esc(x.nome) + (n ? ' <span>' + n + '</span>' : "") + '</button>'; }).join("") + '</div>';
-    if (f){
-      var pend = codPendentes(f);
-      h += '<div class="adm-pad"><label class="cod-como"><b>Como pedir — ' + esc(f.nome) + '</b>' + (pode ? '<textarea data-cod="como" rows="2" maxlength="1000" placeholder="Ex.: pelo portal do cliente; informar código, quantidade, fábrica e placa.">' + esc(f.como || "") + '</textarea>' : '<span>' + (f.como ? esc(f.como) : '<span class="faint">—</span>') + '</span>') + '</label></div>';
-      h += '<div class="table-wrap"><table class="adm-tbl cod-tbl"><thead><tr><th>Usina</th><th>Código de cliente</th>' + (pode ? '<th></th>' : "") + '</tr></thead><tbody>';
-      f.codigos.forEach(function(c){
-        h += '<tr data-cid="' + esc(c.id) + '"><td>' + (pode ? '<select data-cod="usina">' + codUsinaOpts(c.usina_id) + '</select>' : esc(c.usina)) + '</td><td>' + (pode ? '<input data-cod="codigo" maxlength="40" value="' + esc(c.codigo) + '">' : '<code>' + esc(c.codigo) + '</code>') + '</td>' +
-          (pode ? '<td><button class="btn-ghost" data-cod="del" style="color:var(--danger)">' + (COD.sure === c.id ? "Confirmar excluir" : "🗑") + '</button></td>' : "") + '</tr>';
-      });
-      pend.forEach(function(pc){
-        h += '<tr class="cod-pend" data-pend="' + esc(pc[1]) + '"><td>' + (pode ? '<select data-cod="usina">' + codUsinaOpts("") + '</select>' : "") + '<div class="cod-aviso">⚠️ estava como “' + esc(pc[0]) + '” — escolha a usina cadastrada</div></td><td>' + (pode ? '<input data-cod="codigo" maxlength="40" value="' + esc(pc[1]) + '">' : '<code>' + esc(pc[1]) + '</code>') + '</td>' +
-          (pode ? '<td><button class="btn-ghost" data-cod="ignorar" title="Não usar este código">🗑</button></td>' : "") + '</tr>';
-      });
-      if (pode) h += '<tr class="cod-novo"><td><select data-cod="usina">' + codUsinaOpts(COD.novo.usina || "") + '</select></td><td><input data-cod="codigo" maxlength="40" placeholder="Novo código" value="' + esc(COD.novo.codigo || "") + '"></td><td><button class="btn-ghost" data-cod="add">+ Adicionar</button></td></tr>';
-      if (!f.codigos.length && !pend.length && !pode) h += '<tr><td colspan="2" class="faint">Nenhum código cadastrado para este fornecedor.</td></tr>';
-      h += '</tbody></table></div>';
-    }
-    card.innerHTML = h + '</div>';
+    var h = COD.msg ? '<div class="adm-msg ' + (COD.ruim ? "bad" : "ok") + '" role="status" style="margin:0 0 8px">' + esc(COD.msg) + '</div>' : "";
+    if (!D){ card.innerHTML = h + '<div class="faint">Carregando…</div>'; return; }
+    var f = codFornDb(card.dataset.forn);
+    if (!f){ card.innerHTML = h + '<div class="faint">Fornecedor ainda não salvo no banco — aguarde um instante e abra de novo.</div>'; return; }
+    COD.sel = f.id;
+    var pend = codPendentes(f);
+    h += '<label class="cod-como"><b>Como pedir</b>' + (pode ? '<textarea data-cod="como" rows="2" maxlength="1000" placeholder="Ex.: pelo portal do cliente; informar código, quantidade, fábrica e placa.">' + esc(f.como || "") + '</textarea>' : '<span>' + (f.como ? esc(f.como) : '<span class="faint">—</span>') + '</span>') + '</label>';
+    h += '<div class="fab-sub">Códigos de cliente por usina (' + f.codigos.length + ')</div><div class="table-wrap" style="max-height:none"><table class="adm-tbl cod-tbl"><thead><tr><th>Usina</th><th>Código</th>' + (pode ? '<th></th>' : "") + '</tr></thead><tbody>';
+    f.codigos.forEach(function(c){
+      h += '<tr data-cid="' + esc(c.id) + '"><td>' + (pode ? '<select data-cod="usina">' + codUsinaOpts(c.usina_id) + '</select>' : esc(c.usina)) + '</td><td>' + (pode ? '<input data-cod="codigo" maxlength="40" value="' + esc(c.codigo) + '">' : '<code>' + esc(c.codigo) + '</code>') + '</td>' +
+        (pode ? '<td><button class="btn-ghost" data-cod="del" style="color:var(--danger)">' + (COD.sure === c.id ? "Confirmar excluir" : "🗑") + '</button></td>' : "") + '</tr>';
+    });
+    pend.forEach(function(pc){
+      h += '<tr class="cod-pend" data-pend="' + esc(pc[1]) + '"><td>' + (pode ? '<select data-cod="usina">' + codUsinaOpts(codUsinaPorNome(pc[0])) + '</select>' : "") + '<div class="cod-aviso">⚠️ estava como “' + esc(pc[0]) + '” — escolha a usina cadastrada</div></td><td>' + (pode ? '<input data-cod="codigo" maxlength="40" value="' + esc(pc[1]) + '">' : '<code>' + esc(pc[1]) + '</code>') + '</td>' +
+        (pode ? '<td><button class="btn-ghost" data-cod="ignorar" title="Não usar este código">🗑</button></td>' : "") + '</tr>';
+    });
+    if (pode) h += '<tr class="cod-novo"><td><select data-cod="usina">' + codUsinaOpts(COD.novo.usina || "") + '</select></td><td><input data-cod="codigo" maxlength="40" placeholder="Novo código" value="' + esc(COD.novo.codigo || "") + '"></td><td><button class="btn-ghost" data-cod="add">+ Adicionar</button></td></tr>';
+    else if (!f.codigos.length) h += '<tr><td colspan="2" class="faint">Nenhum código cadastrado.</td></tr>';
+    card.innerHTML = h + '</tbody></table></div><p class="faint" style="font-size:11.5px;margin:6px 0 0">🛡️ Login, senha e endereço de portal não ficam aqui de propósito.</p>';
   }
   (function(){
-    var card = el("codigosCimentoCard"); if (!card) return;
+    var card = el("view-bd-fabricas"); if (!card) return;
     var forn = function(){ return COD.d && COD.d.fornecedores.find(function(x){ return x.id === COD.sel; }); };
     var ok = function(m){ COD.msg = m; COD.ruim = false; };
     var ruim = function(e){ COD.msg = typeof e === "string" ? e : dbErr(e); COD.ruim = true; codPintar(); };
@@ -4492,7 +4512,6 @@
       var b = ev.target.closest && ev.target.closest("[data-cod]"); if (!b || b.tagName === "SELECT" || b.tagName === "INPUT" || b.tagName === "TEXTAREA") return;
       var a = b.dataset.cod, tr = b.closest("tr");
       if (a !== "del") COD.sure = null;
-      if (a === "tab"){ COD.sel = b.dataset.f; COD.msg = ""; COD.novo = {}; codPintar(); return; }
       if (a === "add"){
         var us = tr.querySelector('[data-cod="usina"]').value, cod = tr.querySelector('[data-cod="codigo"]').value.trim();
         if (!us || !cod) return ruim("Escolha a usina e informe o código.");
@@ -4514,127 +4533,92 @@
   // é a linha da Programação. Editável: adicionar/remover fornecedor, e por
   // fornecedor adicionar/remover material (mesmo padrão de chips do Catálogo
   // de Cimentos).
+  // Base de Fábricas em caixas: uma por fornecedor. Fechada mostra nome, contagens e materiais;
+  // aberta (ocupa a linha toda) permite alterar materiais, como pedir, códigos por usina e CNPJs.
+  // Os dados continuam em FABRICAS_CATALOGO (salvos sozinhos pelo sync_fabricas).
+  var FAB = { aberto: null, q: "", sureDel: false, novoMat: "" };
   function renderFabricasCatalogo(){
     var cardEl = el("fabricasCatalogoCard");
     if (!cardEl) return;
-    var activeIdx = 0;
-    var detailsOpen = true;
-    function paint(){
-      if (activeIdx >= FABRICAS_CATALOGO.length) activeIdx = 0;
-      var tabs = FABRICAS_CATALOGO.map(function(f, i){
-        return '<button class="btn-ghost" data-fidx="'+i+'" style="font-weight:600;">'+esc(f.fornecedor)+'</button>';
-      }).join("");
-      // Repinta o painel inteiro a cada ação (trocar de aba, adicionar/remover
-      // fornecedor ou material) — sem o atributo "open" aqui, o <details>
-      // fecharia sozinho a cada clique, então o estado é guardado à parte e
-      // reaplicado (com um listener de "toggle" pra continuar acompanhando
-      // se o usuário abrir/fechar manualmente).
-      cardEl.innerHTML =
-        '<details style="margin-bottom:0;"'+(detailsOpen?" open":"")+'><summary style="cursor:pointer;padding:12px 18px;font-size:12.5px;font-weight:600;color:var(--accent-strong);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">🏗️ Base de Fábricas — Fornecedor x Material ('+FABRICAS_CATALOGO.length+')</summary>' +
-        '<div class="card" style="margin-top:8px;">' +
-        '<p class="import-card-desc" style="margin:0 0 10px;">Padroniza o campo Fábrica na Programação de Cimento: escolhe fornecedor + material numa lista em vez de digitar livre. Sem usina aqui — a usina já é a linha da Programação.</p>' +
-        '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;" id="fabTabs">'+tabs+'</div>' +
-        '<div style="display:flex;gap:8px;margin-bottom:16px;">' +
-        '<input id="fabNovoFornecedor" type="text" placeholder="Novo fornecedor (ex: Polimix)" style="flex:1;border:1px solid var(--border-strong);border-radius:6px;padding:7px 10px;font-size:12.5px;background:var(--surface);color:var(--text);"/>' +
-        '<button class="btn-primary" id="fabAddFornecedorBtn" style="padding:7px 14px;">+ fornecedor</button>' +
-        '</div>' +
-        '<div id="fabMateriaisCard"></div>' +
-        '</div></details>';
-
-      cardEl.querySelector("details").addEventListener("toggle", function(e){ detailsOpen = e.target.open; });
-
-      el("fabTabs").querySelectorAll("button").forEach(function(b){
-        var i = parseInt(b.dataset.fidx, 10);
-        var active = i === activeIdx;
-        b.style.background = active ? "var(--accent-btn)" : "var(--surface)";
-        b.style.color = active ? "#fff" : "var(--text-muted)";
-        b.style.borderColor = active ? "var(--accent-btn)" : "var(--border-strong)";
-        b.addEventListener("click", function(){ activeIdx = i; detailsOpen = true; paint(); });
-      });
-      el("fabAddFornecedorBtn").addEventListener("click", function(){
-        var v = el("fabNovoFornecedor").value.trim();
-        if (!v) return;
-        if (FABRICAS_CATALOGO.some(function(f){ return f.fornecedor.toUpperCase() === v.toUpperCase(); })) return;
-        FABRICAS_CATALOGO.push({fornecedor:v, materiais:[], cnpjs:[]});
-        activeIdx = FABRICAS_CATALOGO.length - 1;
-        detailsOpen = true;
-        paint();
-      });
-
-      var f = FABRICAS_CATALOGO[activeIdx];
-      if (!f.cnpjs) f.cnpjs = []; // fornecedor criado antes deste campo existir, ou pela tela de material novo
-      var chips = f.materiais.map(function(mat, idx){
-        return '<span class="badge success" style="gap:8px;">'+esc(mat)+' <button data-delmat="'+idx+'" style="border:none;background:none;color:inherit;cursor:pointer;font-weight:800;padding:0;">✕</button></span>';
-      }).join(" ");
-      // Cadastro de CNPJ do fornecedor (cruzado do SEFAZ/PUZL reais — uma
-      // linha por razão social/filial, já que o mesmo fornecedor pode faturar
-      // por mais de um CNPJ/planta) — ao lado de Materiais, mesmo padrão de
-      // tabela editável já usado em Base de Usinas / Códigos por Fornecedor.
-      var cnpjRows = f.cnpjs.map(function(c, idx){
-        return '<tr>' +
-          '<td style="padding:4px 6px;"><input value="'+esc(c[0])+'" placeholder="Razão social (como aparece na nota)" data-cidx="'+idx+'" data-cfield="0" style="width:100%;border:1px solid transparent;border-radius:5px;padding:6px 8px;font-size:12.5px;background:transparent;color:var(--text);" onfocus="this.style.borderColor=\'var(--accent)\'" onblur="this.style.borderColor=\'transparent\'"/></td>' +
-          '<td style="padding:4px 6px;"><input value="'+esc(c[1])+'" placeholder="00.000.000/0000-00" data-cidx="'+idx+'" data-cfield="1" style="width:100%;border:1px solid transparent;border-radius:5px;padding:6px 8px;font-size:12.5px;background:transparent;color:var(--text);font-family:ui-monospace,monospace;" onfocus="this.style.borderColor=\'var(--accent)\'" onblur="this.style.borderColor=\'transparent\'"/></td>' +
-          '<td style="padding:4px 6px;"><button class="btn-ghost" data-delcnpj="'+idx+'" style="padding:5px 8px;">🗑</button></td>' +
-          '</tr>';
-      }).join("");
-      el("fabMateriaisCard").innerHTML =
-        '<div class="card-head"><div><h2>Materiais — '+esc(f.fornecedor)+'</h2><p>Tipos de cimento que esse fornecedor entrega (aparecem no select de Fábrica na Programação).</p></div>' +
-        '<button class="btn-ghost" id="fabDelFornecedorBtn" style="padding:6px 10px;color:var(--danger);">🗑 remover fornecedor</button></div>' +
-        '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">'+(chips || '<span class="faint" style="font-style:italic;">Nenhum material cadastrado pra esse fornecedor ainda.</span>')+'</div>' +
-        '<div style="display:flex;gap:8px;">' +
-        '<input id="fabNovoMaterial" type="text" placeholder="ex: CP II F" style="flex:1;border:1px solid var(--border-strong);border-radius:6px;padding:7px 10px;font-size:12.5px;background:var(--surface);color:var(--text);"/>' +
-        '<button class="btn-primary" id="fabAddMaterialBtn" style="padding:7px 14px;">Adicionar</button>' +
-        '</div>' +
-        '<div class="sec-title" style="margin-top:18px;">CNPJ cadastrados — '+esc(f.fornecedor)+' ('+f.cnpjs.length+')</div>' +
-        '<p class="import-card-desc" style="margin:0 0 10px;">Cruzado das notas reais do SEFAZ/PUZL já importadas — cada linha é uma razão social/filial que já faturou como este fornecedor. Editável, igual à Base de Usinas.</p>' +
-        '<div class="table-wrap"><table><thead><tr><th>Razão social</th><th>CNPJ</th><th></th></tr></thead><tbody id="fabCnpjBody">' +
-        (cnpjRows || '<tr><td colspan="3" style="padding:16px 14px;font-size:12px;font-style:italic;color:var(--text-faint);">Nenhum CNPJ cadastrado ainda pra esse fornecedor.</td></tr>') +
-        '</tbody></table></div>' +
-        '<div class="prog-add" id="fabCnpjAdd">+ adicionar CNPJ</div>';
-
-      el("fabMateriaisCard").querySelectorAll("[data-delmat]").forEach(function(btn){
-        btn.addEventListener("click", function(e){
-          e.preventDefault();
-          f.materiais.splice(parseInt(btn.dataset.delmat, 10), 1);
-          detailsOpen = true;
-          paint();
-        });
-      });
-      el("fabDelFornecedorBtn").addEventListener("click", function(){
-        FABRICAS_CATALOGO.splice(activeIdx, 1);
-        activeIdx = 0;
-        detailsOpen = true;
-        paint();
-      });
-      el("fabAddMaterialBtn").addEventListener("click", function(){
-        var v = limpaGranel(el("fabNovoMaterial").value);
-        if (!v) return;
-        if (f.materiais.some(function(m){ return materialChaveFab(m) === materialChaveFab(v); })) return;
-        f.materiais.push(v);
-        detailsOpen = true;
-        paint();
-      });
-      el("fabCnpjBody").querySelectorAll("input").forEach(function(inp){
-        inp.addEventListener("change", function(){
-          f.cnpjs[parseInt(inp.dataset.cidx, 10)][parseInt(inp.dataset.cfield, 10)] = inp.value;
-        });
-      });
-      el("fabMateriaisCard").querySelectorAll("[data-delcnpj]").forEach(function(btn){
-        btn.addEventListener("click", function(e){
-          e.preventDefault();
-          f.cnpjs.splice(parseInt(btn.dataset.delcnpj, 10), 1);
-          detailsOpen = true;
-          paint();
-        });
-      });
-      el("fabCnpjAdd").addEventListener("click", function(){
-        f.cnpjs.push(["", ""]);
-        detailsOpen = true;
-        paint();
-      });
-    }
-    paint();
+    var pode = !!ME && ME.papel !== "leitura";
+    var q = siloNorm(FAB.q).trim();
+    var lista = FABRICAS_CATALOGO.map(function(f, i){ return { f: f, i: i }; }).filter(function(x){
+      return !q || siloNorm(x.f.fornecedor).indexOf(q) >= 0 || (x.f.materiais || []).some(function(m){ return siloNorm(m).indexOf(q) >= 0; });
+    });
+    var h = '<div class="fab-top"><input type="search" id="fabBusca" placeholder="Buscar fornecedor ou material" value="' + esc(FAB.q) + '">' +
+      (pode ? '<div class="fab-novo"><input id="fabNovoFornecedor" type="text" maxlength="80" placeholder="Novo fornecedor (ex.: Polimix)"><button class="btn-primary btn-inline" data-fab="novo-forn">+ Fornecedor</button></div>' : "") +
+      '<span class="faint" style="font-size:12px">' + FABRICAS_CATALOGO.length + ' fornecedores</span></div><div class="fab-grid">';
+    lista.forEach(function(x){
+      var f = x.f; if (!f.cnpjs) f.cnpjs = [];
+      var ab = FAB.aberto === f.fornecedor, db = typeof codFornDb === "function" ? codFornDb(f.fornecedor) : null;
+      var nCod = db ? db.codigos.length : 0, mats = f.materiais || [];
+      h += '<div class="fab-box' + (ab ? " aberto" : "") + '" data-fi="' + x.i + '">' +
+        '<div class="fab-head" data-fab="abrir" role="button" tabindex="0" aria-expanded="' + ab + '"><div><b>' + esc(f.fornecedor) + '</b>' +
+        '<span class="fab-cont">' + mats.length + ' materia' + (mats.length === 1 ? "l" : "is") + ' · ' + f.cnpjs.length + ' CNPJ' + (f.cnpjs.length === 1 ? "" : "s") + (nCod ? ' · ' + nCod + ' código' + (nCod === 1 ? "" : "s") : "") + '</span></div>' +
+        '<span class="fab-seta">' + (ab ? "▴ fechar" : "▾") + '</span></div>' +
+        '<div class="fab-mats">' + (mats.length ? mats.map(function(m, mi){ return '<span class="fab-mat">' + esc(m) + (ab && pode ? '<button type="button" data-fab="del-mat" data-mi="' + mi + '" title="Remover material">✕</button>' : "") + '</span>'; }).join("") : '<span class="faint" style="font-size:12px">nenhum material</span>') + '</div>';
+      if (ab){
+        h += (pode ? '<div class="fab-addmat"><input id="fabNovoMaterial" maxlength="80" placeholder="Novo material (ex.: CP II F 40)" value="' + esc(FAB.novoMat) + '"><button class="btn-ghost" data-fab="add-mat">+ Material</button></div>' : "") +
+          '<div class="fab-det"><div class="fab-col"><div class="fab-sub">Como pedir e códigos</div><div id="fabCodBox" data-forn="' + esc(f.fornecedor) + '"></div></div>' +
+          '<div class="fab-col"><div class="fab-sub">CNPJs (' + f.cnpjs.length + ') <span class="faint" style="font-weight:400;text-transform:none;letter-spacing:0">— razão social como aparece na nota</span></div>' +
+          '<div class="table-wrap" style="max-height:none"><table class="adm-tbl fab-cnpj"><tbody>' +
+          (f.cnpjs.length ? f.cnpjs.map(function(c, ci){
+            return '<tr><td>' + (pode ? '<input data-fab="cnpj" data-ci="' + ci + '" data-cf="0" placeholder="Razão social" value="' + esc(c[0]) + '">' : esc(c[0])) + '</td><td>' + (pode ? '<input class="mono" data-fab="cnpj" data-ci="' + ci + '" data-cf="1" placeholder="00.000.000/0000-00" value="' + esc(c[1]) + '">' : '<code>' + esc(c[1]) + '</code>') + '</td>' +
+              (pode ? '<td><button class="btn-ghost" data-fab="del-cnpj" data-ci="' + ci + '">🗑</button></td>' : "") + '</tr>';
+          }).join("") : '<tr><td class="faint">Nenhum CNPJ.</td></tr>') + '</tbody></table></div>' +
+          (pode ? '<button class="btn-ghost" data-fab="add-cnpj" style="margin-top:6px">+ CNPJ</button>' : "") + '</div></div>' +
+          (pode ? '<div class="fab-rodape"><button class="btn-ghost" data-fab="del-forn" style="color:var(--danger)">' + (FAB.sureDel ? "Confirmar: remover " + esc(f.fornecedor) : "🗑 Remover fornecedor") + '</button></div>' : "");
+      }
+      h += '</div>';
+    });
+    if (!lista.length) h += '<div class="faint" style="padding:12px">Nenhum fornecedor encontrado.</div>';
+    cardEl.innerHTML = h + '</div>';
+    if (FAB.aberto && typeof codPintar === "function"){ codPintar(); if (!COD.d) codCarregar(); }
   }
+  (function(){
+    var v = el("view-bd-fabricas"); if (!v) return;
+    var abrir = function(nome){ FAB.aberto = FAB.aberto === nome ? null : nome; FAB.sureDel = false; FAB.novoMat = ""; COD.msg = ""; COD.novo = {}; COD.sure = null; renderFabricasCatalogo(); };
+    v.addEventListener("input", function(ev){
+      if (ev.target.id === "fabBusca"){ FAB.q = ev.target.value; var pos = ev.target.selectionStart; renderFabricasCatalogo(); var e = el("fabBusca"); if (e){ e.focus(); try { e.setSelectionRange(pos, pos); } catch (x){ } } }
+      else if (ev.target.id === "fabNovoMaterial") FAB.novoMat = ev.target.value;
+    });
+    v.addEventListener("change", function(ev){
+      var t = ev.target; if (t.dataset.fab !== "cnpj") return;
+      var box = t.closest(".fab-box"), f = box && FABRICAS_CATALOGO[+box.dataset.fi]; if (!f) return;
+      f.cnpjs[+t.dataset.ci][+t.dataset.cf] = t.value.trim();
+    });
+    v.addEventListener("keydown", function(ev){
+      if (ev.key === "Enter" && (ev.target.id === "fabNovoMaterial" || ev.target.id === "fabNovoFornecedor")){ ev.preventDefault(); var b = v.querySelector(ev.target.id === "fabNovoMaterial" ? '[data-fab="add-mat"]' : '[data-fab="novo-forn"]'); if (b) b.click(); }
+      else if ((ev.key === "Enter" || ev.key === " ") && ev.target.dataset && ev.target.dataset.fab === "abrir"){ ev.preventDefault(); ev.target.click(); }
+    });
+    v.addEventListener("click", function(ev){
+      var b = ev.target.closest && ev.target.closest("[data-fab]"); if (!b) return;
+      var a = b.dataset.fab, box = b.closest(".fab-box"), f = box ? FABRICAS_CATALOGO[+box.dataset.fi] : null;
+      if (a !== "del-forn") FAB.sureDel = false;
+      if (a === "abrir" && f){ abrir(f.fornecedor); var nb = v.querySelector(".fab-box.aberto"); if (nb) nb.scrollIntoView({ block: "nearest" }); return; }
+      if (a === "novo-forn"){
+        var nv = String((el("fabNovoFornecedor") || {}).value || "").trim(); if (!nv) return;
+        if (FABRICAS_CATALOGO.some(function(x){ return x.fornecedor.toUpperCase() === nv.toUpperCase(); })){ FAB.aberto = FABRICAS_CATALOGO.find(function(x){ return x.fornecedor.toUpperCase() === nv.toUpperCase(); }).fornecedor; renderFabricasCatalogo(); return; }
+        FABRICAS_CATALOGO.push({ fornecedor: nv, materiais: [], cnpjs: [] }); FAB.aberto = nv; FAB.q = ""; renderFabricasCatalogo();
+        setTimeout(function(){ if (typeof codCarregar === "function") codCarregar(); }, 2500);   // depois que o fornecedor for salvo
+        var nm = el("fabNovoMaterial"); if (nm) nm.focus(); return;
+      }
+      if (!f) return;
+      if (a === "add-mat"){
+        var m = limpaGranel(String((el("fabNovoMaterial") || {}).value || "")); if (!m) return;
+        if (!f.materiais.some(function(x){ return materialChaveFab(x) === materialChaveFab(m); })) f.materiais.push(m);
+        FAB.novoMat = ""; renderFabricasCatalogo(); var nm2 = el("fabNovoMaterial"); if (nm2) nm2.focus(); return;
+      }
+      if (a === "del-mat"){ f.materiais.splice(+b.dataset.mi, 1); renderFabricasCatalogo(); return; }
+      if (a === "add-cnpj"){ f.cnpjs.push(["", ""]); renderFabricasCatalogo(); var ins = v.querySelectorAll('.fab-box.aberto [data-fab="cnpj"][data-cf="0"]'); if (ins.length) ins[ins.length - 1].focus(); return; }
+      if (a === "del-cnpj"){ f.cnpjs.splice(+b.dataset.ci, 1); renderFabricasCatalogo(); return; }
+      if (a === "del-forn"){
+        if (!FAB.sureDel){ FAB.sureDel = true; renderFabricasCatalogo(); return; }
+        FABRICAS_CATALOGO.splice(+box.dataset.fi, 1); FAB.aberto = null; FAB.sureDel = false; renderFabricasCatalogo();
+      }
+    });
+  })();
+
 
   /* ---------------- Dashboard ---------------- */
   var dashPicker = null;
