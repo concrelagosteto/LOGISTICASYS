@@ -348,8 +348,13 @@
   .fab-det{display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:18px; margin-top:16px; padding-top:14px; border-top:1px solid var(--border);}
   .fab-sub{font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--text-faint); margin:10px 0 6px;}
   .fab-col > .fab-sub:first-child{margin-top:0;}
+  details.fab-cnpjs > summary{cursor:pointer; margin-top:0; list-style:none;} details.fab-cnpjs > summary::before{content:"▸ "; } details.fab-cnpjs[open] > summary::before{content:"▾ ";}
+  details.fab-cnpjs > summary::-webkit-details-marker{display:none;}
   .fab-cnpj td{padding:4px 6px !important;} .fab-cnpj input{width:100%;} .fab-cnpj input.mono{font-family:ui-monospace,monospace; min-width:160px;}
   .fab-rodape{margin-top:14px; padding-top:10px; border-top:1px solid var(--border); text-align:right;}
+  .vpo-abas{position:sticky; top:-22px; z-index:5; display:flex; gap:4px; overflow-x:auto; background:var(--bg, var(--surface)); border-bottom:1px solid var(--border); margin:0 0 16px; padding-top:4px; scrollbar-width:thin;}
+  .vpo-aba{flex:0 0 auto; background:none; border:0; border-bottom:2px solid transparent; color:var(--text-muted); font:inherit; font-size:13.5px; font-weight:600; padding:10px 16px; cursor:pointer; white-space:nowrap; margin-bottom:-1px;}
+  .vpo-aba:hover{color:var(--text);} .vpo-aba.on{color:var(--text); border-bottom-color:var(--accent);}
   .bd-lead{margin:0 0 14px; font-size:13px; color:var(--text-muted); max-width:900px;}
   .silo-filtros{display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
   .silo-filtros input, .silo-filtros select{background:var(--surface-2); color:var(--text); border:1px solid var(--border-strong); border-radius:6px; padding:7px 10px; font-size:12.5px; font-family:inherit;}
@@ -583,6 +588,9 @@
     .sidebar-foot{display:none;}
     .main{height:auto;}
     .content{padding:16px;}
+    /* no celular quem rola é a janela: a área de conteúdo não pode prender os elementos "grudados" (abas do VPO) */
+    .content{overflow:visible;}
+    .vpo-abas{top:var(--topbar-h, 0px);}
   }
 
   /* ===== Melhorias visuais (06/10) ===== */
@@ -3291,6 +3299,9 @@
         impCard({id:'programacao', tom:'warning', icone:'🗓️', titulo:'Programação de Cimento', sub:'Planilha antiga, por dia', res:'importProgramacaoResult', txt:'importProgramacaoText', btn:'importProgramacaoBtn', ph:'PROGRAMAÇÃO PARA O DIA 24/09/2026 ( QUINTA-FEIRA )\nUsina\tPLACA\tFÁBRICA\tPEDIDO\nGARDÊNIA\tHGJ4049\tCP 3 CSN SCZ\t9042814',
           lead:'Traz a programação da planilha antiga: usina, placa, fábrica e pedido, por dia.',
           como:'<p>Uma linha “PROGRAMAÇÃO PARA O DIA DD/MM/AAAA (...)” seguida das linhas Usina / Placa / Fábrica / Pedido; pode ter vários dias de uma vez. Usina marcada com *** fica em branco. Usinas da Base de Usinas são casadas sozinhas; as outras entram como linha extra.</p>'}) +
+        impCard({id:'usinas', tom:'accent', icone:'🏭', titulo:'Base de Usinas', sub:'Cadastro de filiais', res:'importUsinasResult', txt:'importUsinasText', btn:'importUsinasBtn', ph:'USINA\tSIGLA\tCNPJ\tREGIONAL\tWHATSAPP USINA\tWHATSAPP REGIONAL\tE-MAIL USINA\tE-MAIL REGIONAL',
+          lead:'Atualiza a tabela de Usinas e encarregados: usina nova entra, usina já cadastrada é atualizada.',
+          como:'<p>Mesma ordem de colunas da planilha-modelo de cadastro de filiais: Usina, Sigla, CNPJ, Regional, WhatsApp usina, WhatsApp regional, E-mail usina, E-mail regional (e, se tiver, Código, Filial e Formato PUZL). A usina é reconhecida pelo nome.</p>'}) +
       '</div>' +
       '<div id="historicoCard" style="margin-bottom:16px;"></div>';
 
@@ -3387,6 +3398,17 @@
     el("importProgramacaoBtn").addEventListener("click", function(){
       runImportProgramacao(el("importProgramacaoText").value, "colado manualmente");
     });
+    function runImportUsinas(txt, arquivo){
+      var r = importUsinasFromText(txt);
+      el("importUsinasResult").textContent = r.added + " nova(s) usina(s), " + r.updated + " atualizada(s)" + (r.invalid ? ", " + r.invalid + " linha(s) inválida(s)" : "") + ".";
+      if (r.added || r.updated) logImport(arquivo, "Base de Usinas", r.added + r.updated, r.added + r.updated + r.invalid);
+      el("importUsinasText").value = ""; el("usinasFileLabel").textContent = "Arraste ou clique para selecionar"; el("usinasFileInput").value = "";
+      if (typeof usinasRepintar === "function" && usinasRepintar) usinasRepintar();
+      paintHistorico();
+    }
+    wireFileDropzone("usinasFileLabel", "usinasFileInput", function(tsv, nome){ el("usinasFileLabel").textContent = nome; runImportUsinas(tsv, nome); },
+      function(msg){ el("importUsinasResult").textContent = "⚠️ " + msg; });
+    el("importUsinasBtn").addEventListener("click", function(){ runImportUsinas(el("importUsinasText").value, "colado manualmente"); });
 
     paintHistorico();
     paintBaseDados();
@@ -3808,13 +3830,7 @@
       cardEl.innerHTML =
         '<details open style="margin-bottom:0;"><summary style="cursor:pointer;padding:12px 18px;font-size:12.5px;font-weight:600;color:var(--accent-strong);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">🏭 Usinas ('+usinasCadastro.length+')</summary>' +
         '<div class="card" style="margin-top:8px;">' +
-        '<p class="import-card-desc" style="margin:0 0 10px;">Usina, sigla, CNPJ, regional e contatos (WhatsApp/e-mail de usina e de regional) — nessa ordem, igual à planilha-modelo de cadastro de filiais. Código/Filial/Formato PUZL (colunas finais) são internos: é o Formato PUZL (ex: "32 | CGL | CARANGOLA") que bate a usina contra os Lançamentos PUZL, e o CNPJ aqui cadastrado é reconhecido automaticamente na Descrição Complementar de uma nota do SEFAZ. Alimente colando um arquivo/planilha abaixo (mesma ordem de colunas do modelo) ou edite direto nos campos da tabela.</p>' +
-        '<div class="import-paste" style="margin-bottom:14px;">' +
-          '<label class="import-dropzone" for="usinasFileInput" style="margin-bottom:8px;"><span class="icon">⬆️</span><span id="usinasFileLabel">Arraste ou clique para selecionar</span></label>' +
-          '<input type="file" id="usinasFileInput" accept=".xlsx,.xls,.csv" style="display:none;"/>' +
-          '<textarea id="importUsinasText" rows="4" placeholder="USINA\tSIGLA\tCNPJ\tREGIONAL\tWHATSAPP USINA\tWHATSAPP REGIONAL\tE-MAIL USINA\tE-MAIL REGIONAL"></textarea>' +
-          '<div class="import-paste-foot"><button class="btn-primary" id="importUsinasBtn" style="padding:7px 13px;">Importar</button><span id="importUsinasResult" style="font-size:11.5px;color:var(--text-muted);"></span></div>' +
-        '</div>' +
+        '<p class="import-card-desc" style="margin:0 0 10px;">Usina, sigla, CNPJ, regional e contatos (WhatsApp/e-mail de usina e de regional) — edite direto nos campos da tabela. Código/Filial/Formato PUZL são internos: é o Formato PUZL (ex: "32 | CGL | CARANGOLA") que liga a usina aos Lançamentos PUZL, e o CNPJ é reconhecido na Descrição Complementar das notas do SEFAZ. Para carregar uma planilha de usinas, use <b>Importar arquivos</b>.</p>' +
         '<div class="table-wrap"><table><thead><tr>' + fields.map(function(f, fi){ return '<th>'+esc(f[1])+'</th>' + (fi === 0 ? '<th>Encarregado</th>' : ""); }).join("") + '<th></th></tr></thead><tbody id="usinasCadastroBody">' +
         (rows || '<tr><td colspan="'+(fields.length+2)+'" style="padding:16px 14px;font-size:12px;font-style:italic;color:var(--text-faint);">Nenhuma usina cadastrada ainda.</td></tr>') +
         '</tbody></table></div>' +
@@ -3835,21 +3851,6 @@
       el("usinasCadastroAdd").addEventListener("click", function(){
         usinasCadastro.push({usina:"", sigla:"", cnpj:"", regional:"", whatsappUsina:"", whatsappRegional:"", emailUsina:"", emailRegional:"", nomeCadastro:"", codigo:"", filial:"", puzl:""});
         paint();
-      });
-      el("usinasFileInput").addEventListener("change", function(){
-        var f = this.files && this.files[0];
-        el("usinasFileLabel").textContent = f ? f.name : "Arraste ou clique para selecionar";
-        if (f) el("importUsinasText").dataset.arquivo = f.name;
-      });
-      el("importUsinasBtn").addEventListener("click", function(){
-        var txt = el("importUsinasText").value;
-        var r = importUsinasFromText(txt);
-        var msg = r.added+" nova(s) usina(s), "+r.updated+" atualizada(s)"+(r.invalid?", "+r.invalid+" linha(s) inválida(s)":"")+".";
-        var arquivo = el("importUsinasText").dataset.arquivo || "colado manualmente";
-        if (r.added || r.updated) logImport(arquivo, "Base de Usinas", r.added + r.updated, r.added + r.updated + r.invalid);
-        paint();
-        el("importUsinasResult").textContent = msg;
-        paintHistorico();
       });
       xlEnhance(cardEl, "usinas-cadastro", [fields.length + 1]);
     }
@@ -4536,15 +4537,16 @@
   // Base de Fábricas em caixas: uma por fornecedor. Fechada mostra nome, contagens e materiais;
   // aberta (ocupa a linha toda) permite alterar materiais, como pedir, códigos por usina e CNPJs.
   // Os dados continuam em FABRICAS_CATALOGO (salvos sozinhos pelo sync_fabricas).
-  var FAB = { aberto: null, q: "", sureDel: false, novoMat: "" };
+  var FAB = { aberto: null, q: "", sureDel: false, novoMat: "", cnpjAberto: false };
   function renderFabricasCatalogo(){
     var cardEl = el("fabricasCatalogoCard");
     if (!cardEl) return;
     var pode = !!ME && ME.papel !== "leitura";
     var q = siloNorm(FAB.q).trim();
-    var lista = FABRICAS_CATALOGO.map(function(f, i){ return { f: f, i: i }; }).filter(function(x){
+    var nCods = function(f){ var db = typeof codFornDb === "function" ? codFornDb(f.fornecedor) : null; return db ? db.codigos.length : 0; };
+    var lista = FABRICAS_CATALOGO.map(function(f, i){ return { f: f, i: i, n: nCods(f) }; }).filter(function(x){
       return !q || siloNorm(x.f.fornecedor).indexOf(q) >= 0 || (x.f.materiais || []).some(function(m){ return siloNorm(m).indexOf(q) >= 0; });
-    });
+    }).sort(function(a, b){ return b.n - a.n || a.i - b.i; });   // quem tem mais códigos de cliente primeiro
     var h = '<div class="fab-top"><input type="search" id="fabBusca" placeholder="Buscar fornecedor ou material" value="' + esc(FAB.q) + '">' +
       (pode ? '<div class="fab-novo"><input id="fabNovoFornecedor" type="text" maxlength="80" placeholder="Novo fornecedor (ex.: Polimix)"><button class="btn-primary btn-inline" data-fab="novo-forn">+ Fornecedor</button></div>' : "") +
       '<span class="faint" style="font-size:12px">' + FABRICAS_CATALOGO.length + ' fornecedores</span></div><div class="fab-grid">';
@@ -4560,13 +4562,13 @@
       if (ab){
         h += (pode ? '<div class="fab-addmat"><input id="fabNovoMaterial" maxlength="80" placeholder="Novo material (ex.: CP II F 40)" value="' + esc(FAB.novoMat) + '"><button class="btn-ghost" data-fab="add-mat">+ Material</button></div>' : "") +
           '<div class="fab-det"><div class="fab-col"><div class="fab-sub">Como pedir e códigos</div><div id="fabCodBox" data-forn="' + esc(f.fornecedor) + '"></div></div>' +
-          '<div class="fab-col"><div class="fab-sub">CNPJs (' + f.cnpjs.length + ') <span class="faint" style="font-weight:400;text-transform:none;letter-spacing:0">— razão social como aparece na nota</span></div>' +
+          '<div class="fab-col"><details class="fab-cnpjs"' + (FAB.cnpjAberto ? " open" : "") + '><summary class="fab-sub">Razão social e CNPJs (' + f.cnpjs.length + ') <span class="faint" style="font-weight:400;text-transform:none;letter-spacing:0">— como aparece na nota · clique para ver</span></summary>' +
           '<div class="table-wrap" style="max-height:none"><table class="adm-tbl fab-cnpj"><tbody>' +
           (f.cnpjs.length ? f.cnpjs.map(function(c, ci){
             return '<tr><td>' + (pode ? '<input data-fab="cnpj" data-ci="' + ci + '" data-cf="0" placeholder="Razão social" value="' + esc(c[0]) + '">' : esc(c[0])) + '</td><td>' + (pode ? '<input class="mono" data-fab="cnpj" data-ci="' + ci + '" data-cf="1" placeholder="00.000.000/0000-00" value="' + esc(c[1]) + '">' : '<code>' + esc(c[1]) + '</code>') + '</td>' +
               (pode ? '<td><button class="btn-ghost" data-fab="del-cnpj" data-ci="' + ci + '">🗑</button></td>' : "") + '</tr>';
           }).join("") : '<tr><td class="faint">Nenhum CNPJ.</td></tr>') + '</tbody></table></div>' +
-          (pode ? '<button class="btn-ghost" data-fab="add-cnpj" style="margin-top:6px">+ CNPJ</button>' : "") + '</div></div>' +
+          (pode ? '<button class="btn-ghost" data-fab="add-cnpj" style="margin-top:6px">+ CNPJ</button>' : "") + '</details></div></div>' +
           (pode ? '<div class="fab-rodape"><button class="btn-ghost" data-fab="del-forn" style="color:var(--danger)">' + (FAB.sureDel ? "Confirmar: remover " + esc(f.fornecedor) : "🗑 Remover fornecedor") + '</button></div>' : "");
       }
       h += '</div>';
@@ -4577,11 +4579,12 @@
   }
   (function(){
     var v = el("view-bd-fabricas"); if (!v) return;
-    var abrir = function(nome){ FAB.aberto = FAB.aberto === nome ? null : nome; FAB.sureDel = false; FAB.novoMat = ""; COD.msg = ""; COD.novo = {}; COD.sure = null; renderFabricasCatalogo(); };
+    var abrir = function(nome){ FAB.aberto = FAB.aberto === nome ? null : nome; FAB.sureDel = false; FAB.cnpjAberto = false; FAB.novoMat = ""; COD.msg = ""; COD.novo = {}; COD.sure = null; renderFabricasCatalogo(); };
     v.addEventListener("input", function(ev){
       if (ev.target.id === "fabBusca"){ FAB.q = ev.target.value; var pos = ev.target.selectionStart; renderFabricasCatalogo(); var e = el("fabBusca"); if (e){ e.focus(); try { e.setSelectionRange(pos, pos); } catch (x){ } } }
       else if (ev.target.id === "fabNovoMaterial") FAB.novoMat = ev.target.value;
     });
+    v.addEventListener("toggle", function(ev){ if (ev.target.classList && ev.target.classList.contains("fab-cnpjs")) FAB.cnpjAberto = ev.target.open; }, true);
     v.addEventListener("change", function(ev){
       var t = ev.target; if (t.dataset.fab !== "cnpj") return;
       var box = t.closest(".fab-box"), f = box && FABRICAS_CATALOGO[+box.dataset.fi]; if (!f) return;
@@ -4610,7 +4613,7 @@
         FAB.novoMat = ""; renderFabricasCatalogo(); var nm2 = el("fabNovoMaterial"); if (nm2) nm2.focus(); return;
       }
       if (a === "del-mat"){ f.materiais.splice(+b.dataset.mi, 1); renderFabricasCatalogo(); return; }
-      if (a === "add-cnpj"){ f.cnpjs.push(["", ""]); renderFabricasCatalogo(); var ins = v.querySelectorAll('.fab-box.aberto [data-fab="cnpj"][data-cf="0"]'); if (ins.length) ins[ins.length - 1].focus(); return; }
+      if (a === "add-cnpj"){ f.cnpjs.push(["", ""]); FAB.cnpjAberto = true; renderFabricasCatalogo(); var ins = v.querySelectorAll('.fab-box.aberto [data-fab="cnpj"][data-cf="0"]'); if (ins.length) ins[ins.length - 1].focus(); return; }
       if (a === "del-cnpj"){ f.cnpjs.splice(+b.dataset.ci, 1); renderFabricasCatalogo(); return; }
       if (a === "del-forn"){
         if (!FAB.sureDel){ FAB.sureDel = true; renderFabricasCatalogo(); return; }
@@ -4926,22 +4929,45 @@
           '</select></td></tr>';
       }).join("");
     }).join("");
-    return '<details style="margin-bottom:16px;"><summary style="cursor:pointer;padding:12px 18px;font-size:12.5px;font-weight:600;color:var(--accent-strong);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">⚙️ Configurar rotas e pedágio (base extraída do "Piso mínimo" — conferir/ajustar com a operação)</summary>' +
+    return '<details open style="margin-bottom:16px;"><summary style="cursor:pointer;padding:12px 18px;font-size:12.5px;font-weight:600;color:var(--accent-strong);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">⚙️ Configurar rotas e pedágio (base extraída do "Piso mínimo" — conferir/ajustar com a operação)</summary>' +
       '<div class="card" style="margin-top:8px;max-height:360px;overflow-y:auto;"><div class="table-wrap"><table><thead><tr><th>Usina</th><th>Rota (fábrica x usina)</th><th>Pedágio</th></tr></thead><tbody id="pedagioBody">'+rows+'</tbody></table></div></div></details>';
   }
 
+  /* Abas no topo do VPO (ficam presas no alto da tela ao rolar). Cada aba é um painel;
+     as transportadoras entram aqui como abas próprias quando a frota for cadastrada. */
+  var VPO_ABAS = [["dia", "📋 VPOs do dia"], ["rotas", "🛣️ Rotas e pedágio"]];
+  var VPO_ABA = (function(){ try { var a = localStorage.getItem("cl_vpo_aba"); return VPO_ABAS.some(function(x){ return x[0] === a; }) ? a : "dia"; } catch (e){ return "dia"; } })();
+  function vpoAbasHtml(){
+    return '<div class="vpo-abas" role="tablist" aria-label="Partes do VPO">' + VPO_ABAS.map(function(a){
+      return '<button type="button" role="tab" class="vpo-aba' + (a[0] === VPO_ABA ? " on" : "") + '" aria-selected="' + (a[0] === VPO_ABA) + '" data-vpoaba="' + a[0] + '">' + a[1] + '</button>'; }).join("") + '</div>';
+  }
+  function vpoAbaMostrar(id){
+    VPO_ABA = id; try { localStorage.setItem("cl_vpo_aba", id); } catch (e){ }
+    var v = el("view-vpo"); if (!v) return;
+    v.querySelectorAll(".vpo-painel").forEach(function(p){ p.hidden = p.dataset.vpop !== id; });
+    v.querySelectorAll(".vpo-aba").forEach(function(b){ var on = b.dataset.vpoaba === id; b.classList.toggle("on", on); b.setAttribute("aria-selected", on); });
+    if (typeof agendaFit === "function") agendaFit();
+  }
+  (function(){   // no celular a barra do topo também gruda: as abas grudam logo abaixo dela
+    var tb = document.querySelector(".topbar"); if (!tb) return;
+    var medir = function(){ document.documentElement.style.setProperty("--topbar-h", tb.offsetHeight + "px"); };
+    medir(); window.addEventListener("resize", medir); if (window.ResizeObserver) new ResizeObserver(medir).observe(tb);
+  })();
+  (function(){ var v = el("view-vpo"); if (v) v.addEventListener("click", function(ev){ var b = ev.target.closest && ev.target.closest("[data-vpoaba]"); if (b){ vpoAbaMostrar(b.dataset.vpoaba); var c = v.closest(".content"); if (c && c.scrollTop > 0) c.scrollTop = 0; if (window.scrollY > 0) window.scrollTo(0, 0); } }); })();
   function renderVpo(){
-    el("view-vpo").innerHTML =
+    el("view-vpo").innerHTML = vpoAbasHtml() +
+      '<div class="vpo-painel" data-vpop="dia">' +
       '<div class="card banner" style="margin-bottom:16px;">Base para emissão de VPO — placa, motorista, carreta(s) e fábrica (fixos do veículo) seguem o formato do <b>Controle Claudir</b>. Dados fictícios: placas e nomes de motorista reais não entram no protótipo.<br/>' +
-      'Nas colunas <b>Usina 1</b> e <b>Usina 2</b>, escolha direto o roteiro (fábrica de origem x usina) — comece digitando o nome da usina que a lista já filtra. O status do VPO é sugerido automaticamente pelo roteiro escolhido: <span class="badge success">sem pedágio → Feito</span> <span class="badge warning">incerto → confirmar</span> <span class="badge neutral">com pedágio → pendente</span>. Você pode ajustar manualmente depois, e a base de roteiros abaixo é editável.</div>' +
-      renderPedagioConfigHtml() +
+      'Nas colunas <b>Usina 1</b> e <b>Usina 2</b>, escolha direto o roteiro (fábrica de origem x usina) — comece digitando o nome da usina que a lista já filtra. O status do VPO é sugerido automaticamente pelo roteiro escolhido: <span class="badge success">sem pedágio → Feito</span> <span class="badge warning">incerto → confirmar</span> <span class="badge neutral">com pedágio → pendente</span>. Você pode ajustar manualmente depois, e a base de roteiros fica na aba <b>Rotas e pedágio</b>.</div>' +
       '<div id="vpoStats"></div>' +
       '<div class="card" style="margin-bottom:16px;"><div class="filters" style="align-items:center;">' +
       '<div class="filter-field"><span>Período</span>' +
       '<div class="daterange"><button class="daterange-btn" id="vpoDrBtn">📅 <span id="vpoDrLabel"></span> <span style="opacity:.6;">▾</span></button>' +
       '<div class="daterange-panel" id="vpoDrPanel"></div></div></div>' +
       '<div class="filter-count" id="vpoDayInfo"></div></div></div>' +
-      '<div id="vpoBlocks"></div>';
+      '<div id="vpoBlocks"></div></div>' +
+      '<div class="vpo-painel" data-vpop="rotas" hidden>' + renderPedagioConfigHtml() + '</div>';
+    vpoAbaMostrar(VPO_ABA);
 
     el("pedagioBody").querySelectorAll("select[data-usina]").forEach(function(sel){
       sel.addEventListener("change", function(){
