@@ -1259,13 +1259,13 @@
     {id:"solicitacoes", label:"Solicitações", icon:"📥"},
     {id:"programacao-cimento", label:"Programação de Cimento", icon:"📋"},
     {id:"controle-pedidos-cimento", label:"Controle de Pedidos", icon:"🚚"},
+    {id:"silos", label:"Controle de cimento", icon:"🛢️"},
     {id:"vpo", label:"VPO", icon:"🧾"}
   ];
   var NAV_DADOS = [
     {id:"base-dados-cimento", label:"Base de Dados", icon:"🗄️"},
     {id:"notas-sefaz", label:"Notas SEFAZ", icon:"🧾"},
-    {id:"lancamentos-puzl", label:"Lançamentos PUZL", icon:"📋"},
-    {id:"silos", label:"Silos das usinas", icon:"🛢️"}
+    {id:"lancamentos-puzl", label:"Lançamentos PUZL", icon:"📋"}
   ];
   var NAV = [
     {id:"consultas", label:"Consultas", icon:"🔎"},
@@ -1275,7 +1275,7 @@
   ];
   var TITLES = {
     "solicitacoes":"Solicitações de Cimento", "programacao-cimento":"Programação de Cimento", "base-dados-cimento":"Base de Dados — Entradas de Cimento",
-    "notas-sefaz":"Notas Fiscais (SEFAZ)", "lancamentos-puzl":"Lançamentos (PUZL)", "silos":"Silos das usinas",
+    "notas-sefaz":"Notas Fiscais (SEFAZ)", "lancamentos-puzl":"Lançamentos (PUZL)", "silos":"Controle de cimento",
     "controle-pedidos-cimento":"Controle de Pedidos de Cimento", "consultas":"Consultas",
     dashboard:"Dashboard", operacoes:"Operação", vpo:"VPO — Vale Pedágio Obrigatório", exececoes:"Fila de Exceções",
     dados:"Dados", relatorios:"Relatórios", auditoria:"Auditoria", configuracoes:"Configurações", adm:"Administração"
@@ -1286,7 +1286,7 @@
     "base-dados-cimento":"Dados <b>›</b> Base de Dados — importação e cadastro",
     "notas-sefaz":"Dados <b>›</b> Notas Fiscais (SEFAZ) — todas as notas importadas",
     "lancamentos-puzl":"Dados <b>›</b> Lançamentos (PUZL) — todos os lançamentos importados",
-    "silos":"Dados <b>›</b> Silos das usinas — cimento atual e trocas",
+    "silos":"Cimento <b>›</b> Controle de cimento — o que está em cada silo",
     "controle-pedidos-cimento":"Cimento <b>›</b> Controle de Pedidos — conferência automática",
     "vpo":"Cimento <b>›</b> VPO — pedágio por roteiro",
     "consultas":"Outros <b>›</b> Consulta geral e consulta de pedágio",
@@ -1957,7 +1957,7 @@
         var nfCanc = nfCanceladasLigadas(e).map(function(nf){ return '<span class="badge danger" title="Esta nota está CANCELADA no SEFAZ">🚫 NF '+esc(nf.numero)+' CANCELADA</span>'; }).join(" ");
         var nfCell0 = '<td style="padding:4px 6px;">' + nfCanc + (
           nfSt === "cancelada" ? '<span class="badge danger">🚫 NF CANCELADA</span>' :
-          nfSt === "confirmada" ? '<span class="badge success">✅ Descarregada</span>' :
+          nfSt === "confirmada" ? (function(){ var dv = progDesvios(e); return dv.length ? dv.map(badgeDesvio).join(" ") : '<span class="badge success">✅ Descarregada</span>'; })() :
           nfSt === "emitida" ? '<span class="badge warning">Emitida</span>' :
           '<span class="faint" style="font-style:italic;font-size:11px;">—</span>'
         ) + '</td>';
@@ -2710,6 +2710,7 @@
         id: p.id,
         data: p.dataEntrada,
         usina: usinaCad ? usinaCad.usina : (p.centralEntrada || ""),
+        usinaConhecida: !!usinaCad,
         fabrica: fabrica,
         pedido: (nfMatch && String(nfMatch.pedido||"").trim()) ? String(nfMatch.pedido) : String(p.pedido||""),
         documento: p.documento,
@@ -2787,6 +2788,22 @@
     if (!c && nf.placa) c = cs.find(function(x){ return x.placa && x.placa.toUpperCase() === String(nf.placa).trim().toUpperCase(); });
     return c || null;
   }
+  // DESVIO: a carga programada para a usina A foi descarregada (entrada na PUZL) em outra usina cadastrada.
+  function usinaIgual(a, b){ return String(a || "").trim().toUpperCase() === String(b || "").trim().toUpperCase(); }
+  function desvioDaEntrada(en, progEntry){
+    if (!en || !progEntry || !en.usinaConhecida || !String(progEntry.usina || "").trim() || usinaIgual(en.usina, progEntry.usina)) return null;
+    return { para: en.usina, data: en.data || "", doc: en.documento || "" };
+  }
+  // Todos os desvios de uma linha da Programação (pela nota → entrada, e pelas entradas que conferem com a linha)
+  function progDesvios(progEntry){
+    if (!progEntry || progEntry.status === "adiado") return [];
+    var out = [], vistos = {};
+    var add = function(d){ if (d && !vistos[d.doc + "|" + d.para]){ vistos[d.doc + "|" + d.para] = 1; out.push(d); } };
+    progNFPorCarga(progEntry).forEach(function(r){ if (r.desvio) add(r.desvio); });
+    entradasParaProgEntry(progEntry).forEach(function(en){ if (entradaNFStatus(en).status === "confirmada") add(desvioDaEntrada(en, progEntry)); });
+    return out;
+  }
+  function badgeDesvio(d){ return '<span class="badge info" title="Programada para esta usina, mas descarregou em ' + esc(d.para) + (d.data ? ' em ' + esc(brDate(d.data)) : "") + (d.doc ? ' (NF ' + esc(d.doc) + ')' : "") + '">🔀 Desviada → ' + esc(d.para) + (d.data ? ' · ' + esc(brDate(d.data).slice(0, 5)) : "") + '</span>'; }
   // Status da NF de cada carga de uma linha com várias cargas (só ligações firmes, notas ativas).
   function progNFPorCarga(progEntry){
     var cs = cargasDaLinha(progEntry);
@@ -2802,9 +2819,10 @@
       var carga = cargaDaNota(nf, progEntry);
       var r = carga && res.find(function(x){ return x.carga.idx === carga.idx; });
       if (!r) return;
-      var st = nfEntradaMatch(nf) ? "confirmada" : "emitida";
+      var enM = nfEntradaMatch(nf), st = enM ? "confirmada" : "emitida";
       r.nfs.push({nf: nf, st: st});
-      if (st === "confirmada") r.status = "confirmada"; else if (r.status === "none") r.status = "emitida";
+      if (st === "confirmada"){ r.status = "confirmada"; if (!r.desvio) r.desvio = desvioDaEntrada(enM, progEntry); }
+      else if (r.status === "none") r.status = "emitida";
     });
     return res;
   }
@@ -2823,15 +2841,15 @@
     var res = progNFPorCarga(progEntry);
     var algumaCompleta = progEntry.status !== "adiado" && res.some(function(r){ return cargaCompleta(r.carga); });
     if (res.every(function(r){ return r.status === "none"; }) && !algumaCompleta) return null;      // nada pela cadeia da nota e nada a sinalizar: segue o selo único
-    var badge = function(st, cargaOk){
-      return st === "confirmada" ? '<span class="badge success">✅ Descarregada</span>'
+    var badge = function(st, cargaOk, desv){
+      return st === "confirmada" && desv ? badgeDesvio(desv) : st === "confirmada" ? '<span class="badge success">✅ Descarregada</span>'
            : st === "emitida" ? '<span class="badge warning">Emitida</span>'
            : (cargaOk ? BADGE_PENDENTE : '<span class="faint" style="font-style:italic;font-size:11px;">—</span>');
     };
     var linhas = res.map(function(r, i){
       var nome = r.carga.pedido || r.carga.placa || ("carga " + (i + 1));
       var dica = [r.carga.placa, r.carga.fabrica].filter(Boolean).join(" · ") + (r.nfs.length ? " — NF " + r.nfs.map(function(x){ return x.nf.numero; }).join(", ") : "");
-      return '<div style="display:flex;align-items:center;gap:6px;white-space:nowrap;" title="'+esc(dica)+'"><span class="faint" style="font-size:10.5px;min-width:64px;">'+esc(nome)+'</span>'+badge(r.status, r.status === "none" && r.carga.placa && r.carga.fabrica && r.carga.pedido && progEntry.status !== "adiado")+'</div>';
+      return '<div style="display:flex;align-items:center;gap:6px;white-space:nowrap;" title="'+esc(dica)+'"><span class="faint" style="font-size:10.5px;min-width:64px;">'+esc(nome)+'</span>'+badge(r.status, r.status === "none" && r.carga.placa && r.carga.fabrica && r.carga.pedido && progEntry.status !== "adiado", r.desvio)+'</div>';
     }).join("");
     return '<td style="padding:4px 6px;">' + nfCanc + '<div style="display:flex;flex-direction:column;gap:3px;">' + linhas + '</div></td>';
   }
@@ -3931,7 +3949,7 @@
           var r = res && res.find(function(x){ return x.carga.idx === c.idx; });
           var nfs = r ? r.nfs.map(function(x){ return x.nf; }) : [];
           var status = adiado ? "adiado" : (r && r.status === "confirmada" ? "descarregada" : (r && r.status === "emitida" ? "emitida" : "sem_nota"));
-          var descarga = "";
+          var descarga = "", desvio = r && r.desvio ? r.desvio : null;
           nfs.forEach(function(nf){ var en = nfEntradaMatch(nf); if (en && en.data && en.data > descarga) descarga = en.data; });
           if (!adiado){
             (entPorLinha.get(e) || []).forEach(function(en){
@@ -3939,7 +3957,7 @@
               if (!daCarga) return;
               var est = entradaNFStatus(en).status;
               if (est === "cancelada") return;
-              if (est === "confirmada"){ status = "descarregada"; if (en.data && en.data > descarga) descarga = en.data; }
+              if (est === "confirmada"){ status = "descarregada"; if (en.data && en.data > descarga) descarga = en.data; if (!desvio) desvio = desvioDaEntrada(en, e); }
               else if (status === "sem_nota") status = "emitida";
             });
           }
@@ -3948,7 +3966,7 @@
           var atraso = "";
           if (status === "descarregada" && descarga){ var d = diasEntre(iso, descarga); atraso = d === 0 ? "no dia" : (d > 0 ? "+" + d + " dia(s)" : Math.abs(d) + " dia(s) antes"); }
           else if ((status === "sem_nota" || status === "emitida") && iso < hoje){ var a2 = diasEntre(iso, hoje); atraso = "atrasada " + a2 + " dia(s)"; }
-          out.push({iso: iso, e: e, c: c, status: status, progSt: e.status || "", nfs: nfs, canc: canc, descarga: descarga, atraso: atraso, atrasada: /^atrasada/.test(atraso)});
+          out.push({iso: iso, e: e, c: c, status: status, progSt: e.status || "", nfs: nfs, canc: canc, descarga: descarga, atraso: atraso, atrasada: /^atrasada/.test(atraso), desvio: status === "descarregada" ? desvio : null});
         });
       });
     });
@@ -3957,7 +3975,8 @@
   }
   var PED_PROG_ABAS = [
     ["acomp", "Acompanhamento", function(l){ return l.status !== "adiado" && !(l.progSt === "ok" && l.status === "sem_nota"); }],
-    ["descarregada", "Descarregadas", function(l){ return l.status === "descarregada"; }],
+    ["descarregada", "Descarregadas", function(l){ return l.status === "descarregada" && !l.desvio; }],
+    ["desviada", "🔀 Desviadas", function(l){ return !!l.desvio; }],
     ["emitida", "Emitidas — falta descarregar", function(l){ return l.status === "emitida"; }],
     ["oksem", "Tudo OK sem nota", function(l){ return l.progSt === "ok" && l.status === "sem_nota"; }],
     ["adiado", "Adiadas", function(l){ return l.status === "adiado"; }],
@@ -3971,7 +3990,8 @@
     var cnt = function(f){ return linhas.filter(f).length; };
     el("pedProgStats").innerHTML = '<div class="stat-grid">' +
       [["Cargas programadas", ativas.length, "accent"],
-       ["Descarregadas", cnt(function(l){ return l.status === "descarregada"; }), "success"],
+       ["Descarregadas", cnt(function(l){ return l.status === "descarregada" && !l.desvio; }), "success"],
+       ["Desviadas", cnt(function(l){ return !!l.desvio; }), "info"],
        ["Emitidas (falta descarregar)", cnt(function(l){ return l.status === "emitida"; }), "warning"],
        ["Sem nota", cnt(function(l){ return l.status === "sem_nota"; }), "neutral"],
        ["Atrasadas", cnt(function(l){ return l.atrasada; }), "danger"],
@@ -3984,7 +4004,7 @@
     }).join("");
     var lista = linhas.filter(aba[2]);
     var statusBadge = function(l){
-      return l.status === "descarregada" ? '<span class="badge success">✅ Descarregada</span>'
+      return l.desvio ? badgeDesvio(l.desvio) : l.status === "descarregada" ? '<span class="badge success">✅ Descarregada</span>'
         : l.status === "emitida" ? '<span class="badge warning">Emitida</span>'
         : l.status === "cancelada" ? '<span class="badge danger">🚫 NF cancelada</span>'
         : l.status === "adiado" ? '<span class="badge warning">Adiado</span>'
@@ -4515,10 +4535,15 @@
     };
     el("dashKpis").innerHTML = '<div class="dkpi-grid">' +
       kpi("Programadas", P, "cargas no período", "info") +
-      kpi("Entregues", entregues.length, dashPct(entregues.length, P) + "% das programadas · nota + descarga", "success") +
+      kpi("Entregues", entregues.length, dashPct(entregues.length, P) + "% das programadas · nota + descarga" + (entregues.filter(function(l){ return l.desvio; }).length ? " · inclui " + entregues.filter(function(l){ return l.desvio; }).length + " desviada(s)" : ""), "success") +
       kpi("Emitidas", emitidas.length, "nota emitida, falta descarregar" + (emitidas.filter(function(l){ return l.atrasada; }).length ? ' · <b style="color:var(--danger)">' + emitidas.filter(function(l){ return l.atrasada; }).length + ' em atraso</b>' : ""), "warning") +
       kpi("Pendentes", pendentes.length, "nem emitidas nem descarregadas" + (pendentes.filter(function(l){ return l.atrasada; }).length ? ' · <b style="color:var(--danger)">' + pendentes.filter(function(l){ return l.atrasada; }).length + ' em atraso</b>' : ""), "neutral") +
-      kpi("Desviadas", "—", "disponível quando o módulo de desvio entrar", "border-strong", "") +
+      (function(){
+        var dv = ativas.filter(function(l){ return !!l.desvio; }), pr = {};
+        dv.forEach(function(l){ pr[l.desvio.para] = (pr[l.desvio.para] || 0) + 1; });
+        var top = Object.keys(pr).sort(function(a, b){ return pr[b] - pr[a]; }).slice(0, 3).map(function(k){ return esc(k) + " (" + pr[k] + ")"; }).join(", ");
+        return kpi("Desviadas", dv.length, dv.length ? dashPct(dv.length, P) + "% · foram para: " + top : "descarregaram em outra usina", "info", "");
+      })() +
       '</div>';
 
     if (!P){
@@ -6636,7 +6661,7 @@
   function siloPintar(){
     var v = el("view-silos"); if (!v) return;
     var D = SILO.d, pode = !!D && D.pode && ME && ME.papel !== "leitura";
-    var h = '<div class="card" style="margin-bottom:16px"><div class="card-head"><div><h2>🛢️ Silos das usinas</h2><p>Cada silo com o cimento atual, a última troca e quando foi trocado. Registre as trocas aqui para o histórico ficar completo.' + (D && !pode ? " Somente leitura." : "") + '</p></div>' +
+    var h = '<div class="card" style="margin-bottom:16px"><div class="card-head"><div><h2>🛢️ Controle de cimento</h2><p>O cimento atual de cada silo das usinas, a última troca e quando foi trocado. Registre as trocas aqui para o histórico ficar completo.' + (D && !pode ? " Somente leitura." : "") + '</p></div>' +
       '<div class="silo-filtros"><input type="search" id="siloQ" placeholder="Buscar usina ou silo" value="' + esc(SILO.q) + '"><select id="siloF"><option value="">Todos os cimentos</option>' + siloOpts(SILO.mat) + '<option value="__sem"' + (SILO.mat === "__sem" ? " selected" : "") + '>Usinas sem silo</option></select><button class="btn-ghost" data-silo="atualizar">↻ Atualizar</button></div></div>';
     if (SILO.msg) h += '<div class="adm-msg ' + (SILO.ruim ? "bad" : "ok") + '" role="status">' + esc(SILO.msg) + '</div>';
     if (!D){ v.innerHTML = h + '<div class="adm-pad faint">' + (SILO.carregando ? "Carregando…" : "Sem dados. Use Atualizar.") + '</div></div>'; return; }
