@@ -275,6 +275,18 @@
   .cfg-check{display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text-muted);}
   .cfg-check input{accent-color:var(--accent-btn); width:16px; height:16px;}
   .cfg-status{font-size:12px; color:var(--text-faint); min-height:1.2em;}
+  .silo-tbl td{vertical-align:middle;} .silo-tbl .adm-acoes{flex-wrap:nowrap;} .silo-tbl .adm-acoes .btn-ghost{padding:5px 9px; font-size:12px;} .silo-tbl td.silo-u{vertical-align:top; padding-top:12px;}
+  .silo-tbl tr.silo-sep td{border-top:2px solid var(--border-strong);}
+  .silo-mat{display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:99px; font-size:11.5px; font-weight:700; white-space:nowrap; background:var(--neutral-soft); color:var(--neutral);}
+  .silo-mat.CP2{background:var(--info-soft); color:var(--info);} .silo-mat.CP3{background:var(--success-soft); color:var(--success);}
+  .silo-mat.CP5{background:var(--warning-soft); color:var(--warning);} .silo-mat.POZOLANA{background:var(--danger-soft); color:var(--danger);}
+  .silo-form{display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; padding:12px 14px; background:var(--surface-2); border-radius:8px;}
+  .silo-form label{display:flex; flex-direction:column; gap:4px; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--text-faint);}
+  .silo-form input, .silo-form select{background:var(--surface); color:var(--text); border:1px solid var(--border-strong); border-radius:6px; padding:7px 9px; font-size:13px; font-family:inherit; text-transform:none; letter-spacing:0; font-weight:400; min-width:120px;}
+  .silo-form input[type=date]{color-scheme:dark;} :root[data-theme="light"] .silo-form input[type=date]{color-scheme:light;}
+  .silo-hist{font-size:12px; color:var(--text-muted); line-height:1.7; padding:4px 0 6px;}
+  .silo-filtros{display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
+  .silo-filtros input, .silo-filtros select{background:var(--surface-2); color:var(--text); border:1px solid var(--border-strong); border-radius:6px; padding:7px 10px; font-size:12.5px; font-family:inherit;}
   .modo-menu{position:relative;}
   .modo-pop{position:absolute; right:0; top:calc(100% + 6px); z-index:40; min-width:240px; background:var(--surface); border:1px solid var(--border-strong); border-radius:10px; box-shadow:var(--shadow); padding:6px;}
   .modo-pop button{display:flex; align-items:center; gap:10px; width:100%; text-align:left; background:none; border:none; color:var(--text); padding:8px 10px; border-radius:6px; font-size:13px;}
@@ -787,6 +799,7 @@
       <section class="view" id="view-base-dados-cimento"></section>
       <section class="view" id="view-notas-sefaz"></section>
       <section class="view" id="view-lancamentos-puzl"></section>
+      <section class="view" id="view-silos"></section>
       <section class="view" id="view-controle-pedidos-cimento"></section>
       <section class="view" id="view-consultas"></section>
       <section class="view" id="view-dashboard"></section>
@@ -1251,7 +1264,8 @@
   var NAV_DADOS = [
     {id:"base-dados-cimento", label:"Base de Dados", icon:"🗄️"},
     {id:"notas-sefaz", label:"Notas SEFAZ", icon:"🧾"},
-    {id:"lancamentos-puzl", label:"Lançamentos PUZL", icon:"📋"}
+    {id:"lancamentos-puzl", label:"Lançamentos PUZL", icon:"📋"},
+    {id:"silos", label:"Silos das usinas", icon:"🛢️"}
   ];
   var NAV = [
     {id:"consultas", label:"Consultas", icon:"🔎"},
@@ -1261,7 +1275,7 @@
   ];
   var TITLES = {
     "solicitacoes":"Solicitações de Cimento", "programacao-cimento":"Programação de Cimento", "base-dados-cimento":"Base de Dados — Entradas de Cimento",
-    "notas-sefaz":"Notas Fiscais (SEFAZ)", "lancamentos-puzl":"Lançamentos (PUZL)",
+    "notas-sefaz":"Notas Fiscais (SEFAZ)", "lancamentos-puzl":"Lançamentos (PUZL)", "silos":"Silos das usinas",
     "controle-pedidos-cimento":"Controle de Pedidos de Cimento", "consultas":"Consultas",
     dashboard:"Dashboard", operacoes:"Operação", vpo:"VPO — Vale Pedágio Obrigatório", exececoes:"Fila de Exceções",
     dados:"Dados", relatorios:"Relatórios", auditoria:"Auditoria", configuracoes:"Configurações", adm:"Administração"
@@ -1272,6 +1286,7 @@
     "base-dados-cimento":"Dados <b>›</b> Base de Dados — importação e cadastro",
     "notas-sefaz":"Dados <b>›</b> Notas Fiscais (SEFAZ) — todas as notas importadas",
     "lancamentos-puzl":"Dados <b>›</b> Lançamentos (PUZL) — todos os lançamentos importados",
+    "silos":"Dados <b>›</b> Silos das usinas — cimento atual e trocas",
     "controle-pedidos-cimento":"Cimento <b>›</b> Controle de Pedidos — conferência automática",
     "vpo":"Cimento <b>›</b> VPO — pedágio por roteiro",
     "consultas":"Outros <b>›</b> Consulta geral e consulta de pedágio",
@@ -1629,6 +1644,7 @@
     else if (id === "base-dados-cimento") paintBaseDados();
     else if (id === "notas-sefaz") paintNFes();
     else if (id === "lancamentos-puzl") paintPuzl();
+    else if (id === "silos" && typeof siloCarregar === "function") siloCarregar();
     else if (id === "consultas" && typeof paintConsulta === "function") paintConsulta();
     else if (id === "programacao-cimento" && typeof progPicker !== "undefined" && progPicker) paintBlocks();
   }
@@ -5549,6 +5565,8 @@
       if (!re.error) (re.data || []).forEach(function(x){ var u = ADM.usuarios.find(function(k){ return k.user_id === x.user_id; }); if (u){ u.email = x.email; u.email_real = x.email_real; } });
     }
     await admChavesRecarregar();
+    var hb = await sb.from("historico_alteracoes").select("em").eq("tabela", "backup").order("em", { ascending: false }).limit(1);
+    ADM.ultimoBackup = (!hb.error && hb.data && hb.data[0]) ? hb.data[0].em : null;
     var h = await sb.from("historico_alteracoes").select("tabela,acao,registro_id,antes,depois,em").in("tabela", ["usuarios", "chaves"]).order("em", { ascending: false }).limit(15);
     ADM.hist = h.error ? [] : (h.data || []);
     ADM.carregando = false; admRender();
@@ -5561,7 +5579,7 @@
     var u = C.usinas.find(function(k){ return k.usina_id === x.registro_id; }); if (u) return "Usina " + u.usina;
     return "—";
   }
-  var ADM_ACAO = { ALTERAR_EMAIL: "E-mail de login alterado", TROCAR_SENHA: "Trocou a própria senha", RECUPERAR_SENHA: "Senha recuperada por e-mail", SENHA_ATUAL_ERRADA: "Errou a senha atual ao trocar", RESET_SENHA: "Senha redefinida", ALTERAR_PAPEL: "Papel alterado", ATIVAR: "Conta ativada", DESATIVAR: "Conta desativada",
+  var ADM_ACAO = { BACKUP: "Cópia de segurança baixada", ALTERAR_EMAIL: "E-mail de login alterado", TROCAR_SENHA: "Trocou a própria senha", RECUPERAR_SENHA: "Senha recuperada por e-mail", SENHA_ATUAL_ERRADA: "Errou a senha atual ao trocar", RESET_SENHA: "Senha redefinida", ALTERAR_PAPEL: "Papel alterado", ATIVAR: "Conta ativada", DESATIVAR: "Conta desativada",
     GERAR_CHAVE: "Chave de acesso gerada", GERAR_CHAVES_LOTE: "Chaves geradas em lote", DESATIVAR_CHAVE: "Chave de acesso desativada", VER_CHAVE: "Chave de acesso copiada", EXPORTAR_CHAVES: "Chaves exportadas (Excel)", APAGAR_CHAVES: "Todas as chaves apagadas", ENCARREGADO: "Encarregado salvo", ENCARREGADO_USINAS: "Usinas do encarregado alteradas" };
   var ADM_CHECK = [
     ["Alta", "painel", "Cadastro público desligado", "No painel do Supabase: Authentication → Sign In / Providers → desmarque “Allow new users to sign up”. Hoje uma conta nova não enxerga nenhum dado (o banco exige ser membro), mas desligar fecha a porta de vez."],
@@ -5615,6 +5633,9 @@
         '<div><button class="btn-primary" id="admSalvar" style="width:auto;padding:10px 18px;" disabled>Salvar nova senha</button></div></div></div>';
     }
     h += admChavesHtml();
+    h += '<div class="card" id="admBackupCard" style="margin-bottom:16px;"><div class="card-head"><div><h2>💾 Cópia de segurança</h2><p>Baixa um Excel com todos os dados do sistema, uma aba por tabela (usinas, programação, notas, PUZL, solicitações, silos, histórico…). Não inclui senhas, chaves de acesso nem imagens. Guarde o arquivo em local seguro (ele tem dados da empresa). O plano gratuito do Supabase não faz cópia diária sozinho.</p></div>' +
+      '<button class="btn-primary btn-inline" id="admBackupBtn"' + (ADM.backup ? " disabled" : "") + '>' + (ADM.backup ? esc(ADM.backup) : "Baixar cópia agora") + '</button></div>' +
+      (ADM.ultimoBackup ? '<div class="adm-pad faint" style="font-size:12.5px">Última cópia: ' + esc(admFmt(ADM.ultimoBackup)) + '</div>' : '<div class="adm-pad faint" style="font-size:12.5px">Nenhuma cópia feita ainda.</div>') + '</div>';
     h += '<div class="card" style="margin-bottom:16px;"><div class="card-head"><div><h2>🧾 Últimas ações de administração</h2><p>Quem fez o quê, e quando. A senha nunca é gravada.</p></div></div>';
     h += ADM.hist.length ? admDet("hist", "Ver as últimas " + ADM.hist.length + " ações", '<div class="table-wrap"><table class="adm-tbl"><thead><tr><th>Quando</th><th>Ação</th><th>Usuário</th><th>Detalhe</th></tr></thead><tbody>' + ADM.hist.map(function(x){
       var det = x.acao === "ALTERAR_EMAIL" ? esc(((x.antes || {}).email || "?") + " → " + ((x.depois || {}).email || "?")) : x.acao === "ALTERAR_PAPEL" ? esc(((x.antes || {}).papel || "?") + " → " + ((x.depois || {}).papel || "?")) : ((x.acao === "GERAR_CHAVES_LOTE" || x.acao === "EXPORTAR_CHAVES" || x.acao === "APAGAR_CHAVES") ? esc((x.depois || {}).qtd + " chave(s)") : (x.acao === "ENCARREGADO_USINAS" ? esc((x.depois || {}).qtd_usinas + " usina(s)") : ""));
@@ -5677,6 +5698,51 @@
       ADM.msg = "Senha de " + nome + " redefinida. Entregue a nova senha a essa pessoa por um canal seguro."; ADM.ruim = false; ADM.alvo = null; await paintAdm();
     }
   });
+
+  /* ---------- Cópia de segurança (Excel, só administrador) ---------- */
+  var BACKUP_TABELAS = [["usinas", "Usinas"], ["membros", "Usuários"], ["fornecedores", "Fornecedores"], ["fornecedor_codigos", "Códigos fornecedor"], ["fabricas", "Fábricas"],
+    ["catalogo_cimento", "Catálogo cimentos"], ["rotas_pedagio", "Rotas e pedágio"], ["frota", "Frota"], ["programacao_dias", "Programação - dias"],
+    ["programacao_itens", "Programação - linhas"], ["programacao_cargas", "Programação - cargas"], ["notas_sefaz", "Notas SEFAZ"], ["lancamentos_puzl", "Lançamentos PUZL"],
+    ["vpo_dias", "VPO - dias"], ["vpo_entradas", "VPO - entradas"], ["historico_importacoes", "Importações"], ["solic_encarregados", "Encarregados"],
+    ["solic_encarregado_usinas", "Encarregado x usina"], ["solic_cimento", "Solicitações"], ["solic_cimento_linhas", "Solicitações - linhas"],
+    ["solic_autorizacoes", "Autorizações"], ["solic_alteracoes", "Alterações pedidas"], ["usina_silos", "Silos"], ["usina_silo_trocas", "Silos - trocas"],
+    ["historico_alteracoes", "Histórico de alterações"]];
+  function backupCelula(v){
+    if (v === null || v === undefined) return "";
+    if (typeof v === "object") v = JSON.stringify(v);
+    if (typeof v === "string" && v.length > 32000) v = v.slice(0, 32000) + "…";
+    return v;
+  }
+  async function admBackup(){
+    if (!ME || ME.papel !== "admin" || ADM.backup) return;
+    if (typeof XLSX === "undefined"){ ADM.msg = "Não consegui gerar o Excel neste navegador."; ADM.ruim = true; admRender(); return; }
+    var wb = XLSX.utils.book_new(), resumo = [["Tabela", "Linhas"]], total = 0;
+    try {
+      for (var i = 0; i < BACKUP_TABELAS.length; i++){
+        var t = BACKUP_TABELAS[i];
+        ADM.backup = "Copiando " + (i + 1) + " de " + BACKUP_TABELAS.length + "…"; var bt = el("admBackupBtn"); if (bt) bt.textContent = ADM.backup;
+        var r = await sb.rpc("admin_backup", { p_tabela: t[0] });
+        if (r.error) throw r.error;
+        var linhas = (r.data && r.data.tabelas && r.data.tabelas[t[0]]) || [];
+        var cols = []; linhas.forEach(function(o){ Object.keys(o).forEach(function(k){ if (cols.indexOf(k) < 0) cols.push(k); }); });
+        var aoa = [cols.length ? cols : ["(vazia)"]].concat(linhas.map(function(o){ return cols.map(function(k){ return backupCelula(o[k]); }); }));
+        var ws = XLSX.utils.aoa_to_sheet(aoa); ws["!cols"] = cols.map(function(){ return { wch: 18 }; });
+        XLSX.utils.book_append_sheet(wb, ws, t[1].slice(0, 31));
+        resumo.push([t[1], linhas.length]); total += linhas.length;
+      }
+      var agora = new Date();
+      resumo.unshift(["Cópia de segurança — Concrelagos", ""], ["Gerada em", agora.toLocaleString("pt-BR", { timeZone: SOL_TZ })], ["Por", ME.nome], ["", ""]);
+      var wr = XLSX.utils.aoa_to_sheet(resumo); wr["!cols"] = [{ wch: 30 }, { wch: 24 }];
+      XLSX.utils.book_append_sheet(wb, wr, "Resumo");
+      wb.SheetNames.unshift(wb.SheetNames.pop());   // Resumo como primeira aba
+      var nome = "copia-seguranca-concrelagos-" + agora.toLocaleDateString("sv-SE", { timeZone: SOL_TZ }) + ".xlsx";
+      XLSX.writeFile(wb, nome);
+      ADM.backup = null; ADM.ultimoBackup = agora.toISOString();
+      ADM.msg = "Cópia baixada: " + nome + " (" + total.toLocaleString("pt-BR") + " linhas em " + BACKUP_TABELAS.length + " tabelas). Guarde em local seguro."; ADM.ruim = false; ADM.where = "";
+    } catch (e){ ADM.backup = null; ADM.msg = "A cópia não foi concluída: " + dbErr(e); ADM.ruim = true; ADM.where = ""; }
+    admRender(); var c = el("admBackupCard"); if (c) c.scrollIntoView({ block: "nearest" });
+  }
+  el("view-adm").addEventListener("click", function(ev){ var b = ev.target.closest && ev.target.closest("#admBackupBtn"); if (b && !b.disabled) admBackup(); });
 
   /* ---------- Trocar a própria senha ---------- */
   function pwFechar(){ var m = el("pwModal"); if (!m) return; m.hidden = true; ["pwAtual", "pwNova", "pwRep"].forEach(function(i){ el(i).value = ""; el(i).type = "password"; }); el("pwVer").textContent = "Mostrar"; el("pwMsg").textContent = ""; }
@@ -6523,6 +6589,145 @@
         var r3 = await sb.rpc("admin_encarregado_salvar", { p_id: eid, p_nome: e.nome, p_ativo: !e.ativo });
         if (r3.error) return falha(r3.error);
         ENC.msg = e.ativo ? "Encarregado desativado (a chave dele deixou de valer)." : "Encarregado ativado. Gere uma chave nova para ele em Adm."; ENC.ruim = false; await encCarregar();
+      }
+    });
+  })();
+
+  /* ======================================================================
+     SILOS DAS USINAS — cimento atual de cada silo e histórico de trocas.
+     Admin e operador editam; leitura só vê. Base para a Programação saber o
+     que cada usina pode receber.
+     ====================================================================== */
+  var SILO = { d: null, carregando: false, msg: "", ruim: false, q: "", mat: "", form: null, abertos: {}, sure: null };
+  var SILO_MATS = [["CP2", "CP II"], ["CP3", "CP III"], ["CP5", "CP V"], ["POZOLANA", "Pozolana"], ["OUTRO", "Outro"], ["VAZIO", "Vazio"]];
+  function siloMatNome(m){ var x = SILO_MATS.find(function(k){ return k[0] === m; }); return x ? x[1] : (m || "—"); }
+  function siloMat(m, det){ return m ? '<span class="silo-mat ' + esc(m) + '">' + esc(siloMatNome(m)) + (det ? ' · ' + esc(det) : "") + '</span>' : '<span class="faint">não informado</span>'; }
+  function siloNorm(t){ return String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase(); }
+  async function siloCarregar(){
+    if (!ME || !sb) return;
+    SILO.carregando = !SILO.d; siloPintar();
+    var r; try { r = await sb.rpc("silos_listar"); } catch (e){ r = { error: e }; }
+    SILO.carregando = false;
+    if (r.error){ SILO.msg = dbErr(r.error); SILO.ruim = true; }
+    else if (r.data && Array.isArray(r.data.usinas)) SILO.d = r.data;
+    siloPintar();
+  }
+  function siloOpts(sel, vazio){ return (vazio ? '<option value="">' + vazio + '</option>' : "") + SILO_MATS.map(function(m){ return '<option value="' + m[0] + '"' + (sel === m[0] ? " selected" : "") + '>' + m[1] + '</option>'; }).join(""); }
+  function siloFormHtml(f, colspan){
+    var hoje = toISO(TODAY), h = '<tr class="adm-edit"><td colspan="' + colspan + '"><div class="silo-form">';
+    if (f.tipo === "novo" || f.tipo === "editar"){
+      h += '<label>Nome do silo<input id="siloNome" maxlength="40" placeholder="ex.: Silo 1" value="' + esc(f.nome || "") + '"></label>';
+      if (f.tipo === "novo") h += '<label>Cimento atual<select id="siloMat">' + siloOpts(f.material, "— escolha —") + '</select></label>' +
+        '<label>Detalhe (opcional)<input id="siloDet" maxlength="60" placeholder="ex.: CSN CP III 40 RS" value="' + esc(f.detalhe || "") + '"></label>' +
+        '<label>Desde (opcional)<input type="date" id="siloDesde" max="' + hoje + '" value="' + esc(f.desde || "") + '"></label>';
+      h += '<label>Observação<input id="siloObs" maxlength="120" value="' + esc(f.obs || "") + '"></label>';
+      h += '<div class="adm-acoes"><button class="btn-primary btn-inline" data-silo="salvar">' + (f.tipo === "novo" ? "Adicionar silo" : "Salvar") + '</button><button class="btn-ghost" data-silo="fechar">Cancelar</button></div>';
+    } else {
+      h += '<b style="flex:1 1 100%;font-size:13px">Troca de cimento — ' + esc(f.titulo) + '</b>' +
+        '<label>Novo cimento<select id="siloMat">' + siloOpts(f.material, "— escolha —") + '</select></label>' +
+        '<label>Detalhe (opcional)<input id="siloDet" maxlength="60" placeholder="ex.: CSN CP III 40 RS" value="' + esc(f.detalhe || "") + '"></label>' +
+        '<label>Quando foi trocado<input type="date" id="siloData" value="' + esc(f.data || hoje) + '"></label>' +
+        '<label>Observação<input id="siloObs" maxlength="120" value="' + esc(f.obs || "") + '"></label>' +
+        '<div class="adm-acoes"><button class="btn-primary btn-inline" data-silo="trocar-salvar">Registrar troca</button><button class="btn-ghost" data-silo="fechar">Cancelar</button></div>';
+    }
+    if (f.erro) h += '<p class="msg-erro" style="flex:1 1 100%;margin:0;color:var(--danger);font-size:12.5px">' + esc(f.erro) + '</p>';
+    return h + '</div></td></tr>';
+  }
+  function siloPintar(){
+    var v = el("view-silos"); if (!v) return;
+    var D = SILO.d, pode = !!D && D.pode && ME && ME.papel !== "leitura";
+    var h = '<div class="card" style="margin-bottom:16px"><div class="card-head"><div><h2>🛢️ Silos das usinas</h2><p>Cada silo com o cimento atual, a última troca e quando foi trocado. Registre as trocas aqui para o histórico ficar completo.' + (D && !pode ? " Somente leitura." : "") + '</p></div>' +
+      '<div class="silo-filtros"><input type="search" id="siloQ" placeholder="Buscar usina ou silo" value="' + esc(SILO.q) + '"><select id="siloF"><option value="">Todos os cimentos</option>' + siloOpts(SILO.mat) + '<option value="__sem"' + (SILO.mat === "__sem" ? " selected" : "") + '>Usinas sem silo</option></select><button class="btn-ghost" data-silo="atualizar">↻ Atualizar</button></div></div>';
+    if (SILO.msg) h += '<div class="adm-msg ' + (SILO.ruim ? "bad" : "ok") + '" role="status">' + esc(SILO.msg) + '</div>';
+    if (!D){ v.innerHTML = h + '<div class="adm-pad faint">' + (SILO.carregando ? "Carregando…" : "Sem dados. Use Atualizar.") + '</div></div>'; return; }
+    var cont = {}, nSilos = 0, semSilo = 0;
+    D.usinas.forEach(function(u){ if (!u.silos.length) semSilo++; u.silos.forEach(function(s){ nSilos++; var k = s.material || "—"; cont[k] = (cont[k] || 0) + 1; }); });
+    var tile = function(n, rot, cor){ return '<div class="sol-tile" style="--st:' + cor + ';cursor:default"><b>' + n + '</b><span>' + rot + '</span></div>'; };
+    h += '<div class="sol-tiles">' + tile(nSilos, "silos cadastrados", "var(--accent)") +
+      SILO_MATS.filter(function(m){ return cont[m[0]]; }).map(function(m){ return tile(cont[m[0]], "com " + m[1], "var(--border-strong)"); }).join("") +
+      tile(semSilo, "usinas sem silo", semSilo ? "var(--danger)" : "var(--success)") + '</div></div>';
+    var q = siloNorm(SILO.q).trim();
+    var lista = D.usinas.filter(function(u){
+      if (SILO.mat === "__sem" && u.silos.length) return false;
+      if (SILO.mat && SILO.mat !== "__sem" && !u.silos.some(function(s){ return s.material === SILO.mat; })) return false;
+      if (q && siloNorm(u.usina).indexOf(q) < 0 && !u.silos.some(function(s){ return siloNorm(s.nome).indexOf(q) >= 0; })) return false;
+      return true;
+    });
+    var cols = pode ? 6 : 5;
+    h += '<div class="card"><div class="table-wrap" style="max-height:none"><table class="adm-tbl silo-tbl"><thead><tr><th>Usina</th><th>Silo</th><th>Cimento atual</th><th>Última troca</th><th>Quando foi trocado</th>' + (pode ? '<th></th>' : "") + '</tr></thead><tbody>';
+    if (!lista.length) h += '<tr><td colspan="' + cols + '" class="faint" style="text-align:center;padding:20px">Nenhuma usina neste filtro.</td></tr>';
+    lista.forEach(function(u){
+      var silos = SILO.mat && SILO.mat !== "__sem" ? u.silos.filter(function(s){ return s.material === SILO.mat; }) : u.silos;
+      var linhas = Math.max(silos.length, 1);
+      if (!silos.length){
+        h += '<tr class="silo-sep"><td class="cell-strong silo-u">' + esc(u.usina) + '</td><td colspan="4" class="faint">nenhum silo cadastrado</td>' + (pode ? '<td><button class="btn-ghost" data-silo="novo" data-u="' + esc(u.usina_id) + '">+ Silo</button></td>' : "") + '</tr>';
+      }
+      silos.forEach(function(s, i){
+        var t = s.trocas[0], ab = !!SILO.abertos[s.id];
+        h += '<tr' + (i === 0 ? ' class="silo-sep"' : "") + '>' + (i === 0 ? '<td class="cell-strong silo-u" rowspan="' + linhas + '">' + esc(u.usina) + (pode ? '<br><button class="btn-ghost" style="margin-top:6px;padding:3px 8px;font-size:11.5px" data-silo="novo" data-u="' + esc(u.usina_id) + '">+ Silo</button>' : "") + '</td>' : "") +
+          '<td><b>' + esc(s.nome) + '</b>' + (s.obs ? '<br><span class="faint" style="font-size:11.5px">' + esc(s.obs) + '</span>' : "") + '</td>' +
+          '<td>' + siloMat(s.material, s.detalhe) + '</td>' +
+          '<td>' + (t ? siloMat(t.de_material, t.de_detalhe) + ' → ' + siloMat(t.para_material, t.para_detalhe) : '<span class="faint">sem troca registrada</span>') + '</td>' +
+          '<td>' + (s.desde ? esc(brDate(s.desde)) : '<span class="faint">—</span>') + (t && t.por ? '<br><span class="faint" style="font-size:11.5px">' + esc(t.por) + '</span>' : "") + '</td>' +
+          (pode ? '<td><div class="adm-acoes"><button class="btn-ghost" data-silo="trocar" data-s="' + esc(s.id) + '">Trocar cimento</button>' +
+            (s.trocas.length ? '<button class="btn-ghost" data-silo="hist" data-s="' + esc(s.id) + '">' + (ab ? "Ocultar" : "Histórico (" + s.trocas.length + ")") + '</button>' : "") +
+            '<button class="btn-ghost" data-silo="editar" data-s="' + esc(s.id) + '">Editar</button>' +
+            '<button class="btn-ghost" style="color:var(--danger)" data-silo="excluir" data-s="' + esc(s.id) + '">' + (SILO.sure === s.id ? "Confirmar excluir" : "Excluir") + '</button></div></td>' :
+            '<td>' + (s.trocas.length ? '<button class="btn-ghost" data-silo="hist" data-s="' + esc(s.id) + '">' + (ab ? "Ocultar" : "Histórico (" + s.trocas.length + ")") + '</button>' : "") + '</td>') + '</tr>';
+        if (ab) h += '<tr><td colspan="' + (cols - 1) + '"><div class="silo-hist">' + s.trocas.map(function(x){
+          return '<div><b>' + esc(brDate(x.data)) + '</b> · ' + siloMat(x.de_material, x.de_detalhe) + ' → ' + siloMat(x.para_material, x.para_detalhe) + (x.obs ? ' · “' + esc(x.obs) + '”' : "") + (x.por ? ' · ' + esc(x.por) : "") + '</div>'; }).join("") + '</div></td></tr>';
+        if (SILO.form && SILO.form.silo === s.id) h += siloFormHtml(SILO.form, cols - 1);
+      });
+      if (SILO.form && SILO.form.tipo === "novo" && SILO.form.usina === u.usina_id) h += siloFormHtml(SILO.form, cols);
+    });
+    h += '</tbody></table></div></div>';
+    v.innerHTML = h;
+    var foco = el("siloNome") || el("siloMat"); if (SILO.form && foco && !SILO.form.focado){ SILO.form.focado = true; foco.focus(); }
+  }
+  function siloAchar(id){ var r = null; (SILO.d ? SILO.d.usinas : []).forEach(function(u){ u.silos.forEach(function(s){ if (s.id === id) r = { s: s, u: u }; }); }); return r; }
+  (function(){
+    var v = el("view-silos"); if (!v) return;
+    var ler = function(){ var f = SILO.form; if (!f) return; ["siloNome:nome", "siloMat:material", "siloDet:detalhe", "siloDesde:desde", "siloData:data", "siloObs:obs"].forEach(function(p){ var k = p.split(":"), e = el(k[0]); if (e) f[k[1]] = e.value; }); };
+    v.addEventListener("input", function(ev){
+      if (ev.target.id === "siloQ"){ SILO.q = ev.target.value; var pos = ev.target.selectionStart; siloPintar(); var e = el("siloQ"); if (e){ e.focus(); try { e.setSelectionRange(pos, pos); } catch (x){ } } }
+      else if (SILO.form) ler();
+    });
+    v.addEventListener("change", function(ev){ if (ev.target.id === "siloF"){ SILO.mat = ev.target.value; siloPintar(); } else if (SILO.form) ler(); });
+    v.addEventListener("keydown", function(ev){ if (ev.key === "Enter" && SILO.form && ev.target.closest(".silo-form")){ ev.preventDefault(); var b = v.querySelector('[data-silo="salvar"],[data-silo="trocar-salvar"]'); if (b) b.click(); } });
+    v.addEventListener("click", async function(ev){
+      var b = ev.target.closest && ev.target.closest("[data-silo]"); if (!b || b.disabled) return;
+      var a = b.dataset.silo, x;
+      if (a !== "excluir") SILO.sure = null;
+      if (a === "atualizar"){ SILO.msg = ""; siloCarregar(); return; }
+      if (a === "fechar"){ SILO.form = null; siloPintar(); return; }
+      if (a === "hist"){ SILO.abertos[b.dataset.s] = !SILO.abertos[b.dataset.s]; siloPintar(); return; }
+      if (a === "novo"){ SILO.form = { tipo: "novo", usina: b.dataset.u, nome: "Silo " + (((SILO.d.usinas.find(function(u){ return u.usina_id === b.dataset.u; }) || {}).silos || []).length + 1) }; SILO.msg = ""; siloPintar(); return; }
+      if (a === "editar"){ x = siloAchar(b.dataset.s); if (!x) return; SILO.form = { tipo: "editar", silo: x.s.id, nome: x.s.nome, obs: x.s.obs || "" }; SILO.msg = ""; siloPintar(); return; }
+      if (a === "trocar"){ x = siloAchar(b.dataset.s); if (!x) return; SILO.form = { tipo: "trocar", silo: x.s.id, titulo: x.u.usina + " · " + x.s.nome, material: "", detalhe: "", data: toISO(TODAY) }; SILO.msg = ""; siloPintar(); return; }
+      var falha = function(e){ if (SILO.form){ SILO.form.erro = dbErr(e); } else { SILO.msg = dbErr(e); SILO.ruim = true; } b.disabled = false; siloPintar(); };
+      if (a === "salvar"){
+        ler(); var f = SILO.form; if (!f) return;
+        if (!String(f.nome || "").trim()){ f.erro = "Informe o nome do silo."; siloPintar(); return; }
+        b.disabled = true;
+        var r = await sb.rpc("silo_salvar", { p_id: f.tipo === "editar" ? f.silo : null, p_usina: f.usina || null, p_nome: f.nome, p_material: f.material || null, p_detalhe: f.detalhe || null, p_desde: f.desde || null, p_obs: f.obs || null });
+        if (r.error) return falha(r.error);
+        SILO.msg = f.tipo === "novo" ? "Silo adicionado." : "Silo salvo."; SILO.ruim = false; SILO.form = null; await siloCarregar(); return;
+      }
+      if (a === "trocar-salvar"){
+        ler(); var g = SILO.form; if (!g) return;
+        if (!g.material){ g.erro = "Escolha o novo cimento."; siloPintar(); return; }
+        if (!g.data){ g.erro = "Informe quando foi trocado."; siloPintar(); return; }
+        b.disabled = true;
+        var r2 = await sb.rpc("silo_trocar", { p_silo: g.silo, p_material: g.material, p_detalhe: g.detalhe || null, p_data: g.data, p_obs: g.obs || null });
+        if (r2.error) return falha(r2.error);
+        SILO.msg = "Troca registrada: " + g.titulo + " → " + siloMatNome(g.material) + " em " + brDate(g.data) + "."; SILO.ruim = false; SILO.form = null; await siloCarregar(); return;
+      }
+      if (a === "excluir"){
+        if (SILO.sure !== b.dataset.s){ SILO.sure = b.dataset.s; siloPintar(); return; }
+        SILO.sure = null; b.disabled = true;
+        var r3 = await sb.rpc("silo_excluir", { p_silo: b.dataset.s });
+        if (r3.error) return falha(r3.error);
+        SILO.msg = "Silo excluído (o histórico de trocas fica guardado)."; SILO.ruim = false; await siloCarregar();
       }
     });
   })();
