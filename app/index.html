@@ -285,6 +285,35 @@
   .silo-form input, .silo-form select{background:var(--surface); color:var(--text); border:1px solid var(--border-strong); border-radius:6px; padding:7px 9px; font-size:13px; font-family:inherit; text-transform:none; letter-spacing:0; font-weight:400; min-width:120px;}
   .silo-form input[type=date]{color-scheme:dark;} :root[data-theme="light"] .silo-form input[type=date]{color-scheme:light;}
   .silo-hist{font-size:12px; color:var(--text-muted); line-height:1.7; padding:4px 0 6px;}
+  .cc-tbl th, .cc-tbl td{padding:7px 9px; font-size:12.5px; line-height:1.3;}
+  .cc-tbl thead th{font-size:10px; white-space:normal; vertical-align:bottom;}
+  .cc-tbl th.cc-g{text-align:center; letter-spacing:.06em; vertical-align:middle;}
+  .cc-tbl td.cc-c{max-width:165px;} .cc-tbl td.cc-t{max-width:150px;} .cc-tbl td.cc-d{white-space:nowrap;}
+  .cc-tbl .silo-mat{white-space:normal; line-height:1.25; font-size:11px; padding:3px 8px; border-radius:8px;}
+  .cc-tbl td.cc-u, .cc-tbl thead tr:first-child th:first-child{position:sticky; left:0; z-index:1; background:var(--surface); white-space:nowrap;}
+  .cc-tbl tr.cc-edit td.cc-u{background:var(--surface-2);}
+  .cc-acao{display:flex; flex-wrap:wrap; align-items:center; gap:4px; margin-top:3px; max-width:120px;} .cc-acao .cc-tag, .cc-acao .cc-feita{margin-left:0;}
+  .cc-tbl .adm-acoes{flex-wrap:nowrap;} .cc-tbl .adm-acoes .btn-ghost{padding:4px 8px; font-size:12px;}
+  .cc-tbl .cc-ini{border-left:2px solid var(--border-strong);}
+  .cc-tbl td.cc-u{font-weight:700; border-left:4px solid var(--success);}
+  .cc-tbl tr.prog td.cc-u{border-left-color:var(--warning);} .cc-tbl tr.pend td.cc-u{border-left-color:var(--danger);} .cc-tbl tr.vazio td.cc-u{border-left-color:var(--border-strong); color:var(--text-muted);}
+  .cc-tbl td.cc-prog{background:rgba(217,119,6,.13);} .cc-tbl td.cc-pend{background:rgba(225,29,72,.14);}
+  .cc-troca{font-weight:700;} .cc-sub{display:block; font-size:10.5px; color:var(--text-faint); margin-top:3px;}
+  .cc-tag{display:inline-block; font-size:9.5px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; padding:1px 7px; border-radius:99px; margin-left:6px; vertical-align:1px;}
+  .cc-tag.prog{background:var(--warning-soft); color:var(--warning);} .cc-tag.pend{background:var(--danger-soft); color:var(--danger);}
+  .cc-feita{margin-left:6px; background:var(--success-soft); color:var(--success); border:1px solid transparent; border-radius:6px; padding:2px 8px; font-size:11.5px; font-weight:700; cursor:pointer; font-family:inherit;}
+  .cc-feita:hover{border-color:var(--success);}
+  .cc-tbl td.cc-obs{white-space:normal; min-width:150px; max-width:260px; font-size:12.5px; color:var(--text-muted);}
+  .cc-tbl select, .cc-tbl input{background:var(--surface-2); color:var(--text); border:1px solid var(--border-strong); border-radius:6px; padding:5px 7px; font-size:12px; font-family:inherit; width:150px; max-width:150px;}
+  .cc-tbl input[type=date]{width:128px;} .cc-tbl #ccObs{width:140px;}
+  .cc-tbl input[type=date]{color-scheme:dark;} :root[data-theme="light"] .cc-tbl input[type=date]{color-scheme:light;}
+  .cc-tbl input:disabled{opacity:.4;}
+  .cc-tbl tr.cc-edit td{background:var(--surface-2);} .cc-tbl tr.cc-edit-info td{white-space:normal; font-size:12px; border-top:0;}
+  .cc-lista-box{margin:0 18px 16px; padding:12px 14px; background:var(--surface-2); border-radius:8px; font-size:12.5px;}
+  .cc-lista{display:flex; flex-wrap:wrap; gap:6px; margin:10px 0;}
+  .cc-chip{display:inline-flex; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--border); border-radius:99px; padding:3px 10px; font-size:12px; font-weight:600;}
+  .cc-chip button{background:none; border:0; color:var(--danger); cursor:pointer; font-size:12px; padding:0 2px; font-family:inherit;}
+  .cc-lista-add{display:flex; gap:8px; flex-wrap:wrap;} .cc-lista-add input{flex:1 1 260px; background:var(--surface); color:var(--text); border:1px solid var(--border-strong); border-radius:6px; padding:7px 10px; font-size:12.5px; font-family:inherit;}
   .silo-filtros{display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
   .silo-filtros input, .silo-filtros select{background:var(--surface-2); color:var(--text); border:1px solid var(--border-strong); border-radius:6px; padding:7px 10px; font-size:12.5px; font-family:inherit;}
   .modo-menu{position:relative;}
@@ -776,11 +805,14 @@
         <div class="nav-group-label" data-toggle="adm"><span class="nav-group-chevron">▾</span>Administração</div>
         <button class="nav-item" data-view="adm"><span class="ic">🔐</span>Adm</button>
       </div>
-      <div class="nav-group dim" id="navOutros" data-group="outros">
+      <div class="nav-group" id="navOutros" data-group="outros">
         <div class="nav-group-label" data-toggle="outros"><span class="nav-group-chevron">▾</span>Outros</div>
       </div>
+      <div class="nav-group dim" id="navBreve" data-group="breve">
+        <div class="nav-group-label" data-toggle="breve"><span class="nav-group-chevron">▾</span>Em breve</div>
+      </div>
     </nav>
-    <div class="sidebar-foot">Dados salvos automaticamente no banco. Telas “Dashboard”, “Operação”, “Exceções” e “Auditoria” ainda usam exemplos.</div>
+    <div class="sidebar-foot">Dados salvos automaticamente no banco. Os módulos de “Em breve” ainda estão em definição e mostram exemplos.</div>
   </aside>
 
   <div class="main">
@@ -1259,7 +1291,6 @@
     {id:"solicitacoes", label:"Solicitações", icon:"📥"},
     {id:"programacao-cimento", label:"Programação de Cimento", icon:"📋"},
     {id:"controle-pedidos-cimento", label:"Controle de Pedidos", icon:"🚚"},
-    {id:"silos", label:"Controle de cimento", icon:"🛢️"},
     {id:"vpo", label:"VPO", icon:"🧾"}
   ];
   var NAV_DADOS = [
@@ -1269,9 +1300,15 @@
   ];
   var NAV = [
     {id:"consultas", label:"Consultas", icon:"🔎"},
-    {id:"dashboard", label:"Dashboard", icon:"📊"}, {id:"operacoes", label:"Operação", icon:"🚦"},
-    {id:"exececoes", label:"Exceções", icon:"🛡️"}, {id:"dados", label:"Dados", icon:"🗂️"}, {id:"relatorios", label:"Relatórios", icon:"📈"},
-    {id:"auditoria", label:"Auditoria", icon:"🔍"}, {id:"configuracoes", label:"Configurações", icon:"⚙️"}
+    {id:"dashboard", label:"Dashboard", icon:"📊"},
+    {id:"silos", label:"Controle de cimento", icon:"🛢️"},
+    {id:"configuracoes", label:"Configurações", icon:"⚙️"}
+  ];
+  /* Módulos ainda em definição (telas com dados de exemplo) — grupo "Em breve". */
+  var NAV_BREVE = [
+    {id:"operacoes", label:"Operação", icon:"🚦"}, {id:"exececoes", label:"Exceções", icon:"🛡️"},
+    {id:"dados", label:"Dados", icon:"🗂️"}, {id:"relatorios", label:"Relatórios", icon:"📈"},
+    {id:"auditoria", label:"Auditoria", icon:"🔍"}
   ];
   var TITLES = {
     "solicitacoes":"Solicitações de Cimento", "programacao-cimento":"Programação de Cimento", "base-dados-cimento":"Base de Dados — Entradas de Cimento",
@@ -1286,16 +1323,16 @@
     "base-dados-cimento":"Dados <b>›</b> Base de Dados — importação e cadastro",
     "notas-sefaz":"Dados <b>›</b> Notas Fiscais (SEFAZ) — todas as notas importadas",
     "lancamentos-puzl":"Dados <b>›</b> Lançamentos (PUZL) — todos os lançamentos importados",
-    "silos":"Cimento <b>›</b> Controle de cimento — o que está em cada silo",
+    "silos":"Outros <b>›</b> Controle de cimento — cimento atual e trocas de cada usina",
     "controle-pedidos-cimento":"Cimento <b>›</b> Controle de Pedidos — conferência automática",
     "vpo":"Cimento <b>›</b> VPO — pedágio por roteiro",
     "consultas":"Outros <b>›</b> Consulta geral e consulta de pedágio",
     dashboard:"Outros <b>›</b> Dashboard — programado × emitido × descarregado",
-    operacoes:"Outros <b>›</b> Acompanhamento de operações",
-    exececoes:"Outros <b>›</b> Itens que exigem intervenção humana",
-    dados:"Outros <b>›</b> Cadastros em definição",
-    relatorios:"Outros <b>›</b> Relatórios",
-    auditoria:"Outros <b>›</b> Trilha de auditoria",
+    operacoes:"Em breve <b>›</b> Acompanhamento de operações (exemplo)",
+    exececoes:"Em breve <b>›</b> Itens que exigem intervenção humana (exemplo)",
+    dados:"Em breve <b>›</b> Cadastros em definição",
+    relatorios:"Em breve <b>›</b> Relatórios em definição",
+    auditoria:"Em breve <b>›</b> Trilha de auditoria (exemplo)",
     configuracoes:"Outros <b>›</b> Configurações — aparência e perfil",
     adm:"Administração <b>›</b> Usuários, senhas e segurança — somente administrador"
   };
@@ -1592,6 +1629,15 @@
     b.innerHTML = '<span class="ic">'+item.icon+'</span>' + esc(item.label);
     b.addEventListener("click", function(){ showView(item.id); });
     navEl.appendChild(b);
+  });
+  var navBreveEl = el("navBreve");
+  NAV_BREVE.forEach(function(item){
+    var b = document.createElement("button");
+    b.className = "nav-item";
+    b.dataset.view = item.id;
+    b.innerHTML = '<span class="ic">'+item.icon+'</span>' + esc(item.label);
+    b.addEventListener("click", function(){ showView(item.id); });
+    navBreveEl.appendChild(b);
   });
 
   /* Grupos de nav ocultáveis (Cimento em foco / Dados / Outros): clique no
@@ -5731,7 +5777,7 @@
     ["vpo_dias", "VPO - dias"], ["vpo_entradas", "VPO - entradas"], ["historico_importacoes", "Importações"], ["solic_encarregados", "Encarregados"],
     ["solic_encarregado_usinas", "Encarregado x usina"], ["solic_cimento", "Solicitações"], ["solic_cimento_linhas", "Solicitações - linhas"],
     ["solic_autorizacoes", "Autorizações"], ["solic_alteracoes", "Alterações pedidas"], ["usina_silos", "Silos"], ["usina_silo_trocas", "Silos - trocas"],
-    ["historico_alteracoes", "Histórico de alterações"]];
+    ["cimento_lista", "Lista de cimentos"], ["usina_cimento_obs", "Controle cimento - obs"], ["historico_alteracoes", "Histórico de alterações"]];
   function backupCelula(v){
     if (v === null || v === undefined) return "";
     if (typeof v === "object") v = JSON.stringify(v);
@@ -6619,140 +6665,234 @@
   })();
 
   /* ======================================================================
-     SILOS DAS USINAS — cimento atual de cada silo e histórico de trocas.
-     Admin e operador editam; leitura só vê. Base para a Programação saber o
-     que cada usina pode receber.
+     CONTROLE DE CIMENTO — mesmo formato da planilha "Controle de Cimento
+     Usinas": uma linha por usina, até 3 cimentos (silos), cada um com
+     CIMENTO ATUAL, TROCA DE CIMENTO (NÃO ou o cimento novo) e DATA DA TROCA,
+     mais a OBSERVAÇÃO. Situação: sem troca = normal; troca com data futura =
+     programada (amarelo); troca sem data ou com data que já chegou = pendente /
+     urgente (vermelho). "✔ Feita" passa a troca para o cimento atual e guarda
+     no histórico. Admin e operador editam; leitura só vê.
      ====================================================================== */
-  var SILO = { d: null, carregando: false, msg: "", ruim: false, q: "", mat: "", form: null, abertos: {}, sure: null };
-  var SILO_MATS = [["CP2", "CP II"], ["CP3", "CP III"], ["CP5", "CP V"], ["POZOLANA", "Pozolana"], ["OUTRO", "Outro"], ["VAZIO", "Vazio"]];
-  function siloMatNome(m){ var x = SILO_MATS.find(function(k){ return k[0] === m; }); return x ? x[1] : (m || "—"); }
-  function siloMat(m, det){ return m ? '<span class="silo-mat ' + esc(m) + '">' + esc(siloMatNome(m)) + (det ? ' · ' + esc(det) : "") + '</span>' : '<span class="faint">não informado</span>'; }
+  var SILO = { d: null, carregando: false, msg: "", ruim: false, q: "", f: "", cim: "", ed: null, feita: null, hist: {}, lista: false, sureLista: null };
+  var CC_EST = { ok: "Normal", prog: "Troca programada", pend: "Troca pendente / urgente", vazio: "Sem cimento informado" };
   function siloNorm(t){ return String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase(); }
+  function ccHoje(){ return (SILO.d && SILO.d.hoje) || toISO(TODAY); }
+  function ccEstSlot(sl){ if (!sl || !sl.troca) return "ok"; return sl.data && sl.data > ccHoje() ? "prog" : "pend"; }
+  function ccEstUsina(u){
+    var ks = Object.keys(u.slots || {}); if (!ks.length) return "vazio";
+    var p = "ok"; ks.forEach(function(k){ var e = ccEstSlot(u.slots[k]); if (e === "pend") p = "pend"; else if (e === "prog" && p === "ok") p = "prog"; });
+    return p;
+  }
+  function ccChip(txt, mat){ return txt ? '<span class="silo-mat ' + esc(mat || "") + '">' + esc(txt) + '</span>' : '<span class="faint">—</span>'; }
+  function ccDataCurta(iso){ return iso ? esc(brDate(iso)) : ""; }
   async function siloCarregar(){
     if (!ME || !sb) return;
     SILO.carregando = !SILO.d; siloPintar();
-    var r; try { r = await sb.rpc("silos_listar"); } catch (e){ r = { error: e }; }
+    var r; try { r = await sb.rpc("cimento_controle_listar"); } catch (e){ r = { error: e }; }
     SILO.carregando = false;
     if (r.error){ SILO.msg = dbErr(r.error); SILO.ruim = true; }
     else if (r.data && Array.isArray(r.data.usinas)) SILO.d = r.data;
     siloPintar();
   }
-  function siloOpts(sel, vazio){ return (vazio ? '<option value="">' + vazio + '</option>' : "") + SILO_MATS.map(function(m){ return '<option value="' + m[0] + '"' + (sel === m[0] ? " selected" : "") + '>' + m[1] + '</option>'; }).join(""); }
-  function siloFormHtml(f, colspan){
-    var hoje = toISO(TODAY), h = '<tr class="adm-edit"><td colspan="' + colspan + '"><div class="silo-form">';
-    if (f.tipo === "novo" || f.tipo === "editar"){
-      h += '<label>Nome do silo<input id="siloNome" maxlength="40" placeholder="ex.: Silo 1" value="' + esc(f.nome || "") + '"></label>';
-      if (f.tipo === "novo") h += '<label>Cimento atual<select id="siloMat">' + siloOpts(f.material, "— escolha —") + '</select></label>' +
-        '<label>Detalhe (opcional)<input id="siloDet" maxlength="60" placeholder="ex.: CSN CP III 40 RS" value="' + esc(f.detalhe || "") + '"></label>' +
-        '<label>Desde (opcional)<input type="date" id="siloDesde" max="' + hoje + '" value="' + esc(f.desde || "") + '"></label>';
-      h += '<label>Observação<input id="siloObs" maxlength="120" value="' + esc(f.obs || "") + '"></label>';
-      h += '<div class="adm-acoes"><button class="btn-primary btn-inline" data-silo="salvar">' + (f.tipo === "novo" ? "Adicionar silo" : "Salvar") + '</button><button class="btn-ghost" data-silo="fechar">Cancelar</button></div>';
-    } else {
-      h += '<b style="flex:1 1 100%;font-size:13px">Troca de cimento — ' + esc(f.titulo) + '</b>' +
-        '<label>Novo cimento<select id="siloMat">' + siloOpts(f.material, "— escolha —") + '</select></label>' +
-        '<label>Detalhe (opcional)<input id="siloDet" maxlength="60" placeholder="ex.: CSN CP III 40 RS" value="' + esc(f.detalhe || "") + '"></label>' +
-        '<label>Quando foi trocado<input type="date" id="siloData" value="' + esc(f.data || hoje) + '"></label>' +
-        '<label>Observação<input id="siloObs" maxlength="120" value="' + esc(f.obs || "") + '"></label>' +
-        '<div class="adm-acoes"><button class="btn-primary btn-inline" data-silo="trocar-salvar">Registrar troca</button><button class="btn-ghost" data-silo="fechar">Cancelar</button></div>';
-    }
-    if (f.erro) h += '<p class="msg-erro" style="flex:1 1 100%;margin:0;color:var(--danger);font-size:12.5px">' + esc(f.erro) + '</p>';
-    return h + '</div></td></tr>';
+  function ccFiltrar(D){
+    var q = siloNorm(SILO.q).trim(), cim = SILO.cim;
+    return D.usinas.filter(function(u){
+      var e = ccEstUsina(u), sl = Object.keys(u.slots || {}).map(function(k){ return u.slots[k]; });
+      if (SILO.f === "troca" && e !== "prog" && e !== "pend") return false;
+      if (SILO.f && SILO.f !== "troca" && e !== SILO.f) return false;
+      if (cim && !sl.some(function(s){ return s.cimento === cim || s.troca === cim; })) return false;
+      if (q && siloNorm(u.usina).indexOf(q) < 0 && !sl.some(function(s){ return siloNorm(s.cimento).indexOf(q) >= 0 || siloNorm(s.troca).indexOf(q) >= 0; }) && siloNorm(u.obs).indexOf(q) < 0) return false;
+      return true;
+    });
+  }
+  function ccOpts(sel, primeira, lista){
+    var l = lista.slice(); if (sel && l.indexOf(sel) < 0) l.unshift(sel);
+    return '<option value="">' + primeira + '</option>' + l.map(function(n){ return '<option' + (n === sel ? " selected" : "") + '>' + esc(n) + '</option>'; }).join("");
+  }
+  function ccLinhaEdicao(u, D){
+    var e = SILO.ed, h = '<tr class="cc-row cc-edit"><td class="cc-u">' + esc(u.usina) + '</td>';
+    [1, 2, 3].forEach(function(k){
+      var s = e.slots[k];
+      h += '<td class="cc-ini"><select id="ccC' + k + '" aria-label="Cimento ' + k + ' atual">' + ccOpts(s.c, "— vazio —", D.lista) + '</select></td>' +
+        '<td><select id="ccT' + k + '" aria-label="Troca do cimento ' + k + '">' + ccOpts(s.t, "NÃO", D.lista) + '</select></td>' +
+        '<td><input type="date" id="ccD' + k + '" aria-label="Data da troca do cimento ' + k + '" value="' + esc(s.d || "") + '"' + (s.t ? "" : " disabled") + '></td>';
+    });
+    h += '<td class="cc-ini"><input id="ccObs" maxlength="200" placeholder="Observação" value="' + esc(e.obs || "") + '"></td>' +
+      '<td><div class="adm-acoes"><button class="btn-primary btn-inline" data-cc="salvar">Salvar</button><button class="btn-ghost" data-cc="fechar">Cancelar</button></div></td></tr>';
+    h += '<tr class="cc-edit-info"><td colspan="12"><span class="faint">Troca planejada: escolha o cimento novo em <b>Troca de cimento</b> e a <b>Data da troca</b>; quando a troca acontecer, use <b>✔ Feita</b>. Mudar o <b>Cimento atual</b> direto também fica no histórico, com a data de hoje.</span>' +
+      (e.erro ? '<div style="color:var(--danger);font-size:12.5px;margin-top:4px">' + esc(e.erro) + '</div>' : "") + '</td></tr>';
+    return h;
   }
   function siloPintar(){
     var v = el("view-silos"); if (!v) return;
-    var D = SILO.d, pode = !!D && D.pode && ME && ME.papel !== "leitura";
-    var h = '<div class="card" style="margin-bottom:16px"><div class="card-head"><div><h2>🛢️ Controle de cimento</h2><p>O cimento atual de cada silo das usinas, a última troca e quando foi trocado. Registre as trocas aqui para o histórico ficar completo.' + (D && !pode ? " Somente leitura." : "") + '</p></div>' +
-      '<div class="silo-filtros"><input type="search" id="siloQ" placeholder="Buscar usina ou silo" value="' + esc(SILO.q) + '"><select id="siloF"><option value="">Todos os cimentos</option>' + siloOpts(SILO.mat) + '<option value="__sem"' + (SILO.mat === "__sem" ? " selected" : "") + '>Usinas sem silo</option></select><button class="btn-ghost" data-silo="atualizar">↻ Atualizar</button></div></div>';
+    var D = SILO.d, pode = !!D && D.pode && ME && ME.papel !== "leitura", adm = !!D && D.admin && pode;
+    var h = '<div class="card" style="margin-bottom:16px"><div class="card-head"><div><h2>🛢️ Controle de cimento</h2><p>O cimento atual de cada usina (até 3 cimentos / silos), a troca de cimento marcada e a data da troca — o mesmo formato da planilha.' + (D && !pode ? " Somente leitura." : "") + '</p></div>' +
+      '<div class="silo-filtros"><input type="search" id="siloQ" placeholder="Buscar usina ou cimento" value="' + esc(SILO.q) + '">' +
+      '<select id="ccF" aria-label="Situação"><option value="">Todas as situações</option>' + [["troca", "Com troca marcada"], ["pend", CC_EST.pend], ["prog", CC_EST.prog], ["ok", "Sem troca"], ["vazio", CC_EST.vazio]].map(function(o){ return '<option value="' + o[0] + '"' + (SILO.f === o[0] ? " selected" : "") + '>' + o[1] + '</option>'; }).join("") + '</select>' +
+      '<select id="ccCim" aria-label="Cimento"><option value="">Todos os cimentos</option>' + (D ? D.lista.map(function(n){ return '<option' + (SILO.cim === n ? " selected" : "") + '>' + esc(n) + '</option>'; }).join("") : "") + '</select>' +
+      '<button class="btn-ghost" data-cc="lista">📋 Lista de cimentos' + (D ? " (" + D.lista.length + ")" : "") + '</button><button class="btn-ghost" data-cc="excel">⬇ Excel</button><button class="btn-ghost" data-cc="atualizar">↻ Atualizar</button></div></div>';
     if (SILO.msg) h += '<div class="adm-msg ' + (SILO.ruim ? "bad" : "ok") + '" role="status">' + esc(SILO.msg) + '</div>';
     if (!D){ v.innerHTML = h + '<div class="adm-pad faint">' + (SILO.carregando ? "Carregando…" : "Sem dados. Use Atualizar.") + '</div></div>'; return; }
-    var cont = {}, nSilos = 0, semSilo = 0;
-    D.usinas.forEach(function(u){ if (!u.silos.length) semSilo++; u.silos.forEach(function(s){ nSilos++; var k = s.material || "—"; cont[k] = (cont[k] || 0) + 1; }); });
-    var tile = function(n, rot, cor){ return '<div class="sol-tile" style="--st:' + cor + ';cursor:default"><b>' + n + '</b><span>' + rot + '</span></div>'; };
-    h += '<div class="sol-tiles">' + tile(nSilos, "silos cadastrados", "var(--accent)") +
-      SILO_MATS.filter(function(m){ return cont[m[0]]; }).map(function(m){ return tile(cont[m[0]], "com " + m[1], "var(--border-strong)"); }).join("") +
-      tile(semSilo, "usinas sem silo", semSilo ? "var(--danger)" : "var(--success)") + '</div></div>';
-    var q = siloNorm(SILO.q).trim();
-    var lista = D.usinas.filter(function(u){
-      if (SILO.mat === "__sem" && u.silos.length) return false;
-      if (SILO.mat && SILO.mat !== "__sem" && !u.silos.some(function(s){ return s.material === SILO.mat; })) return false;
-      if (q && siloNorm(u.usina).indexOf(q) < 0 && !u.silos.some(function(s){ return siloNorm(s.nome).indexOf(q) >= 0; })) return false;
-      return true;
-    });
-    var cols = pode ? 6 : 5;
-    h += '<div class="card"><div class="table-wrap" style="max-height:none"><table class="adm-tbl silo-tbl"><thead><tr><th>Usina</th><th>Silo</th><th>Cimento atual</th><th>Última troca</th><th>Quando foi trocado</th>' + (pode ? '<th></th>' : "") + '</tr></thead><tbody>';
-    if (!lista.length) h += '<tr><td colspan="' + cols + '" class="faint" style="text-align:center;padding:20px">Nenhuma usina neste filtro.</td></tr>';
+    var cont = { ok: 0, prog: 0, pend: 0, vazio: 0 };
+    D.usinas.forEach(function(u){ cont[ccEstUsina(u)]++; });
+    var tile = function(f, n, rot, cor){ return '<button type="button" class="sol-tile' + (SILO.f === f ? " sel" : "") + '" style="--st:' + cor + '" data-cc="tile" data-f="' + f + '"><b>' + n + '</b><span>' + rot + '</span></button>'; };
+    h += '<div class="sol-tiles">' + tile("", D.usinas.length, "usinas", "var(--accent)") + tile("ok", cont.ok, "normal (sem troca)", "var(--success)") +
+      tile("prog", cont.prog, "troca programada", "var(--warning)") + tile("pend", cont.pend, "troca pendente / urgente", cont.pend ? "var(--danger)" : "var(--border-strong)") +
+      (cont.vazio ? tile("vazio", cont.vazio, "sem cimento informado", "var(--border-strong)") : "") + '</div>';
+    if (SILO.lista){
+      h += '<div class="cc-lista-box"><b>Lista de cimentos</b> <span class="faint">— as opções de “Cimento atual” e “Troca de cimento”.' + (pode && !adm ? " Só o administrador remove." : "") + '</span><div class="cc-lista">' +
+        D.lista.map(function(n){ return '<span class="cc-chip">' + esc(n) + (adm ? '<button type="button" data-cc="lista-rem" data-n="' + esc(n) + '" title="Remover da lista">' + (SILO.sureLista === n ? "confirmar?" : "×") + '</button>' : "") + '</span>'; }).join("") + '</div>' +
+        (pode ? '<div class="cc-lista-add"><input id="ccNovo" maxlength="80" placeholder="Novo cimento (ex.: CP V ARI RS CSN ARCOS)"><button class="btn-primary btn-inline" data-cc="lista-add">Adicionar</button></div>' : "") + '</div>';
+    }
+    h += '</div>';
+    var lista = ccFiltrar(D), hoje = ccHoje();
+    h += '<div class="card"><div class="table-wrap" style="max-height:none"><table class="adm-tbl cc-tbl"><thead><tr><th rowspan="2">Usina</th>' +
+      [1, 2, 3].map(function(k){ return '<th colspan="3" class="cc-g cc-ini">Cimento ' + k + '</th>'; }).join("") + '<th rowspan="2" class="cc-ini">Observação</th><th rowspan="2"></th></tr><tr>' +
+      [1, 2, 3].map(function(){ return '<th class="cc-ini">Cimento atual</th><th>Troca de cimento</th><th>Data da troca</th>'; }).join("") + '</tr></thead><tbody>';
+    if (!lista.length) h += '<tr><td colspan="12" class="faint" style="text-align:center;padding:20px">Nenhuma usina neste filtro.</td></tr>';
     lista.forEach(function(u){
-      var silos = SILO.mat && SILO.mat !== "__sem" ? u.silos.filter(function(s){ return s.material === SILO.mat; }) : u.silos;
-      var linhas = Math.max(silos.length, 1);
-      if (!silos.length){
-        h += '<tr class="silo-sep"><td class="cell-strong silo-u">' + esc(u.usina) + '</td><td colspan="4" class="faint">nenhum silo cadastrado</td>' + (pode ? '<td><button class="btn-ghost" data-silo="novo" data-u="' + esc(u.usina_id) + '">+ Silo</button></td>' : "") + '</tr>';
-      }
-      silos.forEach(function(s, i){
-        var t = s.trocas[0], ab = !!SILO.abertos[s.id];
-        h += '<tr' + (i === 0 ? ' class="silo-sep"' : "") + '>' + (i === 0 ? '<td class="cell-strong silo-u" rowspan="' + linhas + '">' + esc(u.usina) + (pode ? '<br><button class="btn-ghost" style="margin-top:6px;padding:3px 8px;font-size:11.5px" data-silo="novo" data-u="' + esc(u.usina_id) + '">+ Silo</button>' : "") + '</td>' : "") +
-          '<td><b>' + esc(s.nome) + '</b>' + (s.obs ? '<br><span class="faint" style="font-size:11.5px">' + esc(s.obs) + '</span>' : "") + '</td>' +
-          '<td>' + siloMat(s.material, s.detalhe) + '</td>' +
-          '<td>' + (t ? siloMat(t.de_material, t.de_detalhe) + ' → ' + siloMat(t.para_material, t.para_detalhe) : '<span class="faint">sem troca registrada</span>') + '</td>' +
-          '<td>' + (s.desde ? esc(brDate(s.desde)) : '<span class="faint">—</span>') + (t && t.por ? '<br><span class="faint" style="font-size:11.5px">' + esc(t.por) + '</span>' : "") + '</td>' +
-          (pode ? '<td><div class="adm-acoes"><button class="btn-ghost" data-silo="trocar" data-s="' + esc(s.id) + '">Trocar cimento</button>' +
-            (s.trocas.length ? '<button class="btn-ghost" data-silo="hist" data-s="' + esc(s.id) + '">' + (ab ? "Ocultar" : "Histórico (" + s.trocas.length + ")") + '</button>' : "") +
-            '<button class="btn-ghost" data-silo="editar" data-s="' + esc(s.id) + '">Editar</button>' +
-            '<button class="btn-ghost" style="color:var(--danger)" data-silo="excluir" data-s="' + esc(s.id) + '">' + (SILO.sure === s.id ? "Confirmar excluir" : "Excluir") + '</button></div></td>' :
-            '<td>' + (s.trocas.length ? '<button class="btn-ghost" data-silo="hist" data-s="' + esc(s.id) + '">' + (ab ? "Ocultar" : "Histórico (" + s.trocas.length + ")") + '</button>' : "") + '</td>') + '</tr>';
-        if (ab) h += '<tr><td colspan="' + (cols - 1) + '"><div class="silo-hist">' + s.trocas.map(function(x){
-          return '<div><b>' + esc(brDate(x.data)) + '</b> · ' + siloMat(x.de_material, x.de_detalhe) + ' → ' + siloMat(x.para_material, x.para_detalhe) + (x.obs ? ' · “' + esc(x.obs) + '”' : "") + (x.por ? ' · ' + esc(x.por) : "") + '</div>'; }).join("") + '</div></td></tr>';
-        if (SILO.form && SILO.form.silo === s.id) h += siloFormHtml(SILO.form, cols - 1);
+      if (SILO.ed && SILO.ed.u === u.usina_id){ h += ccLinhaEdicao(u, D); return; }
+      var est = ccEstUsina(u), nh = 0;
+      h += '<tr class="cc-row ' + est + '"><td class="cc-u" title="' + esc(CC_EST[est]) + '">' + esc(u.usina) + '</td>';
+      [1, 2, 3].forEach(function(k){
+        var s = u.slots[k], e = ccEstSlot(s), cls = e === "ok" ? "" : " cc-" + e;
+        if (!s){ h += '<td class="cc-ini"><span class="faint">—</span></td><td></td><td></td>'; return; }
+        nh += s.trocas.length;
+        h += '<td class="cc-ini cc-c' + cls + '"' + (s.por ? ' title="Atualizado por ' + esc(s.por) + '"' : "") + '>' + ccChip(s.cimento, s.mat) + (s.desde ? '<span class="cc-sub">desde ' + ccDataCurta(s.desde) + '</span>' : "") + '</td>' +
+          '<td class="cc-t' + cls + '">' + (s.troca ? '<span class="cc-troca">→ ' + esc(s.troca) + '</span>' : '<span class="faint">NÃO</span>') + '</td>' +
+          '<td class="cc-d' + cls + '">' + (s.troca ? (s.data ? ccDataCurta(s.data) : '<span class="faint">sem data</span>') + '<div class="cc-acao"><span class="cc-tag ' + e + '">' + (e === "prog" ? "programada" : "pendente") + '</span>' +
+            (pode ? '<button type="button" class="cc-feita" data-cc="feita" data-u="' + esc(u.usina_id) + '" data-s="' + k + '" title="A troca aconteceu: passa para o cimento atual">✔ Feita</button>' : "") + '</div>' : "") + '</td>';
       });
-      if (SILO.form && SILO.form.tipo === "novo" && SILO.form.usina === u.usina_id) h += siloFormHtml(SILO.form, cols);
+      var ab = !!SILO.hist[u.usina_id];
+      h += '<td class="cc-ini cc-obs">' + (u.obs ? esc(u.obs) : "") + '</td><td><div class="adm-acoes">' + (pode ? '<button class="btn-ghost" data-cc="editar" data-u="' + esc(u.usina_id) + '" title="Editar ' + esc(u.usina) + '" aria-label="Editar ' + esc(u.usina) + '">✏️</button>' : "") +
+        (nh ? '<button class="btn-ghost" data-cc="hist" data-u="' + esc(u.usina_id) + '" title="Histórico de trocas">' + (ab ? "Ocultar" : "🕘 " + nh) + '</button>' : "") + '</div></td></tr>';
+      if (SILO.feita && SILO.feita.u === u.usina_id){
+        var sf = u.slots[SILO.feita.s] || {};
+        h += '<tr class="cc-edit-info"><td colspan="12"><div class="silo-form"><b style="flex:1 1 100%;font-size:13px">Troca feita — ' + esc(u.usina) + ' · Cimento ' + SILO.feita.s + ': ' + esc(sf.cimento || "—") + ' → ' + esc(sf.troca || "—") + '</b>' +
+          '<label>Data em que foi feita<input type="date" id="ccFeitaData" max="' + hoje + '" value="' + esc(SILO.feita.data) + '"></label>' +
+          '<div class="adm-acoes"><button class="btn-primary btn-inline" data-cc="feita-ok">Confirmar troca feita</button><button class="btn-ghost" data-cc="fechar">Cancelar</button></div>' +
+          (SILO.feita.erro ? '<p style="flex:1 1 100%;margin:0;color:var(--danger);font-size:12.5px">' + esc(SILO.feita.erro) + '</p>' : "") + '</div></td></tr>';
+      }
+      if (ab){
+        var hs = [];
+        [1, 2, 3].forEach(function(k){ var s = u.slots[k]; if (s) s.trocas.forEach(function(t){ hs.push({ k: k, t: t }); }); });
+        hs.sort(function(a, b){ return a.t.data < b.t.data ? 1 : a.t.data > b.t.data ? -1 : 0; });
+        h += '<tr class="cc-edit-info"><td colspan="12"><div class="silo-hist">' + hs.map(function(x){
+          return '<div><b>' + esc(brDate(x.t.data)) + '</b> · Cimento ' + x.k + ' · ' + esc(x.t.de || "—") + ' → <b>' + esc(x.t.para || "—") + '</b>' + (x.t.obs ? ' · ' + esc(x.t.obs) : "") + (x.t.por ? ' · ' + esc(x.t.por) : "") + '</div>'; }).join("") + '</div></td></tr>';
+      }
     });
     h += '</tbody></table></div></div>';
     v.innerHTML = h;
-    var foco = el("siloNome") || el("siloMat"); if (SILO.form && foco && !SILO.form.focado){ SILO.form.focado = true; foco.focus(); }
+    if (SILO.ed && !SILO.ed.focado){ SILO.ed.focado = true; var f = el("ccC1"); if (f) f.focus(); }
   }
-  function siloAchar(id){ var r = null; (SILO.d ? SILO.d.usinas : []).forEach(function(u){ u.silos.forEach(function(s){ if (s.id === id) r = { s: s, u: u }; }); }); return r; }
+  function ccExcel(){
+    var D = SILO.d; if (!D || typeof XLSX === "undefined") return;
+    var lista = ccFiltrar(D), hoje = ccHoje();
+    var aoa = [["CONTROLE DE CIMENTO — USINAS"], ["Gerado em " + brDate(hoje)], [],
+      ["", "CIMENTO 1", "", "", "CIMENTO 2", "", "", "CIMENTO 3", "", "", "", ""],
+      ["USINA", "CIMENTO ATUAL", "TROCA DE CIMENTO", "DATA DA TROCA", "CIMENTO ATUAL", "TROCA DE CIMENTO", "DATA DA TROCA", "CIMENTO ATUAL", "TROCA DE CIMENTO", "DATA DA TROCA", "OBSERVAÇÃO", "SITUAÇÃO"]];
+    lista.forEach(function(u){
+      var r = [u.usina];
+      [1, 2, 3].forEach(function(k){ var s = u.slots[k]; r.push(s ? s.cimento || "" : "", s ? (s.troca || "NÃO") : "", s && s.troca && s.data ? brDate(s.data) : ""); });
+      r.push(u.obs || "", CC_EST[ccEstUsina(u)]); aoa.push(r);
+    });
+    var ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws["!merges"] = [{ s: { r: 3, c: 1 }, e: { r: 3, c: 3 } }, { s: { r: 3, c: 4 }, e: { r: 3, c: 6 } }, { s: { r: 3, c: 7 }, e: { r: 3, c: 9 } }];
+    ws["!cols"] = [{ wch: 22 }].concat([1, 2, 3].map(function(){ return [{ wch: 26 }, { wch: 24 }, { wch: 13 }]; }).reduce(function(a, b){ return a.concat(b); }, [])).concat([{ wch: 30 }, { wch: 24 }]);
+    var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Controle de cimento");
+    var wl = XLSX.utils.aoa_to_sheet([["CIMENTOS"]].concat(D.lista.map(function(n){ return [n]; }))); XLSX.utils.book_append_sheet(wb, wl, "Lista de cimentos");
+    XLSX.writeFile(wb, "controle-cimento-" + hoje + ".xlsx");
+  }
+  function ccUsina(id){ return SILO.d ? SILO.d.usinas.find(function(u){ return u.usina_id === id; }) : null; }
   (function(){
     var v = el("view-silos"); if (!v) return;
-    var ler = function(){ var f = SILO.form; if (!f) return; ["siloNome:nome", "siloMat:material", "siloDet:detalhe", "siloDesde:desde", "siloData:data", "siloObs:obs"].forEach(function(p){ var k = p.split(":"), e = el(k[0]); if (e) f[k[1]] = e.value; }); };
+    var ler = function(){
+      var e = SILO.ed; if (!e) return;
+      [1, 2, 3].forEach(function(k){ var c = el("ccC" + k), t = el("ccT" + k), d = el("ccD" + k); if (c) e.slots[k].c = c.value; if (t) e.slots[k].t = t.value; if (d) e.slots[k].d = d.value; if (d) d.disabled = !e.slots[k].t; });
+      var o = el("ccObs"); if (o) e.obs = o.value;
+    };
     v.addEventListener("input", function(ev){
       if (ev.target.id === "siloQ"){ SILO.q = ev.target.value; var pos = ev.target.selectionStart; siloPintar(); var e = el("siloQ"); if (e){ e.focus(); try { e.setSelectionRange(pos, pos); } catch (x){ } } }
-      else if (SILO.form) ler();
+      else if (ev.target.id === "ccFeitaData" && SILO.feita) SILO.feita.data = ev.target.value;
+      else if (SILO.ed) ler();
     });
-    v.addEventListener("change", function(ev){ if (ev.target.id === "siloF"){ SILO.mat = ev.target.value; siloPintar(); } else if (SILO.form) ler(); });
-    v.addEventListener("keydown", function(ev){ if (ev.key === "Enter" && SILO.form && ev.target.closest(".silo-form")){ ev.preventDefault(); var b = v.querySelector('[data-silo="salvar"],[data-silo="trocar-salvar"]'); if (b) b.click(); } });
+    v.addEventListener("change", function(ev){
+      if (ev.target.id === "ccF"){ SILO.f = ev.target.value; siloPintar(); }
+      else if (ev.target.id === "ccCim"){ SILO.cim = ev.target.value; siloPintar(); }
+      else if (ev.target.id === "ccFeitaData" && SILO.feita) SILO.feita.data = ev.target.value;
+      else if (SILO.ed) ler();
+    });
+    v.addEventListener("keydown", function(ev){
+      if (ev.key !== "Enter") return;
+      var b = ev.target.id === "ccNovo" ? v.querySelector('[data-cc="lista-add"]') : ev.target.closest(".cc-edit") ? v.querySelector('[data-cc="salvar"]') : ev.target.id === "ccFeitaData" ? v.querySelector('[data-cc="feita-ok"]') : null;
+      if (b){ ev.preventDefault(); b.click(); }
+    });
     v.addEventListener("click", async function(ev){
-      var b = ev.target.closest && ev.target.closest("[data-silo]"); if (!b || b.disabled) return;
-      var a = b.dataset.silo, x;
-      if (a !== "excluir") SILO.sure = null;
+      var b = ev.target.closest && ev.target.closest("[data-cc]"); if (!b || b.disabled) return;
+      var a = b.dataset.cc, u;
+      if (a !== "lista-rem") SILO.sureLista = null;
+      var falha = function(e, onde){ var m = dbErr(e); if (onde) onde.erro = m; else { SILO.msg = m; SILO.ruim = true; } b.disabled = false; siloPintar(); };
       if (a === "atualizar"){ SILO.msg = ""; siloCarregar(); return; }
-      if (a === "fechar"){ SILO.form = null; siloPintar(); return; }
-      if (a === "hist"){ SILO.abertos[b.dataset.s] = !SILO.abertos[b.dataset.s]; siloPintar(); return; }
-      if (a === "novo"){ SILO.form = { tipo: "novo", usina: b.dataset.u, nome: "Silo " + (((SILO.d.usinas.find(function(u){ return u.usina_id === b.dataset.u; }) || {}).silos || []).length + 1) }; SILO.msg = ""; siloPintar(); return; }
-      if (a === "editar"){ x = siloAchar(b.dataset.s); if (!x) return; SILO.form = { tipo: "editar", silo: x.s.id, nome: x.s.nome, obs: x.s.obs || "" }; SILO.msg = ""; siloPintar(); return; }
-      if (a === "trocar"){ x = siloAchar(b.dataset.s); if (!x) return; SILO.form = { tipo: "trocar", silo: x.s.id, titulo: x.u.usina + " · " + x.s.nome, material: "", detalhe: "", data: toISO(TODAY) }; SILO.msg = ""; siloPintar(); return; }
-      var falha = function(e){ if (SILO.form){ SILO.form.erro = dbErr(e); } else { SILO.msg = dbErr(e); SILO.ruim = true; } b.disabled = false; siloPintar(); };
+      if (a === "excel"){ ccExcel(); return; }
+      if (a === "tile"){ SILO.f = SILO.f === b.dataset.f ? "" : b.dataset.f; siloPintar(); return; }
+      if (a === "lista"){ SILO.lista = !SILO.lista; siloPintar(); if (SILO.lista && el("ccNovo")) el("ccNovo").focus(); return; }
+      if (a === "fechar"){ SILO.ed = null; SILO.feita = null; siloPintar(); return; }
+      if (a === "hist"){ SILO.hist[b.dataset.u] = !SILO.hist[b.dataset.u]; siloPintar(); return; }
+      if (a === "editar"){
+        u = ccUsina(b.dataset.u); if (!u) return;
+        var sl = {}; [1, 2, 3].forEach(function(k){ var s = u.slots[k] || {}; sl[k] = { c: s.cimento || "", t: s.troca || "", d: s.troca ? (s.data || "") : "" }; });
+        SILO.ed = { u: u.usina_id, slots: sl, obs: u.obs || "" }; SILO.feita = null; SILO.msg = ""; siloPintar(); return;
+      }
+      if (a === "feita"){
+        u = ccUsina(b.dataset.u); if (!u) return; var s0 = u.slots[b.dataset.s] || {}, hj = ccHoje();
+        SILO.feita = { u: u.usina_id, s: +b.dataset.s, data: s0.data && s0.data <= hj ? s0.data : hj }; SILO.ed = null; SILO.msg = ""; siloPintar();
+        var fd = el("ccFeitaData"); if (fd) fd.focus(); return;
+      }
+      if (a === "feita-ok"){
+        var F = SILO.feita; if (!F) return;
+        if (!F.data){ F.erro = "Informe a data em que a troca foi feita."; siloPintar(); return; }
+        if (F.data > ccHoje()){ F.erro = "A data da troca feita não pode ser no futuro."; siloPintar(); return; }
+        b.disabled = true; u = ccUsina(F.u); var sx = (u && u.slots[F.s]) || {};
+        var rf = await sb.rpc("cimento_troca_feita", { p_usina: F.u, p_slot: F.s, p_data: F.data });
+        if (rf.error) return falha(rf.error, F);
+        SILO.msg = "Troca registrada: " + (u ? u.usina : "") + " · Cimento " + F.s + " agora é " + (sx.troca || "") + " (desde " + brDate(F.data) + ")."; SILO.ruim = false; SILO.feita = null; await siloCarregar(); return;
+      }
       if (a === "salvar"){
-        ler(); var f = SILO.form; if (!f) return;
-        if (!String(f.nome || "").trim()){ f.erro = "Informe o nome do silo."; siloPintar(); return; }
-        b.disabled = true;
-        var r = await sb.rpc("silo_salvar", { p_id: f.tipo === "editar" ? f.silo : null, p_usina: f.usina || null, p_nome: f.nome, p_material: f.material || null, p_detalhe: f.detalhe || null, p_desde: f.desde || null, p_obs: f.obs || null });
-        if (r.error) return falha(r.error);
-        SILO.msg = f.tipo === "novo" ? "Silo adicionado." : "Silo salvo."; SILO.ruim = false; SILO.form = null; await siloCarregar(); return;
+        ler(); var E = SILO.ed; if (!E) return; u = ccUsina(E.u); if (!u) return;
+        for (var k = 1; k <= 3; k++){
+          var n = E.slots[k];
+          if (n.t && !n.c){ E.erro = "Cimento " + k + ": escolha o cimento atual antes de marcar a troca."; siloPintar(); return; }
+          if (n.t && n.t === n.c){ E.erro = "Cimento " + k + ": a troca é igual ao cimento atual. Deixe a troca como NÃO."; siloPintar(); return; }
+        }
+        b.disabled = true; var mud = 0;
+        for (var j = 1; j <= 3; j++){
+          var o = u.slots[j] || {}, m = E.slots[j], dt = m.t ? (m.d || "") : "";
+          if ((o.cimento || "") === m.c && (o.troca || "") === m.t && (o.troca ? (o.data || "") : "") === dt) continue;
+          var rs = await sb.rpc("cimento_slot_salvar", { p_usina: u.usina_id, p_slot: j, p_cimento: m.c || null, p_troca: m.t || null, p_data: dt || null });
+          if (rs.error) return falha(rs.error, E);
+          mud++;
+        }
+        if ((u.obs || "") !== String(E.obs || "").trim()){
+          var ro = await sb.rpc("cimento_obs_salvar", { p_usina: u.usina_id, p_obs: String(E.obs || "").trim() || null });
+          if (ro.error) return falha(ro.error, E);
+          mud++;
+        }
+        SILO.msg = mud ? u.usina + ": salvo." : "Nada mudou em " + u.usina + "."; SILO.ruim = false; SILO.ed = null; await siloCarregar(); return;
       }
-      if (a === "trocar-salvar"){
-        ler(); var g = SILO.form; if (!g) return;
-        if (!g.material){ g.erro = "Escolha o novo cimento."; siloPintar(); return; }
-        if (!g.data){ g.erro = "Informe quando foi trocado."; siloPintar(); return; }
+      if (a === "lista-add"){
+        var nv = String((el("ccNovo") || {}).value || "").trim().toUpperCase(); if (!nv) return;
+        if (SILO.d.lista.some(function(x){ return x.toUpperCase() === nv; })){ SILO.msg = nv + " já está na lista."; SILO.ruim = true; siloPintar(); return; }
         b.disabled = true;
-        var r2 = await sb.rpc("silo_trocar", { p_silo: g.silo, p_material: g.material, p_detalhe: g.detalhe || null, p_data: g.data, p_obs: g.obs || null });
-        if (r2.error) return falha(r2.error);
-        SILO.msg = "Troca registrada: " + g.titulo + " → " + siloMatNome(g.material) + " em " + brDate(g.data) + "."; SILO.ruim = false; SILO.form = null; await siloCarregar(); return;
+        var ra = await sb.rpc("cimento_lista_salvar", { p_nome: nv, p_remover: false });
+        if (ra.error) return falha(ra.error);
+        SILO.msg = nv + " adicionado à lista."; SILO.ruim = false; await siloCarregar(); if (el("ccNovo")) el("ccNovo").focus(); return;
       }
-      if (a === "excluir"){
-        if (SILO.sure !== b.dataset.s){ SILO.sure = b.dataset.s; siloPintar(); return; }
-        SILO.sure = null; b.disabled = true;
-        var r3 = await sb.rpc("silo_excluir", { p_silo: b.dataset.s });
-        if (r3.error) return falha(r3.error);
-        SILO.msg = "Silo excluído (o histórico de trocas fica guardado)."; SILO.ruim = false; await siloCarregar();
+      if (a === "lista-rem"){
+        if (SILO.sureLista !== b.dataset.n){ SILO.sureLista = b.dataset.n; siloPintar(); return; }
+        SILO.sureLista = null; b.disabled = true;
+        var rr = await sb.rpc("cimento_lista_salvar", { p_nome: b.dataset.n, p_remover: true });
+        if (rr.error) return falha(rr.error);
+        SILO.msg = b.dataset.n + " removido da lista (as usinas que já usam continuam com ele)."; SILO.ruim = false; await siloCarregar();
       }
     });
   })();
