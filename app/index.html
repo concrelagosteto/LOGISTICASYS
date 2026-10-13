@@ -311,6 +311,12 @@
   .cc-tbl tr.cc-edit td{background:var(--surface-2);} .cc-tbl tr.cc-edit-info td{white-space:normal; font-size:12px; border-top:0;}
   .cc-tbl .silo-mat small{display:block; font-weight:600; font-size:10px; opacity:.85; text-transform:none;}
   .cc-tbl .silo-mat.cc-fora{background:var(--surface-2); color:var(--text); border:1px dashed var(--danger);}
+  .bd-abas{display:flex; gap:4px; flex-wrap:nowrap; overflow-x:auto; border-bottom:1px solid var(--border); margin:0 0 16px; scrollbar-width:thin;}
+  .bd-aba{flex:0 0 auto; background:none; border:0; border-bottom:2px solid transparent; color:var(--text-muted); font:inherit; font-size:13px; font-weight:600; padding:10px 14px; cursor:pointer; white-space:nowrap; margin-bottom:-1px;}
+  .bd-aba:hover{color:var(--text);} .bd-aba.on{color:var(--text); border-bottom-color:var(--accent);}
+  .bd-n{display:inline-block; min-width:18px; padding:0 6px; margin-left:4px; border-radius:99px; background:var(--surface-2); color:var(--text-muted); font-size:11px; text-align:center;}
+  .bd-aba.on .bd-n{background:var(--accent-soft); color:var(--accent-strong);}
+  .bd-lead{margin:0 0 14px; font-size:13px; color:var(--text-muted); max-width:900px;}
   .silo-filtros{display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
   .silo-filtros input, .silo-filtros select{background:var(--surface-2); color:var(--text); border:1px solid var(--border-strong); border-radius:6px; padding:7px 10px; font-size:12.5px; font-family:inherit;}
   .modo-menu{position:relative;}
@@ -1308,7 +1314,7 @@
     {id:"auditoria", label:"Auditoria", icon:"🔍"}
   ];
   var TITLES = {
-    "solicitacoes":"Solicitações de Cimento", "programacao-cimento":"Programação de Cimento", "base-dados-cimento":"Base de Dados — Entradas de Cimento",
+    "solicitacoes":"Solicitações de Cimento", "programacao-cimento":"Programação de Cimento", "base-dados-cimento":"Base de Dados",
     "notas-sefaz":"Notas Fiscais (SEFAZ)", "lancamentos-puzl":"Lançamentos (PUZL)", "silos":"Controle de cimento",
     "controle-pedidos-cimento":"Controle de Pedidos de Cimento", "consultas":"Consultas",
     dashboard:"Dashboard", operacoes:"Operação", vpo:"VPO — Vale Pedágio Obrigatório", exececoes:"Fila de Exceções",
@@ -1317,7 +1323,7 @@
   var CRUMBS = {
     "solicitacoes":"Cimento <b>›</b> Solicitações — o que cada usina precisa",
     "programacao-cimento":"Cimento <b>›</b> Programação — envio diário por usina",
-    "base-dados-cimento":"Dados <b>›</b> Base de Dados — importação e cadastro",
+    "base-dados-cimento":"Dados <b>›</b> Base de Dados — importar arquivos e cadastros (usinas, encarregados, fábricas)",
     "notas-sefaz":"Dados <b>›</b> Notas Fiscais (SEFAZ) — todas as notas importadas",
     "lancamentos-puzl":"Dados <b>›</b> Lançamentos (PUZL) — todos os lançamentos importados",
     "silos":"Outros <b>›</b> Controle de cimento — cimento atual e trocas de cada usina",
@@ -3204,6 +3210,40 @@
     });
   }
 
+  /* Base de Dados em abas: importar arquivos / usinas / encarregados / fábricas e cimentos / histórico.
+     Só reorganiza onde cada cartão aparece — o conteúdo e as funções de cada um são os mesmos. */
+  var BD_ABAS = [["importar", "📥 Importar arquivos"], ["usinas", "🏭 Usinas"], ["encarregados", "👷 Encarregados"], ["fabricas", "🏗️ Fábricas e cimentos"], ["historico", "🕘 Histórico de importações"]];
+  var BD_ABA = (function(){ try { var a = localStorage.getItem("cl_bd_aba"); return BD_ABAS.some(function(x){ return x[0] === a; }) ? a : "importar"; } catch (e){ return "importar"; } })();
+  function bdContagem(id){
+    try {
+      if (id === "usinas") return usinasCadastro.length;
+      if (id === "encarregados") return ENC.d ? ENC.d.encarregados.filter(function(e){ return e.ativo !== false; }).length : null;
+      if (id === "fabricas") return FABRICAS_CATALOGO.length;
+      if (id === "historico") return importHistorico.length;
+    } catch (e){ }
+    return null;
+  }
+  function bdAbasHtml(){
+    return '<div class="bd-abas" role="tablist" aria-label="Partes da Base de Dados">' + BD_ABAS.map(function(a){
+      var n = bdContagem(a[0]);
+      return '<button type="button" role="tab" class="bd-aba' + (a[0] === BD_ABA ? " on" : "") + '" aria-selected="' + (a[0] === BD_ABA) + '" data-bdaba="' + a[0] + '">' + a[1] + (n != null ? ' <span class="bd-n">' + n + '</span>' : "") + '</button>';
+    }).join("") + '</div>';
+  }
+  function bdAbasPintar(){
+    var t = document.querySelector("#view-base-dados-cimento .bd-abas"); if (!t) return;
+    t.outerHTML = bdAbasHtml();
+  }
+  function bdAbaMostrar(id){
+    BD_ABA = id; try { localStorage.setItem("cl_bd_aba", id); } catch (e){ }
+    document.querySelectorAll("#view-base-dados-cimento .bd-painel").forEach(function(p){ p.hidden = p.dataset.bdp !== id; });
+    bdAbasPintar();
+  }
+  function bdAbrir(id){ showView("base-dados-cimento"); bdAbaMostrar(id); }
+  (function(){
+    var v = el("view-base-dados-cimento"); if (!v) return;
+    v.addEventListener("click", function(ev){ var b = ev.target.closest && ev.target.closest("[data-bdaba]"); if (b) bdAbaMostrar(b.dataset.bdaba); });
+  })();
+
   function renderBaseDados(){
     function impCard(o){
       return '<div class="imp-card">' +
@@ -3219,7 +3259,8 @@
         '<details class="imp-more"><summary>Como funciona</summary>'+o.como+'</details>' +
         '</div>';
     }
-    el("view-base-dados-cimento").innerHTML =
+    el("view-base-dados-cimento").innerHTML = bdAbasHtml() +
+      '<div class="bd-painel" data-bdp="importar">' +
       '<div class="imp-intro"><p>Importe aqui os arquivos do SEFAZ e da PUZL. Tudo é salvo no banco e as telas se ligam sozinhas.</p>' +
       '<details><summary>Como as telas se ligam</summary><p>Área central de importação de dados externos. <b>Entradas</b> é calculada automaticamente a partir dos <b>Lançamentos (PUZL)</b>, com a ligação já cruzada contra Programação e contra Notas Fiscais (SEFAZ) — usada em Controle de Pedidos e na Programação de Cimento. <b>Notas Fiscais (SEFAZ)</b> é a exportação das notas emitidas — é ela quem forma o Controle de Pedidos, ligada à Programação de Cimento por usina/placa/pedido; <b>Lançamentos (PUZL)</b> traz o mesmo universo de notas com o material mais limpo (inclusive pozolana), usado tanto pra confirmar o material de uma nota do SEFAZ quanto pra formar as Entradas. Pra ver e filtrar tudo o que já foi importado, veja os módulos <b>Notas SEFAZ</b> e <b>Lançamentos PUZL</b>, logo abaixo de Base de Dados no menu.</p></details></div>' +
       '<div id="materiaisNovosCard"></div>' +
@@ -3237,13 +3278,18 @@
         impCard({id:'programacao', tom:'warning', icone:'🗓️', titulo:'Programação de Cimento', sub:'Planilha antiga, por dia', res:'importProgramacaoResult', txt:'importProgramacaoText', btn:'importProgramacaoBtn', ph:'PROGRAMAÇÃO PARA O DIA 24/09/2026 ( QUINTA-FEIRA )\nUsina\tPLACA\tFÁBRICA\tPEDIDO\nGARDÊNIA\tHGJ4049\tCP 3 CSN SCZ\t9042814',
           lead:'Traz a programação da planilha antiga: usina, placa, fábrica e pedido, por dia.',
           como:'<p>Uma linha “PROGRAMAÇÃO PARA O DIA DD/MM/AAAA (...)” seguida das linhas Usina / Placa / Fábrica / Pedido; pode ter vários dias de uma vez. Usina marcada com *** fica em branco. Usinas da Base de Usinas são casadas sozinhas; as outras entram como linha extra.</p>'}) +
-      '</div>' +
-      '<div id="encarregadosCard" style="margin-bottom:16px;"></div>' +
-      '<div id="historicoCard" style="margin-bottom:16px;"></div>' +
-      '<div id="catalogoCimentoCard" style="margin-bottom:16px;"></div>' +
-      '<div id="usinasCadastroCard" style="margin-bottom:16px;"></div>' +
-      '<div id="fabricasCatalogoCard" style="margin-bottom:16px;"></div>' +
-      '<div id="codigosCimentoCard"></div>';
+      '</div></div>' +
+      '<div class="bd-painel" data-bdp="usinas" hidden><p class="bd-lead">As usinas da Concrelagos: nome, sigla, CNPJ, regional, contatos e o nome que aparece na PUZL. É daqui que o sistema reconhece a usina nas notas e nas entradas.</p>' +
+        '<div id="usinasCadastroCard" style="margin-bottom:16px;"></div></div>' +
+      '<div class="bd-painel" data-bdp="encarregados" hidden><p class="bd-lead">Quem cuida de cada usina. Cada usina tem um único encarregado; isso define o que cada um vê no link de Solicitação de Cimento.</p>' +
+        '<div id="encarregadosCard" style="margin-bottom:16px;"></div></div>' +
+      '<div class="bd-painel" data-bdp="fabricas" hidden><p class="bd-lead">De onde vem o cimento: cada fornecedor e os materiais que ele entrega (as “fábricas” usadas na Programação e no Controle de cimento), o que conta como cimento na importação e os códigos de cada fornecedor.</p>' +
+        '<div id="fabricasCatalogoCard" style="margin-bottom:16px;"></div>' +
+        '<div id="catalogoCimentoCard" style="margin-bottom:16px;"></div>' +
+        '<div id="codigosCimentoCard"></div></div>' +
+      '<div class="bd-painel" data-bdp="historico" hidden><p class="bd-lead">Cada arquivo importado: quando, por quem e quantas linhas entraram.</p>' +
+        '<div id="historicoCard" style="margin-bottom:16px;"></div></div>';
+    bdAbaMostrar(BD_ABA);
 
     // Cada importação tem 2 caminhos pro MESMO ponto de entrada (runImportX):
     // colar na caixa de texto + clicar "Importar", ou soltar/escolher o
@@ -3507,7 +3553,7 @@
       }).join(" ");
       var inputCss = 'flex:1;border:1px solid var(--border-strong);border-radius:6px;padding:7px 10px;font-size:12.5px;background:var(--surface);color:var(--text);';
       cardEl.innerHTML =
-        '<details style="margin-bottom:0;"><summary style="cursor:pointer;padding:12px 18px;font-size:12.5px;font-weight:600;color:var(--accent-strong);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">🏷️ Catálogo de Cimentos — o que conta como cimento na importação ('+CEMENTO_CATALOGO.length+' termos, '+CEMENTO_EXCLUIR.length+' exceção(ões))</summary>' +
+        '<details open style="margin-bottom:0;"><summary style="cursor:pointer;padding:12px 18px;font-size:12.5px;font-weight:600;color:var(--accent-strong);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">🏷️ Catálogo de Cimentos — o que conta como cimento na importação ('+CEMENTO_CATALOGO.length+' termos, '+CEMENTO_EXCLUIR.length+' exceção(ões))</summary>' +
         '<div class="card" style="margin-top:8px;">' +
         '<p class="import-card-desc" style="margin:0 0 10px;">Ao importar Notas Fiscais (SEFAZ) e Lançamentos (PUZL), só entra a linha cujo Material contenha um destes termos (sem diferenciar maiúsculas, acentos, espaços ou pontuação). Adicione aqui quando surgir um cimento novo. As alterações são gravadas no banco automaticamente.</p>' +
         '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">'+(chips || '<span class="faint" style="font-style:italic;">Nenhum termo cadastrado — nada será reconhecido como cimento.</span>')+'</div>' +
@@ -3724,7 +3770,7 @@
         }).join("") + '<td style="padding:4px 6px;"><button class="btn-ghost" data-udel="'+i+'" style="padding:5px 8px;">🗑</button></td></tr>';
       }).join("");
       cardEl.innerHTML =
-        '<details style="margin-bottom:0;"><summary style="cursor:pointer;padding:12px 18px;font-size:12.5px;font-weight:600;color:var(--accent-strong);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">🏭 Base de Usinas — CNPJ por filial ('+usinasCadastro.length+')</summary>' +
+        '<details open style="margin-bottom:0;"><summary style="cursor:pointer;padding:12px 18px;font-size:12.5px;font-weight:600;color:var(--accent-strong);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">🏭 Base de Usinas — CNPJ por filial ('+usinasCadastro.length+')</summary>' +
         '<div class="card" style="margin-top:8px;">' +
         '<p class="import-card-desc" style="margin:0 0 10px;">Usina, sigla, CNPJ, regional e contatos (WhatsApp/e-mail de usina e de regional) — nessa ordem, igual à planilha-modelo de cadastro de filiais. Código/Filial/Formato PUZL (colunas finais) são internos: é o Formato PUZL (ex: "32 | CGL | CARANGOLA") que bate a usina contra os Lançamentos PUZL, e o CNPJ aqui cadastrado é reconhecido automaticamente na Descrição Complementar de uma nota do SEFAZ. Alimente colando um arquivo/planilha abaixo (mesma ordem de colunas do modelo) ou edite direto nos campos da tabela.</p>' +
         '<div class="import-paste" style="margin-bottom:14px;">' +
@@ -3738,6 +3784,7 @@
         '</tbody></table></div>' +
         '<div class="prog-add" id="usinasCadastroAdd">+ adicionar usina</div>' +
         '</div></details>';
+      if (typeof bdAbasPintar === "function") bdAbasPintar();
       el("usinasCadastroBody").querySelectorAll("input").forEach(function(inp){
         inp.addEventListener("change", function(){
           usinasCadastro[parseInt(inp.dataset.uidx, 10)][inp.dataset.ufield] = inp.value;
@@ -3853,6 +3900,7 @@
       });
     });
     xlEnhance(el("historicoCard"), "historico", [5]);
+    if (typeof bdAbasPintar === "function") bdAbasPintar();
     paintBaseDadosStats();
   }
 
@@ -3880,6 +3928,7 @@
   // duplicada saiu daqui; o que resta em Base de Dados é o resumo (stats).
   function paintBaseDados(){
     paintBaseDadosStats();
+    bdAbasPintar();
   }
 
   /* ---------------- Controle de Pedidos de Cimento ---------------- */
@@ -4314,7 +4363,7 @@
   function renderCodigosCimento(){
     var tabs = cementSuppliers.map(function(s){ return '<button class="btn-ghost" data-sup="'+s.id+'" style="font-weight:600;">'+esc(s.nome)+'</button>'; }).join("");
     el("codigosCimentoCard").innerHTML =
-      '<details style="margin-bottom:16px;">' +
+      '<details open style="margin-bottom:16px;">' +
       '<summary style="cursor:pointer;padding:12px 18px;font-size:12.5px;font-weight:600;color:var(--accent-strong);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">🔑 Cadastros — Códigos por Fornecedor</summary>' +
       '<div style="margin-top:8px;">' +
       '<div class="card banner" style="margin-bottom:16px;display:flex;gap:10px;align-items:flex-start;">' +
@@ -4369,7 +4418,7 @@
     var cardEl = el("fabricasCatalogoCard");
     if (!cardEl) return;
     var activeIdx = 0;
-    var detailsOpen = false;
+    var detailsOpen = true;
     function paint(){
       if (activeIdx >= FABRICAS_CATALOGO.length) activeIdx = 0;
       var tabs = FABRICAS_CATALOGO.map(function(f, i){
@@ -6624,7 +6673,7 @@
     var sem = D.usinas.filter(function(u){ return !u.encarregado_id; });
     h += '<div class="adm-pad" style="font-size:12.5px;color:var(--text-muted)">' + (sem.length ? '<span class="badge warning">' + sem.length + ' usina(s) sem encarregado</span> ' + esc(sem.map(function(u){ return u.usina; }).join(", ")) : '✔ Todas as usinas têm encarregado.') + '</div>';
     h += '</div>';
-    v.innerHTML = h;
+    v.innerHTML = h; bdAbasPintar();
   }
   (function(){
     var v = el("view-base-dados-cimento"); if (!v) return;
@@ -6847,7 +6896,7 @@
       if (a === "atualizar"){ SILO.msg = ""; siloCarregar(); return; }
       if (a === "excel"){ ccExcel(); return; }
       if (a === "tile"){ SILO.f = SILO.f === b.dataset.f ? "" : b.dataset.f; siloPintar(); return; }
-      if (a === "base"){ showView("base-dados-cimento"); return; }
+      if (a === "base"){ bdAbrir("fabricas"); return; }
       if (a === "fechar"){ SILO.ed = null; SILO.feita = null; siloPintar(); return; }
       if (a === "hist"){ SILO.hist[b.dataset.u] = !SILO.hist[b.dataset.u]; siloPintar(); return; }
       if (a === "editar"){
