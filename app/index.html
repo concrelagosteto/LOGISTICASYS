@@ -327,6 +327,7 @@
   :root[data-theme="light"] .bd-edit input[type=date]{color-scheme:light;}
   .bd-acoes{display:flex; gap:4px; white-space:nowrap;}
   #usinasCadastroBody td:first-child input{min-width:140px; font-weight:600;}
+  #encarregadosCard .table-wrap{max-height:none;} .enc-tbl td{vertical-align:middle;}
   .bd-lead{margin:0 0 14px; font-size:13px; color:var(--text-muted); max-width:900px;}
   .silo-filtros{display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
   .silo-filtros input, .silo-filtros select{background:var(--surface-2); color:var(--text); border:1px solid var(--border-strong); border-radius:6px; padding:7px 10px; font-size:12.5px; font-family:inherit;}
@@ -1576,7 +1577,11 @@
       if (!w.offsetParent) return;                                     // escondida (aba/details fechado)
       var topo = w.getBoundingClientRect().top + window.scrollY;
       if (w.closest("#progBlocks")) return;                            // Programação de Cimento: altura fixa por tabela (CSS)
-      w.style.maxHeight = Math.max(260, window.innerHeight - topo - 24) + "px";
+      if (w.closest("#encarregadosCard")) return;                      // lista curta: mostra inteira (CSS)
+      // Tabela que começa mais para baixo na página (ex.: segunda tabela da tela) não pode ficar
+      // espremida no que sobra da 1ª tela: usa quase a altura da janela, com rolagem própria.
+      var resto = window.innerHeight - topo - 24;
+      w.style.maxHeight = (resto >= 360 ? resto : Math.max(360, window.innerHeight - 90)) + "px";
     });
   }
   var __fitT = null;
