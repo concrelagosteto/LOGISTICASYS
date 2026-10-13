@@ -303,6 +303,9 @@
   .cc-tag.prog{background:var(--warning-soft); color:var(--warning);} .cc-tag.pend{background:var(--danger-soft); color:var(--danger);}
   .cc-feita{margin-left:6px; background:var(--success-soft); color:var(--success); border:1px solid transparent; border-radius:6px; padding:2px 8px; font-size:11.5px; font-weight:700; cursor:pointer; font-family:inherit;}
   .cc-feita:hover{border-color:var(--success);}
+  .cc-tbl td.cc-clic{cursor:pointer;} .cc-tbl td.cc-clic:hover{box-shadow:inset 0 0 0 1px var(--accent);}
+  .cc-tbl .cc-inl{width:170px; max-width:170px; border-color:var(--accent);}
+  .cc-tbl input.cc-inl[type=date]{width:135px;}
   .cc-tbl td.cc-obs{white-space:normal; min-width:150px; max-width:260px; font-size:12.5px; color:var(--text-muted);}
   .cc-tbl select, .cc-tbl input{background:var(--surface-2); color:var(--text); border:1px solid var(--border-strong); border-radius:6px; padding:5px 7px; font-size:12px; font-family:inherit; width:150px; max-width:150px;}
   .cc-tbl input[type=date]{width:128px;} .cc-tbl #ccObs{width:140px;}
@@ -6904,7 +6907,7 @@
   function siloPintar(){
     var v = el("view-silos"); if (!v) return;
     var D = SILO.d, pode = !!D && D.pode && ME && ME.papel !== "leitura", adm = !!D && D.admin && pode;
-    var h = '<div class="card" style="margin-bottom:16px"><div class="card-head"><div><h2>🛢️ Controle de cimento</h2><p>O cimento atual de cada usina (até 3 cimentos / silos), a troca de cimento marcada e a data da troca — o mesmo formato da planilha.' + (D && !pode ? " Somente leitura." : "") + '</p></div>' +
+    var h = '<div class="card" style="margin-bottom:16px"><div class="card-head"><div><h2>🛢️ Controle de cimento</h2><p>O cimento atual de cada usina (até 3 cimentos / silos), a troca de cimento marcada e a data da troca — o mesmo formato da planilha. Clique no cimento, na troca ou na data para trocar ali mesmo.' + (D && !pode ? " Somente leitura." : "") + '</p></div>' +
       '<div class="silo-filtros"><input type="search" id="siloQ" placeholder="Buscar usina ou cimento" value="' + esc(SILO.q) + '">' +
       '<select id="ccF" aria-label="Situação"><option value="">Todas as situações</option>' + [["troca", "Com troca marcada"], ["pend", CC_EST.pend], ["prog", CC_EST.prog], ["ok", "Sem troca"], ["vazio", CC_EST.vazio], ["fora", "Fora da Base de Fábricas"]].map(function(o){ return '<option value="' + o[0] + '"' + (SILO.f === o[0] ? " selected" : "") + '>' + o[1] + '</option>'; }).join("") + '</select>' +
       '<select id="ccCim" aria-label="Cimento"><option value="">Todos os cimentos</option>' + (D ? ccUsados(D).map(function(n){ return '<option value="' + esc(n) + '"' + (SILO.cim === n ? " selected" : "") + '>' + esc(n) + '</option>'; }).join("") : "") + '</select>' +
@@ -6931,11 +6934,22 @@
       h += '<tr class="cc-row ' + est + '"><td class="cc-u" title="' + esc(CC_EST[est]) + '">' + esc(u.usina) + '</td>';
       [1, 2, 3].forEach(function(k){
         var s = u.slots[k], e = ccEstSlot(s), cls = e === "ok" ? "" : " cc-" + e;
-        if (!s){ h += '<td class="cc-ini"><span class="faint">—</span></td><td></td><td></td>'; return; }
+        // clique direto na célula (cimento atual / troca / data) troca o valor ali mesmo — salva sozinho
+        var q = function(campo){ return pode ? ' data-ccq="' + campo + '" data-u="' + esc(u.usina_id) + '" data-s="' + k + '"' : ""; };
+        var inl = SILO.inl && SILO.inl.u === u.usina_id && SILO.inl.s === k ? SILO.inl.campo : null;
+        var ctl = function(campo){
+          if (campo === "c") return '<select class="cc-inl" data-ccinl="c" aria-label="Cimento ' + k + ' atual">' + ccOpts(s ? s.cimento : "", "— vazio —") + '</select>';
+          if (campo === "t") return '<select class="cc-inl" data-ccinl="t" aria-label="Troca do cimento ' + k + '">' + ccOpts(s ? s.troca : "", "NÃO (sem troca)") + '</select>';
+          return '<input type="date" class="cc-inl" data-ccinl="d" aria-label="Data da troca do cimento ' + k + '" value="' + esc(s && s.data || "") + '">';
+        };
+        if (!s){
+          h += '<td class="cc-ini cc-c cc-clic"' + q("c") + '>' + (inl === "c" ? ctl("c") : '<span class="faint">—</span>') + '</td><td></td><td></td>'; return;
+        }
         nh += s.trocas.length;
-        h += '<td class="cc-ini cc-c' + cls + '"' + ((s.por || s.planilha) ? ' title="' + esc((s.planilha ? "Na planilha: " + s.planilha : "") + (s.planilha && s.por ? " · " : "") + (s.por ? "Atualizado por " + s.por : "")) + '"' : "") + '>' + ccChip(s.cimento, s.mat) + (s.desde ? '<span class="cc-sub">desde ' + ccDataCurta(s.desde) + '</span>' : "") + '</td>' +
-          '<td class="cc-t' + cls + '">' + (s.troca ? '<span class="cc-troca">→</span> ' + ccChip(s.troca, s.troca_mat) : '<span class="faint">NÃO</span>') + '</td>' +
-          '<td class="cc-d' + cls + '">' + (s.troca ? (s.data ? ccDataCurta(s.data) : '<span class="faint">sem data</span>') + '<div class="cc-acao"><span class="cc-tag ' + e + '">' + (e === "prog" ? "programada" : "pendente") + '</span>' +
+        h += '<td class="cc-ini cc-c cc-clic' + cls + '"' + q("c") + ((s.por || s.planilha) ? ' title="' + esc((s.planilha ? "Na planilha: " + s.planilha : "") + (s.planilha && s.por ? " · " : "") + (s.por ? "Atualizado por " + s.por : "")) + '"' : "") + '>' +
+            (inl === "c" ? ctl("c") : ccChip(s.cimento, s.mat) + (s.desde ? '<span class="cc-sub">desde ' + ccDataCurta(s.desde) + '</span>' : "")) + '</td>' +
+          '<td class="cc-t cc-clic' + cls + '"' + q("t") + '>' + (inl === "t" ? ctl("t") : s.troca ? '<span class="cc-troca">→</span> ' + ccChip(s.troca, s.troca_mat) : '<span class="faint">NÃO</span>') + '</td>' +
+          '<td class="cc-d' + (s.troca ? " cc-clic" : "") + cls + '"' + (s.troca ? q("d") : "") + '>' + (inl === "d" ? ctl("d") : s.troca ? (s.data ? ccDataCurta(s.data) : '<span class="faint">sem data</span>') + '<div class="cc-acao"><span class="cc-tag ' + e + '">' + (e === "prog" ? "programada" : "pendente") + '</span>' +
             (pode ? '<button type="button" class="cc-feita" data-cc="feita" data-u="' + esc(u.usina_id) + '" data-s="' + k + '" title="A troca aconteceu: passa para o cimento atual">✔ Feita</button>' : "") + '</div>' : "") + '</td>';
       });
       var ab = !!SILO.hist[u.usina_id];
@@ -6959,6 +6973,24 @@
     h += '</tbody></table></div></div>';
     v.innerHTML = h;
     if (SILO.ed && !SILO.ed.focado){ SILO.ed.focado = true; var f = el("ccC1"); if (f) f.focus(); }
+    var ci = v.querySelector(".cc-inl");
+    if (ci && SILO.inl && !SILO.inl.aberto){ SILO.inl.aberto = true; ci.focus(); try { if (ci.showPicker) ci.showPicker(); } catch (x){ } }
+  }
+  async function ccInlSalvar(campo, valor){
+    var I = SILO.inl; if (!I) return;
+    var u = ccUsina(I.u), s = (u && u.slots[I.s]) || {};
+    var c = s.cimento || "", t = s.troca || "", d = s.data || "";
+    if (campo === "c") c = valor; else if (campo === "t") t = valor; else d = valor;
+    if (t && !c){ SILO.msg = "Escolha o cimento atual antes de marcar a troca."; SILO.ruim = true; SILO.inl = null; siloPintar(); return; }
+    if (campo === "c" && t && t === c) t = "";
+    if (c === (s.cimento || "") && t === (s.troca || "") && d === (s.data || "")){ SILO.inl = null; siloPintar(); return; }
+    SILO.inl.salvando = true;
+    var r; try { r = await sb.rpc("cimento_slot_salvar", { p_usina: I.u, p_slot: I.s, p_cimento: c || null, p_troca: t || null, p_data: t && d ? d : null }); } catch (e){ r = { error: e }; }
+    SILO.inl = null;
+    if (r.error){ SILO.msg = dbErr(r.error); SILO.ruim = true; siloPintar(); return; }
+    SILO.msg = (u ? u.usina : "") + " · Cimento " + I.s + ": " + (campo === "c" ? "cimento atual agora é " + (c || "vazio") : campo === "t" ? (t ? "troca marcada para " + t + (d ? "" : " — falta a data da troca") : "troca desmarcada") : "data da troca " + (d ? brDate(d) : "apagada")) + ".";
+    SILO.ruim = false;
+    await siloCarregar();
   }
   function ccExcel(){
     var D = SILO.d; if (!D || typeof XLSX === "undefined") return;
@@ -7000,6 +7032,18 @@
       if (ev.key !== "Enter") return;
       var b = ev.target.closest(".cc-edit") ? v.querySelector('[data-cc="salvar"]') : ev.target.id === "ccFeitaData" ? v.querySelector('[data-cc="feita-ok"]') : null;
       if (b){ ev.preventDefault(); b.click(); }
+    });
+    v.addEventListener("change", function(ev){ var t = ev.target; if (t.dataset && t.dataset.ccinl && SILO.inl && !SILO.inl.salvando) ccInlSalvar(t.dataset.ccinl, t.value); });
+    v.addEventListener("keydown", function(ev){ if (ev.key === "Escape" && SILO.inl){ SILO.inl = null; siloPintar(); } });
+    v.addEventListener("focusout", function(ev){
+      var t = ev.target; if (!t.dataset || !t.dataset.ccinl) return;
+      setTimeout(function(){ var ae = document.activeElement; if (SILO.inl && !SILO.inl.salvando && !(ae && ae.classList && ae.classList.contains("cc-inl"))){ SILO.inl = null; siloPintar(); } }, 200);
+    });
+    v.addEventListener("click", function(ev){
+      if (ev.target.closest("[data-cc], .cc-inl, select, input, button")) return;
+      var td = ev.target.closest("td[data-ccq]"); if (!td || SILO.ed) return;
+      if (SILO.inl && SILO.inl.u === td.dataset.u && SILO.inl.s === +td.dataset.s && SILO.inl.campo === td.dataset.ccq) return;
+      SILO.inl = { u: td.dataset.u, s: +td.dataset.s, campo: td.dataset.ccq }; SILO.feita = null; SILO.msg = ""; siloPintar();
     });
     v.addEventListener("click", async function(ev){
       var b = ev.target.closest && ev.target.closest("[data-cc]"); if (!b || b.disabled) return;
