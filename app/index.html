@@ -358,6 +358,8 @@
   .table-wrap.vpo-rotas-wrap thead th{top:var(--vpo-abas-h, 46px);}
   .vpo-aba:hover{color:var(--text);}
   #pedagioBody tr.rota-grupo td{border-top:2px solid var(--border-strong);}
+  .per-tag{font-size:11.5px; font-weight:700; padding:2px 9px; border-radius:99px; background:var(--surface-2); color:var(--text-muted);}
+  .per-tag.per-cedo{background:var(--info-soft); color:var(--info);} .per-tag.per-tarde{background:var(--warning-soft); color:var(--warning);}
   select.auto-fab{border-color:var(--success) !important; box-shadow:0 0 0 1px var(--success) inset;} .vpo-aba.on{color:var(--text); border-bottom-color:var(--accent);}
   .bd-lead{margin:0 0 14px; font-size:13px; color:var(--text-muted); max-width:900px;}
   .silo-filtros{display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
@@ -2006,6 +2008,7 @@
       (c.adiado ? '<div class="dstat adi"><b>'+c.adiado+'</b><span>Adiado</span></div>' : '');
   }
   function paintBlocks(){
+    if (typeof progAutoPreencher === "function") progAutoPreencher();
     progPicker.updateLabel();
     var days = rangeDays(progPicker.state);
 
@@ -2075,6 +2078,7 @@
           progMultiInput(iso, key, "carretas", e.carretas) +
           progMultiFabricaSelect(iso, key, e.fabrica) +
           progMultiInput(iso, key, "pedido", e.pedido) +
+          progPeriodoCell(iso, key) +
           progInput(iso, key, "obs", e.obs, "ex: OK, CEDO, TARDE") +
           nfCell +
           statusSelect + '</tr>';
@@ -2083,7 +2087,7 @@
         '<div class="prog-block-head"><div class="ref">'+esc(refText)+'</div><div class="title">PROGRAMAÇÃO PARA O DIA '+esc(fmtBR(day).toUpperCase())+' ('+esc(weekdayLong(day).toUpperCase())+')'+(data.isException?' · EXCEÇÃO':'')+(feriado?' · FERIADO ('+esc(feriado.toUpperCase())+')':'')+'</div></div>' +
         '<div class="prog-day-stats">' + progDayStatsHtml(progDayCounts(iso)) + '</div>' +
         (entries.length
-          ? '<div class="table-wrap"><table><thead><tr><th>Usina</th><th>Carretas</th><th>Fábrica</th><th>Número do Pedido</th><th>Observação</th><th>NF (SEFAZ)</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+          ? '<div class="table-wrap"><table><thead><tr><th>Usina</th><th>Carretas</th><th>Fábrica</th><th>Número do Pedido</th><th>Período</th><th>Observação</th><th>NF (SEFAZ)</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
           : '<p class="prog-empty">Nenhuma usina registrada para este dia.</p>') +
         '<div class="prog-add" data-iso="'+iso+'">+ adicionar usina</div>' +
         '</div>';
@@ -2154,6 +2158,17 @@
     return found;
   }
 
+  // Período pedido pela usina na Solicitação (cedo / tarde / qualquer horário) — só leitura
+  var PER_NOME = { CEDO: "Cedo", TARDE: "Tarde", QUALQUER: "Qualquer horário" };
+  function progPeriodoCell(iso, key){
+    var sl = (typeof SOL_PROG !== "undefined" && SOL_PROG[iso + "|" + solNorm(key)]) || [];
+    if (!sl.length) return '<td class="faint" style="padding:4px 8px;font-size:12px">—</td>';
+    var per = function(x){ return PER_NOME[x.periodo] || "não informado"; };
+    var dif = sl.map(per).filter(function(v, i, a){ return a.indexOf(v) === i; });
+    var txt = dif.length === 1 ? dif[0] : sl.map(function(x){ return x.material + ": " + per(x); }).join(" · ");
+    var cls = dif.length === 1 && dif[0] === "Cedo" ? "per-cedo" : dif.length === 1 && dif[0] === "Tarde" ? "per-tarde" : "";
+    return '<td style="padding:4px 8px;white-space:nowrap" title="Período escolhido pela usina na Solicitação"><span class="per-tag ' + cls + '">' + esc(txt) + '</span></td>';
+  }
   function progInput(iso, key, field, value, placeholder, tdClass){
     return '<td class="'+(tdClass||"")+'" style="padding:4px 6px;"><input value="'+esc(value)+'" placeholder="'+esc(placeholder||"")+'" data-iso="'+iso+'" data-key="'+esc(key)+'" data-field="'+field+'" ' +
       'style="width:100%;border:1px solid transparent;border-radius:5px;padding:6px 8px;font-size:12.5px;background:transparent;color:var(--text);" ' +
@@ -6406,7 +6421,7 @@
       var sl = SOL_PROG[iso + "|" + solNorm(key)];
       if (sl && sl.length){ var s3 = document.createElement("span"); s3.className = "prog-tag sol"; s3.textContent = "📥 " + sl.map(function(x){ return x.material + " ×" + x.carretas; }).join(", ");
         var sugs = sl.map(function(x){ var f = ccFabricaPara(key, x.material, iso); return x.material + " → " + (f || "sem cimento definido no Controle de cimento (escolha a fábrica)"); });
-        s3.title = "Solicitado pela usina para este dia" + (sl.some(function(x){ return x.fora; }) ? " (inclui pedido fora do prazo — autorizado)" : "") + ".\nAo colocar a placa, a fábrica é preenchida pelo Controle de cimento:\n" + sugs.join("\n"); td.appendChild(s3); }
+        s3.title = "Solicitado pela usina para este dia" + (sl.some(function(x){ return x.fora; }) ? " (inclui pedido fora do prazo — autorizado)" : "") + ".\nFábrica preenchida pelo Controle de cimento:\n" + sugs.join("\n"); td.appendChild(s3); }
       (SOL_ALT_PROG[iso + "|" + solNorm(key)] || []).forEach(function(a){
         var s4 = document.createElement("span"), ok = a.status === "aprovada";
         s4.className = "prog-tag " + (ok ? "alt" : "altp");
@@ -6732,21 +6747,23 @@
     });
   })();
 
-  // Programação ← Solicitação: mostra, na linha da usina, o que ela pediu para aquele dia (só informação; nada é preenchido sozinho)
+  // Programação ← Solicitação: mostra, na linha da usina, o que ela pediu para aquele dia e já preenche a fábrica (progAutoPreencher)
   var SOL_PROG = {};
   function solNorm(s){ return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/\s+/g, " ").trim(); }
   async function solProgCarregar(){
     if (!ME || !sb) return;
     var hoje = new Date(); var de = new Date(hoje.getTime() - 10 * 86400000).toISOString().slice(0, 10), ate = new Date(hoje.getTime() + 70 * 86400000).toISOString().slice(0, 10);
-    var r; try { r = await sb.rpc("solic_para_programacao", { p_de: de, p_ate: ate }); } catch (e) { return; }
+    var r; try { r = await sb.rpc("solic_para_programacao_v2", { p_de: de, p_ate: ate }); } catch (e) { r = { error: e }; }
+    if (r.error){ try { r = await sb.rpc("solic_para_programacao", { p_de: de, p_ate: ate }); } catch (e) { return; } }
     if (r.error || !Array.isArray(r.data)) return;
     var m = {};
     r.data.forEach(function(x){
       var k = String(x.data_desejada).slice(0, 10) + "|" + solNorm(x.usina);
-      (m[k] = m[k] || []).push({ material: x.material, carretas: x.carretas, fora: !!x.fora_do_prazo });
+      (m[k] = m[k] || []).push({ material: x.material, carretas: x.carretas, periodo: x.periodo || null, fora: !!x.fora_do_prazo });
     });
     SOL_PROG = m;
-    if (!SILO.d && typeof siloCarregar === "function") siloCarregar().then(function(){ if (typeof progDecorar === "function") progDecorar(); });
+    var aplicar = function(){ progAutoPreencher(); if (typeof progPintarSeguro === "function") progPintarSeguro(); };   // repinta: fábrica e período
+    if (!SILO.d && typeof siloCarregar === "function") siloCarregar().then(aplicar); else aplicar();
     var ra; try { ra = await sb.rpc("solic_alteracoes_listar", { p_de: de, p_ate: ate }); } catch (e) { return; }
     if (ra.error || !Array.isArray(ra.data)) return;
     var ma = {};
@@ -6775,6 +6792,24 @@
     var sl = SOL_PROG[iso + "|" + solNorm(usina)] || [], out = [];
     sl.forEach(function(x){ var f = ccFabricaPara(usina, x.material, iso); for (var i = 0; i < (x.carretas || 1); i++) out.push(f); });
     return out;
+  }
+  // Assim que a usina pede, a fábrica da linha dela já aparece preenchida na Programação (dias de hoje em diante).
+  // Carreta e nº do pedido continuam com a Logística. Só preenche linha com fábrica vazia, uma vez por sessão
+  // (se alguém apagar a fábrica de propósito, não volta sozinha).
+  var PROG_AUTO_FEITO = {};
+  function progAutoPreencher(){
+    if (!SILO.d || !ME || ME.papel === "leitura" || !SNAP) return false;   // só depois de carregar tudo (senão não salva)
+    var hoje = toISO(TODAY), mudou = false;
+    Object.keys(SOL_PROG).forEach(function(k){
+      var iso = k.slice(0, 10); if (iso < hoje || PROG_AUTO_FEITO[k]) return;
+      var nu = k.slice(11), usina = MASTER_USINAS.find(function(u){ return solNorm(u) === nu; }); if (!usina) return;
+      var day = cementScheduleByDate[iso], e = day && day.entries.find(function(x){ return entryKey(x) === usina; });
+      if (e && (String(e.fabrica || "").trim() || e.status === "adiado")){ PROG_AUTO_FEITO[k] = true; return; }
+      var sug = progFabricasSugeridas(iso, usina).filter(Boolean).slice(0, 3); if (!sug.length) return;
+      e = getOrCreateEntry(iso, usina); e.fabrica = multiJoin(sug); PROG_AUTO_FEITO[k] = true; mudou = true;
+    });
+    if (mudou) setTimeout(function(){ scheduleSync(); }, 0);
+    return mudou;
   }
   function progAutoFabrica(carrContainer){
     var tr = carrContainer.closest("tr"); if (!tr) return;
