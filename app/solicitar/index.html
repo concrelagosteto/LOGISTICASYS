@@ -146,6 +146,8 @@
   .mp-dia:first-child{border-top:none;}
   .mp-dia-cab{display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:12px 18px 6px; font-size:13px; font-weight:700;}
   .mp-linha{padding:8px 18px 12px; display:flex; flex-direction:column; gap:6px;}
+  .confirma-envio{margin-top:12px;} .confirma-envio ul{margin:4px 0 0; padding-left:18px;} .confirma-envio li{margin:2px 0;}
+  .ce-cols{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:10px 0;} .ce-tit{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; opacity:.8;}
   .mp-cancelado b{text-decoration:line-through; color:var(--text-muted, #64748b);}
   .mp-topo{display:flex; flex-wrap:wrap; gap:8px; align-items:center; font-size:13.5px;}
   .mp-cargas{display:flex; flex-direction:column; gap:4px; padding-left:4px;}
@@ -487,7 +489,8 @@
 
     var temTravada = S.linhas.some(function(x){ return x.travada; });
     h += '<div class="acoes-editor"><button type="button" class="btn sem-btn" data-act="sem" aria-pressed="' + (S.sem ? "true" : "false") + '" ' + (pode && !temTravada ? "" : "disabled") + (temTravada ? ' title="Parte do pedido já foi programada: para cancelar, use Meus pedidos"' : "") + '>' + (S.sem ? "✔ " : "") + 'Sem necessidade de cimento</button><span class="grow"></span>' +
-      '<button type="button" class="btn-primary inline" data-act="enviar" ' + (pode && !S.enviando ? "" : "disabled") + '>' + (S.enviando ? "Enviando…" : (env ? "Atualizar solicitação" : "Enviar solicitação")) + '</button></div>';
+      '<button type="button" class="btn-primary inline" data-act="enviar" ' + (pode && !S.enviando && !S.confirmaEnvio ? "" : "disabled") + '>' + (S.enviando ? "Enviando…" : (env ? "Nova solicitação" : "Enviar solicitação")) + '</button></div>';
+    if (S.confirmaEnvio) h += htmlConfirmaEnvio(env);
     h += '<p class="msg-erro" id="erroEditor" role="alert"></p></div></div>';
 
     // histórico
@@ -700,10 +703,39 @@
     var e = $("erroEditor"); if (e) e.textContent = v ? v.t : "";
     if (v && v.i != null){ var r = document.querySelector('.linha[data-row="' + v.i + '"]'); if (r) r.classList.add("erro"); }
   }
-  async function enviar(){
+  // O que já foi pedido para as mesmas datas de entrega (a solicitação de hoje e pedidos de dias anteriores),
+  // para a usina conferir antes de mandar uma nova solicitação.
+  function jaPedido(env){
+    var datas = {}, out = [];
+    if (!S.sem) S.linhas.forEach(function(l){ if (l.data) datas[String(l.data).slice(0, 10)] = 1; });
+    if (env){
+      if (env.sem_necessidade) out.push({ txt: "Hoje já foi respondido: <b>sem necessidade de cimento</b>", quando: env });
+      else (env.linhas || []).forEach(function(l){ out.push({ data: String(l.data_desejada).slice(0, 10), txt: txtLinha(l.material, l.carretas, l.periodo, l.fabrica), quando: env }); });
+    }
+    ((S.mp && S.mp.pedidos) || []).forEach(function(p){
+      if (env && p.id === env.id) return;
+      (p.linhas || []).forEach(function(l){ var d = String(l.data_desejada).slice(0, 10); if (datas[d]) out.push({ data: d, txt: txtLinha(l.material, l.carretas, l.periodo, l.fabrica), dia: p.dia }); });
+    });
+    return out;
+  }
+  function htmlConfirmaEnvio(env){
+    var ja = jaPedido(env), novas = S.sem ? '<li>Sem necessidade de cimento</li>' : S.linhas.map(function(l){ return '<li>' + (l.data ? "<b>" + esc(fmtData(l.data)) + "</b> — " : "") + txtLinha(l.material, l.carretas, l.periodo, l.fabrica) + (l.travada ? " 🔒" : "") + '</li>'; }).join("");
+    var porData = {};
+    ja.forEach(function(x){ var k = x.data || ""; (porData[k] = porData[k] || []).push(x); });
+    var lista = Object.keys(porData).sort().map(function(k){
+      return '<li>' + (k ? "<b>" + esc(fmtData(k)) + "</b> — " : "") + porData[k].map(function(x){
+        return x.txt + ' <span class="faint">(' + (x.quando ? "solicitação de hoje, " + esc(fmtHora(new Date(x.quando.enviado_em).getTime())) + ", versão " + x.quando.versao : "pedido de " + esc(fmtData(String(x.dia).slice(0, 10)))) + ')</span>'; }).join("<br>") + '</li>'; }).join("");
+    return '<div class="aviso warn confirma-envio" id="confirmaEnvio" role="alertdialog" aria-label="Confirmar nova solicitação"><b>⚠️ Já existe solicitação para ' + (Object.keys(porData).filter(Boolean).length > 1 ? "essas datas" : "esse dia") + '.</b> Confira se a nova solicitação confere antes de enviar' + (env ? " — ela <b>substitui</b> a solicitação de hoje" : "") + '.' +
+      '<div class="ce-cols"><div><span class="ce-tit">Já solicitado</span><ul>' + lista + '</ul></div><div><span class="ce-tit">Nova solicitação</span><ul>' + novas + '</ul></div></div>' +
+      '<div class="acoes"><button type="button" class="btn-primary inline" data-act="enviar-ok">✔ Confere, enviar nova solicitação</button><button type="button" class="btn" data-act="enviar-voltar">Voltar e corrigir</button></div></div>';
+  }
+  async function enviar(confirmado){
     if (S.enviando) return;
     if (!S.sem){ var v = validar(); if (v){ marcarErro(v); return; } }
     marcarErro(null);
+    var est0 = S.estado || {}, env0 = est0.envio;
+    if (!confirmado && (env0 || jaPedido(null).length)){ S.confirmaEnvio = true; desenhar(); var cx = $("confirmaEnvio"); if (cx) cx.scrollIntoView({ block: "center", behavior: "smooth" }); return; }
+    S.confirmaEnvio = false;
     S.enviando = true; S.msg = ""; desenhar();
     try {
       var args = { p_chave: S.chave, p_sem_necessidade: S.sem, p_linhas: S.sem ? [] : S.linhas.map(function(l){ return { id: l.id || null, material: l.material, fabrica: l.fabrica || null, carretas: Number(l.carretas), data_desejada: l.data, periodo: l.periodo || "" }; }) };
@@ -757,15 +789,19 @@
     if (t.dataset.i === undefined) return;
     if (t.dataset.f === "material") aplicarMat(S.linhas[+t.dataset.i], t.value); else S.linhas[+t.dataset.i][t.dataset.f] = t.value;
     S.sujo = true;
+    if (S.confirmaEnvio){ S.confirmaEnvio = false; desenhar(); }   // mudou o pedido: confere de novo ao enviar
   });
   $("conteudo").addEventListener("toggle", function(ev){ if (ev.target.classList && ev.target.classList.contains("hist")) S.abertoHist = ev.target.open; }, true);
   $("conteudo").addEventListener("click", function(ev){
     var b = ev.target.closest && ev.target.closest("[data-act]"); if (!b || b.disabled) return;
     var a = b.dataset.act;
+    if ((a === "add" || a === "rm" || a === "sem") && S.confirmaEnvio) S.confirmaEnvio = false;
     if (a === "add"){ if (S.linhas.length < 30){ S.linhas.push(novaLinha()); S.sujo = true; desenhar(); var ss = document.querySelectorAll('select[data-f="material"]'); if (ss.length) ss[ss.length - 1].focus(); } }
     else if (a === "rm"){ if (S.linhas.length > 1){ S.linhas.splice(+b.dataset.i, 1); S.sujo = true; desenhar(); } }
     else if (a === "sem"){ S.sem = !S.sem; S.sujo = true; desenhar(); }
-    else if (a === "enviar") enviar();
+    else if (a === "enviar") enviar(false);
+    else if (a === "enviar-ok") enviar(true);
+    else if (a === "enviar-voltar"){ S.confirmaEnvio = false; desenhar(); }
     else if (a === "pedir") pedirAutorizacao();
     else if (a === "filtro"){ S.filtro = S.filtro === b.dataset.k ? "todas" : b.dataset.k; desenhar(); }
     else if (a === "abrir") abrirUsina(b.dataset.u);
