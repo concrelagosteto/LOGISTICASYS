@@ -155,6 +155,9 @@
   .vpo-tbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:0 0 12px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);} .vpo-tbar .grow{flex:1;}
   .vpo-novo{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:-4px 0 14px; padding:10px 14px; background:var(--surface-2); border:1px solid var(--accent); border-radius:var(--radius);}
   .vpo-novo input{padding:7px 9px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text); font:inherit; font-size:13px;}
+  .vpo-vin[data-vf=motorista]{min-width:220px;} .vpo-vin[data-vf=carreta]{min-width:160px;} .vpo-vin[data-vf=fabrica]{min-width:110px;}
+  .vpo-placa{font-weight:700; letter-spacing:.02em; cursor:copy; min-width:96px;} td.usina-ok .vpo-placa, td.usina-conferir .vpo-placa{background:transparent;}
+  .vpo-conf{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:-4px 0 14px; padding:10px 14px; background:var(--warning-soft); border:1px solid var(--warning); border-radius:var(--radius); font-size:13px;} .vpo-conf .grow{flex:1;}
   .vpo-erro{color:var(--danger); font-size:12.5px; font-weight:600;}
   .badge.nfe{background:var(--accent-soft); color:var(--accent-strong, var(--accent));}
   .mod-periodo{display:flex; gap:8px; flex-wrap:wrap; align-items:center; padding:0 18px 14px;}
@@ -5098,15 +5101,49 @@
     return { key: null, txt: txt, auto: false };
   }
   function vpoTranspAtual(){ return VPO_TRANSP && FRT.d ? (FRT.d.transportadoras || []).find(function(t){ return t.id === VPO_TRANSP; }) : null; }
-  function vpoVeicCel(v, f, ph){
-    var ro = !modPodeEditar();
-    return '<input class="vpo-cel vpo-vin" data-vid="' + esc(v.id) + '" data-vf="' + f + '" value="' + esc(v[f] || "") + '" placeholder="' + esc(ph) + '"' + (ro ? " readonly" : "") + '>';
+  function vpoVeicCel(v, f, ph, iso){
+    var ro = !modPodeEditar(), lista = f === "motorista" ? ' list="dlVpoMot"' : (f === "carreta" ? ' list="dlVpoCar"' : "");
+    return '<input class="vpo-cel vpo-vin" data-iso="' + iso + '" data-vid="' + esc(v.id) + '" data-vf="' + f + '" value="' + esc(v[f] || "") + '" placeholder="' + esc(ph) + '"' + lista + ' autocomplete="off"' + (ro ? " readonly" : "") + '>';
+  }
+  // listas para escolher motorista / carreta que já estão em outra placa (mostra onde estão hoje)
+  function vpoListasFrota(){
+    var vs = ((FRT.d && FRT.d.veiculos) || []).filter(function(x){ return x.ativo !== false; });
+    var mk = function(id, campo){
+      var dl = el(id); if (!dl){ dl = document.createElement("datalist"); dl.id = id; document.body.appendChild(dl); }
+      var vistos = {};
+      dl.innerHTML = vs.filter(function(x){ var k = solNorm(x[campo]); if (!k || vistos[k]) return false; vistos[k] = 1; return true; })
+        .map(function(x){ return '<option value="' + esc(x[campo]) + '" label="hoje na placa ' + esc(x.cavalo) + '"></option>'; }).join("");
+    };
+    mk("dlVpoMot", "motorista"); mk("dlVpoCar", "carreta");
+  }
+  function vpoPlacasDe(txt){ return String(txt || "").split(/\/|\s+-\s+|,/).map(frtNorm).filter(function(p){ return p.length >= 6; }); }
+  // outro veículo que já tem esse motorista / essa carreta
+  function vpoDonoDe(campo, valor, exceto){
+    var vs = ((FRT.d && FRT.d.veiculos) || []).filter(function(x){ return x.ativo !== false && x.id !== exceto; });
+    if (campo === "motorista"){ var k = solNorm(valor); return k ? vs.find(function(x){ return solNorm(x.motorista) === k; }) : null; }
+    var ps = vpoPlacasDe(valor); if (!ps.length) return null;
+    return vs.find(function(x){ return vpoPlacasDe(x.carreta).some(function(p){ return ps.indexOf(p) !== -1; }); }) || null;
+  }
+  async function vpoSalvarVeic(v){
+    var r; try { r = await sb.rpc("veiculo_salvar_v2", { p_id: v.id, p_transportadora: v.transportadora_id, p_cavalo: v.cavalo, p_carreta: v.carreta, p_tipo: v.tipo, p_eixos_ida: v.eixos_ida, p_eixos_volta: v.eixos_volta,
+      p_motorista: v.motorista, p_obs: v.obs, p_ativo: v.ativo !== false, p_fabrica: v.fabrica }); } catch (e) { r = { error: e }; }
+    return r.error ? dbErr(r.error) : ((r.data && r.data.erro) || "");
+  }
+  // redesenha a tabela sem perder o campo em que a pessoa está (para seguir no Tab / Enter)
+  function vpoFocoDesc(a){
+    if (!a || !a.closest || !a.closest("#vpoBlocks")) return null;
+    var b = a.closest(".prog-block"), d = a.dataset, sel = d.vid ? '[data-vid="' + d.vid + '"][data-vf="' + d.vf + '"]' : (d.key ? '[data-key="' + d.key + '"][data-field="' + d.field + '"]' : null);
+    return sel && b ? '.prog-block[data-iso="' + b.dataset.iso + '"] ' + sel : null;
+  }
+  function vpoRepintar(){
+    var d = vpoFocoDesc(document.activeElement); paintVpoBlocks();
+    if (d){ var n = document.querySelector("#vpoBlocks " + d); if (n) n.focus(); }
   }
 
   function paintVpoBlocks(){
     if (!vpoPicker) return;
     vpoPicker.updateLabel();
-    vpoRotasMontar();
+    vpoRotasMontar(); vpoListasFrota();
     var T = vpoTranspAtual(), ehPrimeira = T && VPO_ABAS.length && VPO_ABAS[0][0] === "t:" + T.id;
     var days = rangeDays(vpoPicker.state);
     var shown = 0, mudou = false, podeAuto = ME && ME.papel !== "leitura";
@@ -5146,10 +5183,11 @@
         else if (e.status === "pendente") vagg.pendente++;
         var placa, motorista, carretas, fabrica;
         if (v){
-          placa = '<td class="cell-strong '+statusClass+'" style="white-space:nowrap;">'+esc(v.cavalo)+(v.obs ? '<div class="faint" style="font-weight:400;font-size:11px">'+esc(v.obs)+'</div>' : "")+'</td>';
-          motorista = '<td style="padding:4px 6px;">'+vpoVeicCel(v, "motorista", "Motorista")+'</td>';
-          carretas = '<td style="padding:4px 6px;">'+vpoVeicCel(v, "carreta", "Carreta(s)")+'</td>';
-          fabrica = '<td style="padding:4px 6px;">'+vpoVeicCel(v, "fabrica", "Fábrica")+'</td>';
+          // a placa é um campo só de leitura: dá para clicar / chegar com Tab e copiar (Ctrl+C), como na planilha
+          placa = '<td class="cell-strong '+statusClass+'" style="white-space:nowrap;padding:4px 6px;"><input class="vpo-cel vpo-placa" readonly data-iso="'+iso+'" data-vid="'+esc(v.id)+'" data-vf="cavalo" value="'+esc(v.cavalo)+'" title="Clique e Ctrl+C para copiar">'+(v.obs ? '<div class="faint" style="font-weight:400;font-size:11px;padding-left:8px">'+esc(v.obs)+'</div>' : "")+'</td>';
+          motorista = '<td style="padding:4px 6px;">'+vpoVeicCel(v, "motorista", "Motorista", iso)+'</td>';
+          carretas = '<td style="padding:4px 6px;">'+vpoVeicCel(v, "carreta", "Carreta(s)", iso)+'</td>';
+          fabrica = '<td style="padding:4px 6px;">'+vpoVeicCel(v, "fabrica", "Fábrica", iso)+'</td>';
         } else {
           placa = vpoInput(iso, key, "placaLivre", e.placaLivre||"", "Placa (avulsa)", statusClass);
           motorista = vpoInput(iso, key, "motoristaLivre", e.motoristaLivre||"", "Nome do motorista");
@@ -5188,6 +5226,13 @@
     if (T){
       bar = '<div class="vpo-tbar"><b>🚛 ' + esc(T.nome) + '</b><span class="faint">' + frota.length + ' veículo(s) ativo(s) — na ordem da lista da transportadora</span><span class="grow"></span>' +
         (modPodeEditar() ? '<button class="btn-ghost" data-vpo="novo-v">＋ Adicionar veículo</button>' : "") + '<button class="btn-ghost" data-vpo="frota" title="Abrir a frota (eixos, tipo, ordem, ativo)">Frota completa ›</button></div>';
+      if (VPO_CONF){
+        var cB = (FRT.d.veiculos || []).find(function(x){ return x.id === VPO_CONF.outro; }), cA = (FRT.d.veiculos || []).find(function(x){ return x.id === VPO_CONF.veic; });
+        if (cB && cA) bar += '<div class="vpo-conf" role="alert">⚠️ ' + (VPO_CONF.campo === "motorista" ? "O motorista" : "A carreta") + ' <b>' + esc(VPO_CONF.valor) + '</b> foi para a placa <b>' + esc(cA.cavalo) + '</b>, mas também está na placa <b>' + esc(cB.cavalo) + '</b>' + (cB.transportadora_id !== cA.transportadora_id ? " (" + esc(frtTranspNome(cB.transportadora_id)) + ")" : "") + '.' +
+          '<span class="grow"></span><button class="btn-primary btn-inline" data-vpo="conf-tirar">Tirar da ' + esc(cB.cavalo) + '</button>' +
+          (VPO_CONF.antigo ? '<button class="btn-ghost" data-vpo="conf-trocar" title="As duas placas trocam">Trocar: ' + esc(cB.cavalo) + ' fica com ' + esc(VPO_CONF.antigo) + '</button>' : "") +
+          '<button class="btn-ghost" data-vpo="conf-x">Deixar nas duas</button></div>';
+      }
       if (VPO_NOVO && modPodeEditar()) bar += '<div class="vpo-novo"><b>Novo veículo — ' + esc(T.nome) + '</b><input id="vpoNvCavalo" placeholder="Placa do cavalo"><input id="vpoNvCarreta" placeholder="Carreta(s), separadas por /"><input id="vpoNvMot" placeholder="Motorista"><input id="vpoNvFab" placeholder="Fábrica (ex.: Nassau)">' +
         '<input id="vpoNvEi" type="number" min="0" max="20" placeholder="Eixos ida" style="width:90px"><input id="vpoNvEv" type="number" min="0" max="20" placeholder="Eixos volta" style="width:96px">' +
         '<button class="btn-primary btn-inline" data-vpo="novo-salvar">Adicionar</button><button class="btn-ghost" data-vpo="novo-x">Cancelar</button>' + (VPO_NOVO.erro ? '<span class="vpo-erro">' + esc(VPO_NOVO.erro) + '</span>' : "") + '</div>';
@@ -5208,19 +5253,25 @@
     if (mudou && typeof scheduleSync === "function") scheduleSync();
     if (typeof agendaFit === "function") agendaFit();
   }
-  var VPO_NOVO = null;
+  var VPO_NOVO = null, VPO_CONF = null;
   // eventos da tabela do VPO (uma vez só; a tabela é redesenhada a cada mudança)
   (function(){
     var box = el("view-vpo"); if (!box) return;
     box.addEventListener("change", async function(ev){
       var t = ev.target; if (!t.closest || !t.closest("#vpoBlocks")) return;
       if (t.dataset.vid){   // dado do veículo (motorista, carreta, fábrica) → salva na frota
-        var v = (FRT.d.veiculos || []).find(function(x){ return x.id === t.dataset.vid; }); if (!v || !modPodeEditar()) return;
-        v[t.dataset.vf] = t.value.trim();
-        var r; try { r = await sb.rpc("veiculo_salvar_v2", { p_id: v.id, p_transportadora: v.transportadora_id, p_cavalo: v.cavalo, p_carreta: v.carreta, p_tipo: v.tipo, p_eixos_ida: v.eixos_ida, p_eixos_volta: v.eixos_volta,
-          p_motorista: v.motorista, p_obs: v.obs, p_ativo: v.ativo !== false, p_fabrica: v.fabrica }); } catch (e) { r = { error: e }; }
-        var erro = r.error ? dbErr(r.error) : (r.data && r.data.erro);
-        t.classList.toggle("erro", !!erro); t.title = erro || "Salvo na frota";
+        var v = (FRT.d.veiculos || []).find(function(x){ return x.id === t.dataset.vid; }); if (!v || !modPodeEditar() || t.readOnly) return;
+        var campo = t.dataset.vf, antigo = v[campo] || "", novo = t.value.trim();
+        if (novo === antigo) return;
+        v[campo] = novo;
+        var erro = await vpoSalvarVeic(v);
+        if (erro){ v[campo] = antigo; t.classList.add("erro"); t.title = erro; return; }
+        t.classList.remove("erro"); t.title = "Salvo na frota";
+        // trocou motorista/carreta de placa: o mesmo motorista/carreta não fica em duas placas sem você decidir
+        var dono = (campo === "motorista" || campo === "carreta") && novo ? vpoDonoDe(campo, novo, v.id) : null;
+        if (dono){ VPO_CONF = { campo: campo, valor: novo, veic: v.id, outro: dono.id, antigo: antigo }; vpoRepintar(); }
+        else if (VPO_CONF) { VPO_CONF = null; vpoRepintar(); }
+        else document.querySelectorAll('#vpoBlocks [data-vid="' + v.id + '"][data-vf="' + campo + '"]').forEach(function(x){ if (x !== t) x.value = novo; });   // mesmo veículo nos outros dias
         return;
       }
       if (!t.dataset.iso || ME.papel === "leitura") return;
@@ -5232,12 +5283,28 @@
         if (!k && entry[f]) entry["semAuto" + f.slice(-1)] = true;   // apagou de propósito: não sugerir de novo
         entry[f] = k;
         if (f === "usina1") applyAutoVpoStatus(entry);
-        paintVpoBlocks(); return;
+        vpoRepintar(); return;
       }
       entry[f] = t.value;
-      if (f === "status") paintVpoBlocks();
+      if (f === "status") vpoRepintar();
     });
-    box.addEventListener("keydown", function(ev){ var t = ev.target; if (ev.key === "Enter" && t.classList && (t.classList.contains("vpo-rota-in") || t.classList.contains("vpo-cel"))){ ev.preventDefault(); t.blur(); } });
+    // jeito planilha: clicar ou chegar com Tab seleciona o campo inteiro (Ctrl+C copia); Tab vai para a direita,
+    // Enter / ↓ descem para a linha de baixo, Shift+Enter / ↑ sobem.
+    box.addEventListener("focusin", function(ev){ var t = ev.target; if (t.matches && t.matches("#vpoBlocks input.vpo-cel, #vpoBlocks input.vpo-rota-in")){ t._recem = true; try { t.select(); } catch (e) { } } });
+    box.addEventListener("mouseup", function(ev){ var t = ev.target; if (t._recem){ t._recem = false; ev.preventDefault(); } });
+    box.addEventListener("keydown", function(ev){
+      var t = ev.target; if (!t.matches || !t.matches("#vpoBlocks input.vpo-cel, #vpoBlocks input.vpo-rota-in")) return;
+      t._recem = false;
+      var rota = t.classList.contains("vpo-rota-in"), dir = 0;
+      if (ev.key === "Enter") dir = ev.shiftKey ? -1 : 1;
+      else if (!rota && ev.key === "ArrowDown") dir = 1; else if (!rota && ev.key === "ArrowUp") dir = -1;
+      if (!dir) return;
+      ev.preventDefault();
+      var td = t.closest("td"), tr = td.parentElement, col = Array.prototype.indexOf.call(tr.children, td), alvo = tr;
+      do { alvo = dir > 0 ? alvo.nextElementSibling : alvo.previousElementSibling; } while (alvo && (alvo.hidden || alvo.style.display === "none"));
+      var n = alvo && alvo.children[col] && alvo.children[col].querySelector("input, select");
+      if (n) n.focus(); else t.blur();
+    });
     box.addEventListener("click", async function(ev){
       var a = ev.target.closest && ev.target.closest("[data-vpo], .prog-add"); if (!a || !a.closest("#vpoBlocks")) return;
       if (a.classList.contains("prog-add")){
@@ -5250,6 +5317,14 @@
       if (acao === "frota"){ showView("dados"); FRT.aberto = VPO_TRANSP; paintFrota(); return; }
       if (acao === "novo-v"){ VPO_NOVO = {}; paintVpoBlocks(); var c = el("vpoNvCavalo"); if (c) c.focus(); return; }
       if (acao === "novo-x"){ VPO_NOVO = null; paintVpoBlocks(); return; }
+      if (acao === "conf-x"){ VPO_CONF = null; paintVpoBlocks(); return; }
+      if (acao === "conf-tirar" || acao === "conf-trocar"){
+        var c = VPO_CONF, b = c && (FRT.d.veiculos || []).find(function(x){ return x.id === c.outro; }); if (!b) return;
+        var antes = b[c.campo]; b[c.campo] = acao === "conf-trocar" ? c.antigo : "";
+        var er = await vpoSalvarVeic(b);
+        if (er){ b[c.campo] = antes; alert(er); return; }
+        VPO_CONF = null; paintVpoBlocks(); return;
+      }
       if (acao === "novo-salvar"){
         var n = function(id){ var x = el(id).value; return x === "" ? null : parseInt(x, 10); };
         var r; try { r = await sb.rpc("veiculo_salvar_v2", { p_id: null, p_transportadora: VPO_TRANSP, p_cavalo: el("vpoNvCavalo").value, p_carreta: el("vpoNvCarreta").value, p_tipo: null,
