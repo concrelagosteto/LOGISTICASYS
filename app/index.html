@@ -161,6 +161,10 @@
   .vpo-placa{font-weight:700; letter-spacing:.02em; cursor:copy; min-width:96px;} td.usina-ok .vpo-placa, td.usina-conferir .vpo-placa{background:transparent;}
   .vpo-conf{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:-4px 0 14px; padding:10px 14px; background:var(--warning-soft); border:1px solid var(--warning); border-radius:var(--radius); font-size:13px;} .vpo-conf .grow{flex:1;}
   .vpo-erro{color:var(--danger); font-size:12.5px; font-weight:600;}
+  .xl-pop-chips{display:flex; flex-wrap:wrap; gap:4px; margin:2px 0 6px;} .xl-pop-chips:empty{display:none;}
+  .xl-chips-tit{font-size:11px; color:var(--text-muted); align-self:center;}
+  .xl-chip{font:inherit; font-size:11px; padding:2px 7px; border-radius:10px; border:1px solid var(--accent); background:var(--accent-soft); color:var(--text); cursor:pointer;}
+  .xl-pop-ok:disabled{opacity:.5; cursor:not-allowed;}
   .badge.nfe{background:var(--accent-soft); color:var(--accent-strong, var(--accent));}
   .mod-periodo{display:flex; gap:8px; flex-wrap:wrap; align-items:center; padding:0 18px 14px;}
   .mod-periodo label{display:flex; gap:6px; align-items:center; font-size:12.5px; color:var(--text-muted);}
@@ -1588,7 +1592,7 @@
         '<button type="button" data-sort="asc">⬆ Classificar A→Z</button>' +
         '<button type="button" data-sort="desc">⬇ Classificar Z→A</button>' +
       '</div>' +
-      '<input type="text" class="xl-pop-search" placeholder="Buscar valor..."/>' +
+      '<input type="text" class="xl-pop-search" placeholder="Buscar e marcar (Enter marca se achar um só)"/>' +
       '<label class="xl-pop-all"><input type="checkbox" class="xl-pop-all-cb" '+(!allowed?"checked":"")+'/> (Selecionar tudo)</label>' +
       '<div class="xl-pop-list"></div>' +
       '<div class="xl-pop-foot">' +
@@ -1596,20 +1600,48 @@
         '<button type="button" class="btn-primary xl-pop-ok" style="padding:6px 12px;">OK</button>' +
       '</div>';
 
-    var listEl = pop.querySelector(".xl-pop-list");
-    function paintList(filterTxt){
-      var txt = (filterTxt || "").toLowerCase();
-      listEl.innerHTML = values.filter(function(v){ return v.toLowerCase().indexOf(txt) !== -1; }).map(function(v){
-        var checked = !allowed || allowed.has(v);
-        return '<label class="xl-pop-item"><input type="checkbox" value="'+esc(v)+'" '+(checked?"checked":"")+'/> '+esc(v)+' <span class="xl-pop-count">('+counts[v]+')</span></label>';
-      }).join("") || '<div class="xl-pop-empty">Nenhum valor encontrado.</div>';
+    // Seleção de trabalho do filtro: fica guardada enquanto você busca — dá para buscar a placa 1, marcar,
+    // buscar a placa 2, marcar… e no OK filtra pelas marcadas. Sem filtro ainda, a 1ª busca começa do zero
+    // (só o que você marcar); com filtro já aplicado, o que marcar na busca é somado a ele.
+    var sel = allowed ? new Set(allowed) : new Set(values), tudoInicial = !allowed, txtAtual = "";
+    var listEl = pop.querySelector(".xl-pop-list"), allCb = pop.querySelector(".xl-pop-all-cb"), allLbl = pop.querySelector(".xl-pop-all");
+    var chips = document.createElement("div"); chips.className = "xl-pop-chips"; listEl.parentNode.insertBefore(chips, listEl);
+    var okBtn = pop.querySelector(".xl-pop-ok");
+    function visiveis(){ var t = txtAtual.toLowerCase(); return values.filter(function(v){ return v.toLowerCase().indexOf(t) !== -1; }); }
+    function paintChips(){
+      var tudo = sel.size === values.length;
+      chips.innerHTML = tudo || !sel.size ? "" : '<span class="xl-chips-tit">Marcados (' + sel.size + '):</span>' + Array.from(sel).sort(function(x, y){ return x.localeCompare(y, "pt-BR", {numeric:true}); }).slice(0, 12).map(function(v){
+        return '<button type="button" class="xl-chip" data-v="' + esc(v) + '" title="Desmarcar">' + esc(v) + ' ×</button>'; }).join("") + (sel.size > 12 ? '<span class="xl-chips-tit">+' + (sel.size - 12) + '</span>' : "");
+      okBtn.disabled = !sel.size; okBtn.title = sel.size ? "" : "Marque pelo menos um valor";
     }
-    paintList("");
+    function paintList(){
+      var vis = visiveis();
+      listEl.innerHTML = vis.map(function(v){
+        return '<label class="xl-pop-item"><input type="checkbox" value="'+esc(v)+'" '+(sel.has(v)?"checked":"")+'/> '+esc(v)+' <span class="xl-pop-count">('+counts[v]+')</span></label>';
+      }).join("") || '<div class="xl-pop-empty">Nenhum valor encontrado.</div>';
+      allCb.checked = vis.length > 0 && vis.every(function(v){ return sel.has(v); });
+      allLbl.lastChild.textContent = txtAtual ? " (Marcar todos os resultados)" : " (Selecionar tudo)";
+      paintChips();
+    }
+    paintList();
 
-    pop.querySelector(".xl-pop-search").addEventListener("input", function(e){ paintList(e.target.value); });
-    pop.querySelector(".xl-pop-search").addEventListener("click", function(e){ e.stopPropagation(); });
-    pop.querySelector(".xl-pop-all-cb").addEventListener("change", function(e){
-      listEl.querySelectorAll("input[type=checkbox]").forEach(function(cb){ cb.checked = e.target.checked; });
+    var busca = pop.querySelector(".xl-pop-search");
+    busca.addEventListener("input", function(e){
+      if (tudoInicial && e.target.value.trim()){ sel = new Set(); tudoInicial = false; }   // 1ª busca sem filtro: começa sem nada marcado
+      txtAtual = e.target.value.trim(); paintList();
+    });
+    busca.addEventListener("keydown", function(e){
+      if (e.key !== "Enter") return; e.preventDefault();
+      var vis = visiveis();
+      if (vis.length === 1 && txtAtual){ sel.add(vis[0]); busca.value = ""; txtAtual = ""; paintList(); busca.focus(); }   // Enter com um resultado só: marca e limpa a busca para a próxima
+      else if (!txtAtual && sel.size) okBtn.click();
+    });
+    busca.addEventListener("click", function(e){ e.stopPropagation(); });
+    listEl.addEventListener("change", function(e){ var cb = e.target; if (cb.type !== "checkbox") return; if (cb.checked) sel.add(cb.value); else sel.delete(cb.value); tudoInicial = false; paintList(); });
+    chips.addEventListener("click", function(e){ var c = e.target.closest(".xl-chip"); if (!c) return; sel.delete(c.dataset.v); tudoInicial = false; paintList(); });
+    allCb.addEventListener("change", function(e){
+      visiveis().forEach(function(v){ if (e.target.checked) sel.add(v); else sel.delete(v); });
+      tudoInicial = false; paintList();
     });
     pop.addEventListener("click", function(e){ e.stopPropagation(); });
     pop.querySelectorAll("[data-sort]").forEach(function(b){
@@ -1624,10 +1656,10 @@
       xlApplyState(table, key);
       xlCloseAllPopovers();
     });
-    pop.querySelector(".xl-pop-ok").addEventListener("click", function(){
-      var checked = Array.from(listEl.querySelectorAll("input[type=checkbox]:checked")).map(function(cb){ return cb.value; });
-      if (checked.length === values.length) delete state.filters[colIdx];
-      else state.filters[colIdx] = new Set(checked);
+    okBtn.addEventListener("click", function(){
+      if (!sel.size) return;
+      if (sel.size === values.length) delete state.filters[colIdx];
+      else state.filters[colIdx] = new Set(sel);
       xlApplyState(table, key);
       xlCloseAllPopovers();
     });
@@ -1638,6 +1670,7 @@
     var left = Math.min(r.left + window.scrollX, window.scrollX + document.documentElement.clientWidth - 260);
     pop.style.top = top + "px";
     pop.style.left = left + "px";
+    try { pop.querySelector(".xl-pop-search").focus(); } catch (e) { }
   }
 
   // Monta os botões de filtro no <thead> de uma tabela dentro de containerEl
