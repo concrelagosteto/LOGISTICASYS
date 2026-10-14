@@ -165,6 +165,16 @@
   .xl-chips-tit{font-size:11px; color:var(--text-muted); align-self:center;}
   .xl-chip{font:inherit; font-size:11px; padding:2px 7px; border-radius:10px; border:1px solid var(--accent); background:var(--accent-soft); color:var(--text); cursor:pointer;}
   .xl-pop-ok:disabled{opacity:.5; cursor:not-allowed;}
+  .vpo-ajuda{margin:0 0 8px; font-size:12.5px;} .vpo-ajuda summary{cursor:pointer; color:var(--text-muted); font-size:12px; padding:2px 4px; display:inline-block;}
+  .vpo-ajuda-txt{margin-top:6px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); line-height:1.6;}
+  .vpo-topo{display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; margin:0 0 10px; padding:8px 12px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);}
+  .vpo-topo .grow{flex:1;} .vpo-topo .daterange-btn{padding:6px 10px;}
+  .vpo-stats{display:flex; flex-wrap:wrap; gap:6px;} .vpo-st{display:inline-flex; align-items:center; gap:4px; font-size:12px; color:var(--text-muted); padding:3px 9px; border-radius:12px; border:1px solid var(--border); border-left:3px solid var(--c);} .vpo-st b{color:var(--text); font-size:13px;}
+  .vpo-diainfo{font-size:11.5px;}
+  .vpo-topo .vpo-tbar{margin:0; padding:0; border:0; background:none; display:flex; gap:6px; align-items:center;} .vpo-topo .vpo-tbar .btn-ghost{padding:5px 10px; font-size:12px;}
+  .vpo-tbl td{padding-top:2px !important; padding-bottom:2px !important;} .vpo-tbl .vpo-cel{padding:4px 8px;} .vpo-tbl .vpo-rota-in{padding:4px 8px;}
+  .vpo-tbl td > div{line-height:1.25;} .vpo-tbl td > div + div{margin-top:1px !important;} .vpo-tbl .badge{padding:1px 7px; font-size:10.5px;} .vpo-tbl .status-select{height:28px;}
+  #vpoBlocks .prog-block-head{padding-top:6px; padding-bottom:6px;}
   .badge.nfe{background:var(--accent-soft); color:var(--accent-strong, var(--accent));}
   .mod-periodo{display:flex; gap:8px; flex-wrap:wrap; align-items:center; padding:0 18px 14px;}
   .mod-periodo label{display:flex; gap:6px; align-items:center; font-size:12.5px; color:var(--text-muted);}
@@ -1719,7 +1729,9 @@
       var topo = w.getBoundingClientRect().top + window.scrollY;
       if (w.closest("#progBlocks")) return;                            // Programação de Cimento: altura fixa por tabela (CSS)
       if (w.closest("#encarregadosCard")) return;
-      if (w.classList.contains("vpo-rotas-wrap")) return;                // rotas: lista inteira, a página rola                      // lista curta: mostra inteira (CSS)
+      if (w.classList.contains("vpo-rotas-wrap")) return;
+      if (w.closest("#vpoBlocks")){ var abas = document.querySelector("#view-vpo .vpo-abas"), tb = document.querySelector(".topbar");   // VPO: tabela quase do tamanho da janela
+        w.style.maxHeight = Math.max(420, window.innerHeight - (tb ? tb.offsetHeight : 64) - (abas ? abas.offsetHeight : 46) - 70) + "px"; return; }                // rotas: lista inteira, a página rola                      // lista curta: mostra inteira (CSS)
       // Tabela que começa mais para baixo na página (ex.: segunda tabela da tela) não pode ficar
       // espremida no que sobra da 1ª tela: usa quase a altura da janela, com rolagem própria.
       var resto = window.innerHeight - topo - 24;
@@ -5063,14 +5075,13 @@
   function renderVpo(){
     el("view-vpo").innerHTML = vpoAbasHtml() +
       '<div class="vpo-painel" data-vpop="dia">' +
-      '<div class="card banner" style="margin-bottom:16px;">Uma aba por transportadora, no formato do <b>Controle Claudir</b>: placa, motorista, carreta(s) e fábrica vêm da frota — para mudar, use <b>Frota completa</b> (Base de Dados › Transportadoras e frota). <b>Clique em qualquer célula para copiar</b> (Tab vai para a direita, Enter desce).<br/>' +
-      'Em <b>Usina 1</b> e <b>Usina 2</b>, <b>digite parte do nome</b> da usina ou da fábrica e escolha o roteiro na lista. Quando a placa está na Programação do dia, o roteiro já vem preenchido (📋, contorno verde). O status é sugerido pelo pedágio do roteiro: <span class="badge success">sem pedágio → Feito</span> <span class="badge warning">incerto → confirmar</span> <span class="badge neutral">com pedágio → pendente</span>. Os roteiros ficam na aba <b>Rotas e pedágio</b>.</div>' +
-      '<div id="vpoStats"></div>' +
-      '<div class="card" style="margin-bottom:16px;"><div class="filters" style="align-items:center;">' +
-      '<div class="filter-field"><span>Período</span>' +
-      '<div class="daterange"><button class="daterange-btn" id="vpoDrBtn">📅 <span id="vpoDrLabel"></span> <span style="opacity:.6;">▾</span></button>' +
-      '<div class="daterange-panel" id="vpoDrPanel"></div></div></div>' +
-      '<div class="filter-count" id="vpoDayInfo"></div></div></div>' +
+      '<details class="vpo-ajuda"><summary>ℹ️ Como usar</summary><div class="vpo-ajuda-txt">Uma aba por transportadora, no formato do <b>Controle Claudir</b>: placa, motorista, carreta(s) e fábrica vêm da frota — para mudar, use <b>Frota completa</b> (Base de Dados › Transportadoras e frota). <b>Clique em qualquer célula para copiar</b> (Tab vai para a direita, Enter desce).<br/>' +
+      'Em <b>Usina 1</b> e <b>Usina 2</b>, <b>digite parte do nome</b> da usina ou da fábrica e escolha o roteiro na lista. Quando a placa está na Programação do dia, o roteiro já vem preenchido (📋, contorno verde). O status é sugerido pelo pedágio do roteiro: <span class="badge success">sem pedágio → Feito</span> <span class="badge warning">incerto → confirmar</span> <span class="badge neutral">com pedágio → pendente</span>. Os roteiros ficam na aba <b>Rotas e pedágio</b>.</div></details>' +
+      // barra única e compacta: período · contagem · transportadora e botões
+      '<div class="vpo-topo">' +
+      '<div class="daterange"><button class="daterange-btn" id="vpoDrBtn" title="Período">📅 <span id="vpoDrLabel"></span> <span style="opacity:.6;">▾</span></button>' +
+      '<div class="daterange-panel" id="vpoDrPanel"></div></div>' +
+      '<div id="vpoStats" class="vpo-stats"></div><span class="vpo-diainfo faint" id="vpoDayInfo"></span><span class="grow"></span><div id="vpoTbar" class="vpo-tbar"></div></div>' +
       '<div id="vpoBlocks"></div></div>' +
       '<div class="vpo-painel" data-vpop="rotas" hidden>' + renderPedagioConfigHtml() + '</div>';
     vpoAbaMostrar(VPO_ABA);
@@ -5298,22 +5309,20 @@
     }).join("");
 
     var bar = "";
+    if (!T && el("vpoTbar")) el("vpoTbar").innerHTML = "";
     if (T){
-      bar = '<div class="vpo-tbar"><b>🚛 ' + esc(T.nome) + '</b><span class="faint">' + frota.length + ' veículo(s) ativo(s) · clique numa célula para copiar · motorista, carreta e fábrica mudam na Frota completa</span><span class="grow"></span>' +
-        (modPodeEditar() ? '<button class="btn-ghost" data-vpo="novo-v">＋ Adicionar veículo</button>' : "") + '<button class="btn-ghost" data-vpo="frota" title="Abrir a frota (eixos, tipo, ordem, ativo)">Frota completa ›</button></div>';
+      el("vpoTbar").innerHTML = '<span class="faint" title="Clique numa célula para copiar · motorista, carreta e fábrica mudam na Frota completa">🚛 ' + frota.length + ' veículos</span>' +
+        (modPodeEditar() ? '<button class="btn-ghost" data-vpo="novo-v">＋ Veículo</button>' : "") + '<button class="btn-ghost" data-vpo="frota" title="Abrir a frota (eixos, tipo, ordem, ativo)">Frota ›</button>';
       if (VPO_NOVO && modPodeEditar()) bar += '<div class="vpo-novo"><b>Novo veículo — ' + esc(T.nome) + '</b><input id="vpoNvCavalo" placeholder="Placa do cavalo"><input id="vpoNvCarreta" placeholder="Carreta(s), separadas por /"><input id="vpoNvMot" placeholder="Motorista"><input id="vpoNvFab" placeholder="Fábrica (ex.: Nassau)">' +
         '<input id="vpoNvEi" type="number" min="0" max="20" placeholder="Eixos ida" style="width:90px"><input id="vpoNvEv" type="number" min="0" max="20" placeholder="Eixos volta" style="width:96px">' +
         '<button class="btn-primary btn-inline" data-vpo="novo-salvar">Adicionar</button><button class="btn-ghost" data-vpo="novo-x">Cancelar</button>' + (VPO_NOVO.erro ? '<span class="vpo-erro">' + esc(VPO_NOVO.erro) + '</span>' : "") + '</div>';
     }
-    el("vpoDayInfo").textContent = shown + " dia(s) exibido(s) de " + days.length + " selecionado(s)" + (days.length > shown ? " · domingo(s) sem VPO ocultado(s) automaticamente" : "");
+    el("vpoDayInfo").textContent = days.length > 1 || days.length > shown ? shown + " de " + days.length + " dia(s)" + (days.length > shown ? " (domingo oculto)" : "") : "";
     el("vpoBlocks").innerHTML = bar + (html || '<div class="notice"><h3>Nenhum dia para exibir</h3><p>O período selecionado só contém domingos sem VPO programado.</p></div>');
 
-    el("vpoStats").innerHTML = '<div class="stat-grid">' +
-      '<div class="stat" style="--stat-accent:var(--success);"><div class="stat-top"><span>Emitido</span><span class="stat-icn" style="background:var(--success-soft);color:var(--success);">✅</span></div><div class="stat-val">'+vagg.emitido+'</div></div>' +
-      '<div class="stat" style="--stat-accent:var(--success);"><div class="stat-top"><span>Feito (sem pedágio)</span><span class="stat-icn" style="background:var(--success-soft);color:var(--success);">🟢</span></div><div class="stat-val">'+vagg.feito+'</div></div>' +
-      '<div class="stat" style="--stat-accent:var(--warning);"><div class="stat-top"><span>Incerto — confirmar</span><span class="stat-icn" style="background:var(--warning-soft);color:var(--warning);">🕒</span></div><div class="stat-val">'+vagg.conferir+'</div></div>' +
-      '<div class="stat" style="--stat-accent:var(--danger);"><div class="stat-top"><span>Pendente (tem pedágio)</span><span class="stat-icn" style="background:var(--danger-soft);color:var(--danger);">⚠️</span></div><div class="stat-val">'+vagg.pendente+'</div></div>' +
-      '</div>';
+    var chip = function(n, rot, cor, ic){ return '<span class="vpo-st" style="--c:' + cor + '" title="' + rot + '">' + ic + ' <b>' + n + '</b> ' + rot + '</span>'; };
+    el("vpoStats").innerHTML = chip(vagg.emitido, "emitido", "var(--success)", "✅") + chip(vagg.feito, "feito (sem pedágio)", "var(--success)", "🟢") +
+      chip(vagg.conferir, "incerto", "var(--warning)", "🕒") + chip(vagg.pendente, "pendente", "var(--danger)", "⚠️");
 
     el("vpoBlocks").querySelectorAll(".prog-block[data-iso]").forEach(function(block){
       xlEnhance(block, "vpo-" + (T ? T.id.slice(0, 8) : "") + "-" + block.dataset.iso);
@@ -5369,7 +5378,7 @@
       if (n) n.focus(); else t.blur();
     });
     box.addEventListener("click", async function(ev){
-      var a = ev.target.closest && ev.target.closest("[data-vpo], .prog-add"); if (!a || !a.closest("#vpoBlocks")) return;
+      var a = ev.target.closest && ev.target.closest("[data-vpo], .prog-add"); if (!a || !a.closest("#vpoBlocks, #vpoTbar")) return;
       if (a.classList.contains("prog-add")){
         var iso = a.dataset.iso;
         if (!vpoScheduleByDate[iso]) vpoScheduleByDate[iso] = { isException:isSunday(fromISO(iso)), entries:[] };
