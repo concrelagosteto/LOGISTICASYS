@@ -354,6 +354,8 @@
   .fab-rodape{margin-top:14px; padding-top:10px; border-top:1px solid var(--border); text-align:right;}
   .vpo-abas{position:sticky; top:-22px; z-index:5; display:flex; gap:4px; overflow-x:auto; background:var(--bg, var(--surface)); border-bottom:1px solid var(--border); margin:0 0 16px; padding-top:4px; scrollbar-width:thin;}
   .vpo-aba{flex:0 0 auto; background:none; border:0; border-bottom:2px solid transparent; color:var(--text-muted); font:inherit; font-size:13.5px; font-weight:600; padding:10px 16px; cursor:pointer; white-space:nowrap; margin-bottom:-1px;}
+  .vpo-rotas-wrap{max-height:none !important; overflow:visible !important;} .vpo-rotas-card{overflow:visible !important;}
+  .table-wrap.vpo-rotas-wrap thead th{top:var(--vpo-abas-h, 46px);}
   .vpo-aba:hover{color:var(--text);} .vpo-aba.on{color:var(--text); border-bottom-color:var(--accent);}
   .bd-lead{margin:0 0 14px; font-size:13px; color:var(--text-muted); max-width:900px;}
   .silo-filtros{display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
@@ -591,6 +593,7 @@
     /* no celular quem rola é a janela: a área de conteúdo não pode prender os elementos "grudados" (abas do VPO) */
     .content{overflow:visible;}
     .vpo-abas{top:var(--topbar-h, 0px);}
+    .table-wrap.vpo-rotas-wrap thead th{top:calc(var(--topbar-h, 0px) + var(--vpo-abas-h, 46px));}
   }
 
   /* ===== Melhorias visuais (06/10) ===== */
@@ -1607,7 +1610,8 @@
       if (!w.offsetParent) return;                                     // escondida (aba/details fechado)
       var topo = w.getBoundingClientRect().top + window.scrollY;
       if (w.closest("#progBlocks")) return;                            // Programação de Cimento: altura fixa por tabela (CSS)
-      if (w.closest("#encarregadosCard")) return;                      // lista curta: mostra inteira (CSS)
+      if (w.closest("#encarregadosCard")) return;
+      if (w.classList.contains("vpo-rotas-wrap")) return;                // rotas: lista inteira, a página rola                      // lista curta: mostra inteira (CSS)
       // Tabela que começa mais para baixo na página (ex.: segunda tabela da tela) não pode ficar
       // espremida no que sobra da 1ª tela: usa quase a altura da janela, com rolagem própria.
       var resto = window.innerHeight - topo - 24;
@@ -4930,7 +4934,7 @@
       }).join("");
     }).join("");
     return '<details open style="margin-bottom:16px;"><summary style="cursor:pointer;padding:12px 18px;font-size:12.5px;font-weight:600;color:var(--accent-strong);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">⚙️ Configurar rotas e pedágio (base extraída do "Piso mínimo" — conferir/ajustar com a operação)</summary>' +
-      '<div class="card" style="margin-top:8px;max-height:360px;overflow-y:auto;"><div class="table-wrap"><table><thead><tr><th>Usina</th><th>Rota (fábrica x usina)</th><th>Pedágio</th></tr></thead><tbody id="pedagioBody">'+rows+'</tbody></table></div></div></details>';
+      '<div class="card vpo-rotas-card" style="margin-top:8px;"><div class="table-wrap vpo-rotas-wrap"><table><thead><tr><th>Usina</th><th>Rota (fábrica x usina)</th><th>Pedágio</th></tr></thead><tbody id="pedagioBody">'+rows+'</tbody></table></div></div></details>';
   }
 
   /* Abas no topo do VPO (ficam presas no alto da tela ao rolar). Cada aba é um painel;
@@ -4947,10 +4951,16 @@
     v.querySelectorAll(".vpo-painel").forEach(function(p){ p.hidden = p.dataset.vpop !== id; });
     v.querySelectorAll(".vpo-aba").forEach(function(b){ var on = b.dataset.vpoaba === id; b.classList.toggle("on", on); b.setAttribute("aria-selected", on); });
     if (typeof agendaFit === "function") agendaFit();
+    if (window.__medirTopo) window.__medirTopo();
   }
   (function(){   // no celular a barra do topo também gruda: as abas grudam logo abaixo dela
     var tb = document.querySelector(".topbar"); if (!tb) return;
-    var medir = function(){ document.documentElement.style.setProperty("--topbar-h", tb.offsetHeight + "px"); };
+    var medir = function(){
+      document.documentElement.style.setProperty("--topbar-h", tb.offsetHeight + "px");
+      var ab = document.querySelector(".vpo-abas"), cel = window.matchMedia && window.matchMedia("(max-width:760px)").matches;
+      if (ab && ab.offsetHeight) document.documentElement.style.setProperty("--vpo-abas-h", (ab.offsetHeight - (cel ? 0 : 22)) + "px");
+    };
+    window.__medirTopo = medir;
     medir(); window.addEventListener("resize", medir); if (window.ResizeObserver) new ResizeObserver(medir).observe(tb);
   })();
   (function(){ var v = el("view-vpo"); if (v) v.addEventListener("click", function(ev){ var b = ev.target.closest && ev.target.closest("[data-vpoaba]"); if (b){ vpoAbaMostrar(b.dataset.vpoaba); var c = v.closest(".content"); if (c && c.scrollTop > 0) c.scrollTop = 0; if (window.scrollY > 0) window.scrollTo(0, 0); } }); })();
