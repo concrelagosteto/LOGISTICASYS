@@ -146,6 +146,31 @@
   .sol-grupo.prog{--sg:var(--success); --sgs:var(--success-soft);}
   .sol-grupo.nprog{--sg:var(--warning); --sgs:var(--warning-soft);}
   .sol-grupo .table-wrap{max-height:520px; overflow:auto;}
+  .badge.nfe{background:var(--accent-soft); color:var(--accent-strong, var(--accent));}
+  .mod-periodo{display:flex; gap:8px; flex-wrap:wrap; align-items:center; padding:0 18px 14px;}
+  .mod-periodo label{display:flex; gap:6px; align-items:center; font-size:12.5px; color:var(--text-muted);}
+  .mod-periodo input, .mod-periodo select, .sol-barra input[type=date]{padding:7px 9px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text); font:inherit; font-size:13px;}
+  .mod-periodo .btn-ghost.on{border-color:var(--accent); background:var(--accent-soft); color:var(--text);}
+  .aud-mud{font-size:12px; line-height:1.45; min-width:240px; white-space:normal;}
+  .aud-de{color:var(--danger); text-decoration:line-through;} .aud-para{color:var(--success); font-weight:600;}
+  td.num, th.num{text-align:right; font-variant-numeric:tabular-nums;}
+  .rel-tbl tfoot td, tr.rel-tot td{font-weight:700; background:var(--surface-2); border-top:2px solid var(--border-strong);}
+  .frt-cab{display:flex; justify-content:space-between; align-items:center; gap:8px; cursor:pointer;}
+  .frt-nome{font-size:14.5px;} .frt-seta{color:var(--text-muted);}
+  .frt-tedit{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:12px 0 10px; padding:10px; background:var(--surface-2); border-radius:8px; font-size:12.5px;}
+  .frt-tedit label{display:flex; gap:6px; align-items:center; color:var(--text-muted);}
+  .frt-chk{display:inline-flex; gap:5px; align-items:center; font-size:12.5px; color:var(--text-muted); cursor:pointer;}
+  .frt-inativo{opacity:.6;}
+  .frt-tbl td{padding:6px 6px;} .frt-tbl th{padding-left:6px; padding-right:6px;}
+  .frt-in{background:var(--surface-2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:5px 7px; font:inherit; font-size:12.5px; max-width:100%;}
+  .frt-in:focus{border-color:var(--accent); outline:none;} .frt-in[readonly]{background:transparent; border-color:transparent;}
+  .frt-nova{display:flex; gap:8px; flex-wrap:wrap; align-items:center;} .frt-nova input{padding:7px 9px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text); font:inherit;}
+  .frt-imp{cursor:pointer;}
+  .sol-rem-btn{white-space:nowrap; color:var(--danger);}
+  .sol-rem-row td{background:var(--surface-2, rgba(220,38,38,.04));}
+  .sol-rem{display:flex; flex-direction:column; gap:8px; padding:6px 2px; white-space:normal;}
+  .sol-rem-form{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+  .sol-rem-form input{flex:1 1 280px; min-width:200px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text); font:inherit;}
   .sol-cargas{font-size:11.5px; color:var(--text-muted); line-height:1.5; white-space:normal;}
   .sol-cargas b{font-family:ui-monospace,Menlo,Consolas,monospace; color:var(--text); letter-spacing:.03em;}
   .sol-alt{display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; padding:12px 18px; border-top:1px solid var(--border);}
@@ -864,7 +889,7 @@
         <div class="nav-group-label" data-toggle="breve"><span class="nav-group-chevron">▾</span>Em breve</div>
       </div>
     </nav>
-    <div class="sidebar-foot">Dados salvos automaticamente no banco. Os módulos de “Em breve” ainda estão em definição e mostram exemplos.</div>
+    <div class="sidebar-foot">Dados salvos automaticamente no banco. O módulo de “Em breve” ainda está em definição e mostra exemplos.</div>
   </aside>
 
   <div class="main">
@@ -1345,12 +1370,14 @@
     {id:"solicitacoes", label:"Solicitações", icon:"📥"},
     {id:"programacao-cimento", label:"Programação de Cimento", icon:"📋"},
     {id:"controle-pedidos-cimento", label:"Controle de Pedidos", icon:"🚚"},
+    {id:"operacoes", label:"Operação do dia", icon:"🚦"},
     {id:"vpo", label:"VPO", icon:"🧾"}
   ];
   var NAV_DADOS = [
     {id:"base-dados-cimento", label:"Importar arquivos", icon:"📥"},
     {id:"bd-usinas", label:"Usinas e encarregados", icon:"🏭"},
     {id:"bd-fabricas", label:"Fábricas e cimentos", icon:"🏗️"},
+    {id:"dados", label:"Transportadoras e frota", icon:"🚛"},
     {id:"notas-sefaz", label:"Notas SEFAZ", icon:"🧾"},
     {id:"lancamentos-puzl", label:"Lançamentos PUZL", icon:"📋"}
   ];
@@ -1358,20 +1385,20 @@
     {id:"consultas", label:"Consultas", icon:"🔎"},
     {id:"dashboard", label:"Dashboard", icon:"📊"},
     {id:"silos", label:"Controle de cimento", icon:"🛢️"},
+    {id:"relatorios", label:"Relatórios", icon:"📈"},
+    {id:"auditoria", label:"Auditoria", icon:"🔍"},
     {id:"configuracoes", label:"Configurações", icon:"⚙️"}
   ];
   /* Módulos ainda em definição (telas com dados de exemplo) — grupo "Em breve". */
   var NAV_BREVE = [
-    {id:"operacoes", label:"Operação", icon:"🚦"}, {id:"exececoes", label:"Exceções", icon:"🛡️"},
-    {id:"dados", label:"Dados", icon:"🗂️"}, {id:"relatorios", label:"Relatórios", icon:"📈"},
-    {id:"auditoria", label:"Auditoria", icon:"🔍"}
+    {id:"exececoes", label:"Exceções", icon:"🛡️"}
   ];
   var TITLES = {
     "solicitacoes":"Solicitações de Cimento", "programacao-cimento":"Programação de Cimento", "base-dados-cimento":"Importar arquivos", "bd-usinas":"Usinas e encarregados", "bd-fabricas":"Fábricas e cimentos",
     "notas-sefaz":"Notas Fiscais (SEFAZ)", "lancamentos-puzl":"Lançamentos (PUZL)", "silos":"Controle de cimento",
     "controle-pedidos-cimento":"Controle de Pedidos de Cimento", "consultas":"Consultas",
-    dashboard:"Dashboard", operacoes:"Operação", vpo:"VPO — Vale Pedágio Obrigatório", exececoes:"Fila de Exceções",
-    dados:"Dados", relatorios:"Relatórios", auditoria:"Auditoria", configuracoes:"Configurações", adm:"Administração"
+    dashboard:"Dashboard", operacoes:"Operação do dia", vpo:"VPO — Vale Pedágio Obrigatório", exececoes:"Fila de Exceções",
+    dados:"Transportadoras e frota", relatorios:"Relatórios", auditoria:"Auditoria", configuracoes:"Configurações", adm:"Administração"
   };
   var CRUMBS = {
     "solicitacoes":"Cimento <b>›</b> Solicitações — o que cada usina precisa",
@@ -1386,11 +1413,11 @@
     "vpo":"Cimento <b>›</b> VPO — pedágio por roteiro",
     "consultas":"Outros <b>›</b> Consulta geral e consulta de pedágio",
     dashboard:"Outros <b>›</b> Dashboard — programado × emitido × descarregado",
-    operacoes:"Em breve <b>›</b> Acompanhamento de operações (exemplo)",
+    operacoes:"Cimento <b>›</b> Operação do dia — pedido, programação, nota e descarga de cada carga",
     exececoes:"Em breve <b>›</b> Itens que exigem intervenção humana (exemplo)",
-    dados:"Em breve <b>›</b> Cadastros em definição",
-    relatorios:"Em breve <b>›</b> Relatórios em definição",
-    auditoria:"Em breve <b>›</b> Trilha de auditoria (exemplo)",
+    dados:"Base de Dados <b>›</b> Transportadoras e frota — veículos, eixos e motoristas",
+    relatorios:"Outros <b>›</b> Relatórios — pedido × programado × entregue",
+    auditoria:"Outros <b>›</b> Auditoria — documentos e histórico de alterações",
     configuracoes:"Outros <b>›</b> Configurações — aparência e perfil",
     adm:"Administração <b>›</b> Usuários, senhas e segurança — somente administrador"
   };
@@ -4889,42 +4916,6 @@
     dashAltCarregar();
   }
 
-  /* ---------------- Operações ---------------- */
-  function renderOperacoes(){
-    var uniq = function(arr){ return Array.from(new Set(arr)); };
-    var dates = ["Todos"].concat(uniq(operations.map(function(o){return o.date;})));
-    var usinas = ["Todos"].concat(uniq(operations.map(function(o){return o.usina;})));
-    var transps = ["Todos"].concat(uniq(operations.map(function(o){return o.transp;})));
-
-    function optionsHtml(list){ return list.map(function(v){ return '<option value="'+esc(v)+'">'+esc(v)+'</option>'; }).join(""); }
-
-    var html = '<div class="card" style="margin-bottom:16px;"><div class="filters">' +
-      '<div class="filter-field"><span>Data</span><select id="fDate">'+optionsHtml(dates)+'</select></div>' +
-      '<div class="filter-field"><span>Usina</span><select id="fUsina">'+optionsHtml(usinas)+'</select></div>' +
-      '<div class="filter-field"><span>Transportadora</span><select id="fTransp">'+optionsHtml(transps)+'</select></div>' +
-      '<div class="filter-field"><span>Status</span><select id="fStatus"><option value="Todos">Todos</option>' +
-      Object.keys(STATUS).map(function(k){ return '<option value="'+k+'">'+esc(STATUS[k].label)+'</option>'; }).join("") + '</select></div>' +
-      '<div class="filter-count" id="fCount"></div></div></div>' +
-      '<div class="card"><div class="card-head"><div><h2>Operações</h2><p>Tabela genérica — campos provisórios, sujeitos a alteração</p></div></div>' +
-      '<div class="table-wrap"><table><thead><tr><th>ID</th><th>Data</th><th>Origem</th><th>Destino</th><th>Usina</th><th>Transportadora</th><th>Status</th><th>Situação</th><th>Última atualização</th></tr></thead><tbody id="opBody"></tbody></table></div></div>';
-    el("view-operacoes").innerHTML = html;
-
-    function fmtDate(iso){ var p = iso.split("-"); return p[2]+"/"+p[1]+"/"+p[0]; }
-
-    function apply(){
-      var d = el("fDate").value, u = el("fUsina").value, t = el("fTransp").value, s = el("fStatus").value;
-      var filtered = operations.filter(function(o){
-        return (d==="Todos"||o.date===d) && (u==="Todos"||o.usina===u) && (t==="Todos"||o.transp===t) && (s==="Todos"||o.status===s);
-      });
-      el("fCount").textContent = filtered.length + " de " + operations.length + " operações";
-      el("opBody").innerHTML = filtered.length ? filtered.map(function(o){
-        return '<tr><td class="cell-strong">'+esc(o.code)+'</td><td>'+fmtDate(o.date)+'</td><td>'+esc(o.origin)+'</td><td>'+esc(o.dest)+'</td><td>'+esc(o.usina)+'</td><td>'+esc(o.transp)+'</td><td>'+badge(STATUS[o.status])+'</td><td class="muted">'+esc(o.situacao)+'</td><td>'+esc(o.update)+'</td></tr>';
-      }).join("") : '<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text-faint);">Nenhuma operação encontrada para os filtros selecionados.</td></tr>';
-    }
-    ["fDate","fUsina","fTransp","fStatus"].forEach(function(id){ el(id).addEventListener("change", apply); });
-    apply();
-  }
-
   /* ---------------- VPO (formato Controle Claudir) ---------------- */
   var vpoPicker;
   var VPO_STATUS_OPTS = [
@@ -4961,7 +4952,8 @@
   /* Abas no topo do VPO (ficam presas no alto da tela ao rolar). Cada aba é um painel;
      as transportadoras entram aqui como abas próprias quando a frota for cadastrada. */
   var VPO_ABAS = [["dia", "📋 VPOs do dia"], ["rotas", "🛣️ Rotas e pedágio"]];
-  var VPO_ABA = (function(){ try { var a = localStorage.getItem("cl_vpo_aba"); return VPO_ABAS.some(function(x){ return x[0] === a; }) ? a : "dia"; } catch (e){ return "dia"; } })();
+  var VPO_ABA_PEDIDA = (function(){ try { return localStorage.getItem("cl_vpo_aba") || ""; } catch (e){ return ""; } })();   // pode ser aba de transportadora (chega depois)
+  var VPO_ABA = VPO_ABAS.some(function(x){ return x[0] === VPO_ABA_PEDIDA; }) ? VPO_ABA_PEDIDA : "dia";
   function vpoAbasHtml(){
     return '<div class="vpo-abas" role="tablist" aria-label="Partes do VPO">' + VPO_ABAS.map(function(a){
       return '<button type="button" role="tab" class="vpo-aba' + (a[0] === VPO_ABA ? " on" : "") + '" aria-selected="' + (a[0] === VPO_ABA) + '" data-vpoaba="' + a[0] + '">' + a[1] + '</button>'; }).join("") + '</div>';
@@ -4971,6 +4963,7 @@
     var v = el("view-vpo"); if (!v) return;
     v.querySelectorAll(".vpo-painel").forEach(function(p){ p.hidden = p.dataset.vpop !== id; });
     v.querySelectorAll(".vpo-aba").forEach(function(b){ var on = b.dataset.vpoaba === id; b.classList.toggle("on", on); b.setAttribute("aria-selected", on); });
+    if (/^t:|^semcad$/.test(id) && typeof vptAbrir === "function") vptAbrir(id);
     if (typeof agendaFit === "function") agendaFit();
     if (window.__medirTopo) window.__medirTopo();
   }
@@ -5261,20 +5254,10 @@
   }
 
   /* ---------------- Auditoria ---------------- */
-  function renderAuditoria(){
-    var rows = audit.map(function(a){
-      return '<tr><td>'+esc(a.when)+'</td><td class="cell-strong">'+esc(a.who)+'</td><td>'+esc(a.op)+'</td><td>'+esc(a.action)+'</td><td class="muted">'+esc(a.before)+'</td><td class="muted">'+esc(a.after)+'</td></tr>';
-    }).join("");
-    el("view-auditoria").innerHTML = '<div class="card"><div class="card-head"><div><h2>Histórico de auditoria</h2><p>Rastreabilidade completa — dados fictícios (protótipo)</p></div></div>' +
-      '<div class="table-wrap"><table><thead><tr><th>Data/hora</th><th>Usuário</th><th>Operação</th><th>Ação</th><th>Valor anterior</th><th>Valor posterior</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
-  }
-
   /* ---------------- Placeholders ---------------- */
   function notice(title, desc){
     return '<div class="notice"><h3>🚧 '+esc(title)+'</h3><p>'+esc(desc)+'</p></div>';
   }
-  el("view-dados").innerHTML = notice("Cadastros em definição", "Transportadoras, motoristas, veículos e usinas serão estruturados como cadastros nesta área conforme o levantamento avançar. A definir após levantamento do processo.");
-  el("view-relatorios").innerHTML = notice("Módulo em definição", "Indicadores e relatórios ainda não foram levantados junto à operação. A definir após levantamento do processo.");
 
   /* ======================================================================
      BANCO DE DADOS (Supabase): login, carregar e salvar
@@ -5639,7 +5622,7 @@
   var bootJa = false;
   function bootRender(){
     renderProgramacaoCimento(); renderBaseDados(); renderNotasSefaz(); renderLancamentosPuzl(); renderControlePedidos(); renderConsultas();
-    renderDashboard(); renderOperacoes(); renderVpo(); renderExcecoes(); renderAuditoria();
+    renderDashboard(); renderVpo(); renderExcecoes();
     if (!bootJa) { el("viewCrumb").innerHTML = CRUMBS["programacao-cimento"]; bootJa = true; }
   }
   async function entrar(user){
@@ -6476,7 +6459,7 @@
     c.title = !on ? "Sem conexão em tempo real: a tela se atualiza sozinha a cada 45 s e no botão Atualizar." :
       (PRES.peers.length ? PRES.peers.map(function(p){ return p.nome + " — " + (p.key ? "editando " + p.key + " (" + (p.iso.split("-").reverse().slice(0, 2).join("/")) + ")" : "em " + (p.ver || "…")); }).join("\n") : "Você está sozinho(a) agora. Alterações de outras pessoas aparecem aqui na hora.");
   }
-  window.__onView = function(id){ presTrack(); if (id === "solicitacoes"){ SOL.filtro = "todas"; solCarregar(false); } if (id === "bd-usinas" || id === "bd-fabricas") encCarregar(); if (id === "bd-fabricas") codCarregar(); };
+  window.__onView = function(id){ presTrack(); if (id === "solicitacoes"){ SOL.filtro = "todas"; solCarregar(false); } if (id === "bd-usinas" || id === "bd-fabricas") encCarregar(); if (id === "bd-fabricas") codCarregar(); modAoAbrir(id); };
   function presIniciar(){
     if (!ME || PRES.ch) return;
     var ch = sb.channel("prog-" + ME.empresa_id, { config: { private: true, presence: { key: ME.id } } });
@@ -6531,7 +6514,7 @@
     if (nav && !el("solBadge")){ var s = document.createElement("span"); s.id = "solBadge"; s.className = "nav-badge"; s.hidden = true; nav.appendChild(s); }
     solCarregar(true);
     clearInterval(SOL.tmr);
-    SOL.tmr = setInterval(function(){ if (document.visibilityState === "visible" && !SOL.ocupado) solCarregar(true); }, 45000);
+    SOL.tmr = setInterval(function(){ if (document.visibilityState === "visible" && !SOL.ocupado && !SOL.rem) solCarregar(true); }, 45000);
   }
   async function solCarregar(silencio){
     if (!ME || !sb || SOL.ocupado) return;
@@ -6677,7 +6660,8 @@
     prog.sort(ord); nprog.sort(ord);
     var tabela = function(lista, programado){
       if (!lista.length) return '<div class="adm-pad faint">' + (programado ? "Nenhum pedido programado ainda." : "Tudo o que foi pedido já está programado.") + '</div>';
-      var h = '<div class="table-wrap"><table class="adm-tbl"><thead><tr>' + (d.multi ? '<th>Dia do pedido</th>' : "") + '<th>Entrega</th><th>Usina</th><th>Pedido</th>' + (programado ? '<th>Programado</th>' : "") + '<th>Enviado</th></tr></thead><tbody>';
+      var pode = solPodeDecidir(), nc = (d.multi ? 1 : 0) + 4 + (programado ? 1 : 0) + (pode ? 1 : 0);
+      var h = '<div class="table-wrap"><table class="adm-tbl"><thead><tr>' + (d.multi ? '<th>Dia do pedido</th>' : "") + '<th>Entrega</th><th>Usina</th><th>Pedido</th>' + (programado ? '<th>Programado</th>' : "") + '<th>Enviado</th>' + (pode ? '<th></th>' : "") + '</tr></thead><tbody>';
       lista.forEach(function(x){
         var l = x.l, marcas = (l.adicional ? ' <span class="badge info">adicional</span>' : "") + (l.alterada ? ' <span class="badge danger">alterado após programar</span>' : "") + (x.env.fora_do_prazo ? ' <span class="badge warning">fora do prazo</span>' : "");
         var pc = "";
@@ -6687,12 +6671,21 @@
         }
         h += '<tr>' + (d.multi ? '<td class="muted">' + esc(solDiaBR(x.u.dia)) + '</td>' : "") + '<td class="cell-strong" style="white-space:nowrap">' + esc(solDiaBR(l.data_desejada)) + '</td><td class="cell-strong">' + esc(x.u.usina) + '</td>' +
           '<td>' + solTxtLinha(l.material, l.carretas, l.periodo, l.fabrica) + marcas + '</td>' + (programado ? '<td>' + pc + '</td>' : "") +
-          '<td class="muted" style="white-space:nowrap">' + esc(solQuando(x.env.enviado_em)) + '<br><span class="faint">' + esc(x.env.por || x.env.origem || "") + '</span></td></tr>';
+          '<td class="muted" style="white-space:nowrap">' + esc(solQuando(x.env.enviado_em)) + '<br><span class="faint">' + esc(x.env.por || x.env.origem || "") + '</span></td>' +
+          (pode ? '<td><button class="btn-ghost sol-rem-btn" data-sol="rem" data-l="' + esc(l.id) + '" data-acao="' + (programado ? "cancelar" : "apagar") + '" title="' + (programado ? "Cancelar este carregamento programado. Gera um documento na Auditoria." : "Apagar este pedido (ainda não programado). Gera um documento na Auditoria.") + '">' + (programado ? "✖ Cancelar carregamento" : "🗑 Apagar") + '</button></td>' : "") + '</tr>';
+        if (pode && SOL.rem && SOL.rem.linha === l.id){
+          var rc = SOL.rem.acao === "cancelar";
+          h += '<tr class="sol-rem-row"><td colspan="' + nc + '"><div class="sol-rem"><b>' + (rc ? "Cancelar carregamento programado" : "Apagar pedido não programado") + '</b> — ' + esc(x.u.usina) + ' · ' + esc(solDiaBR(l.data_desejada)) + ' · ' + solTxtLinha(l.material, l.carretas, l.periodo, l.fabrica) +
+            (rc ? '<div class="faint">A carga continua na Programação: retire a carreta lá depois de cancelar.</div>' : "") +
+            '<div class="sol-rem-form"><input type="text" id="solRemMotivo" maxlength="300" placeholder="Motivo (obrigatório, aparece para a usina e no documento)" value="' + esc(SOL.rem.motivo || "") + '">' +
+            '<button class="btn-primary btn-inline" data-sol="rem-ok"' + (SOL.ocupado ? " disabled" : "") + '>' + (rc ? "Confirmar cancelamento" : "Confirmar apagar") + '</button><button class="btn-ghost" data-sol="rem-x">Voltar</button></div>' +
+            (SOL.rem.erro ? '<div class="adm-msg bad">' + esc(SOL.rem.erro) + '</div>' : "") + '</div></td></tr>';
+        }
       });
       return h + '</tbody></table></div>';
     };
-    return '<div class="card sol-grupo prog" style="margin-bottom:16px"><div class="card-head"><div><h2>✅ Pedidos programados (' + prog.length + ')</h2><p>Já têm carreta programada para o material e a data pedidos. Ficam travados para a usina; mudança só por pedido de alteração.</p></div></div>' + tabela(prog, true) + '</div>' +
-      '<div class="card sol-grupo nprog" style="margin-bottom:16px"><div class="card-head"><div><h2>⏳ Pedidos não programados (' + nprog.length + ')</h2><p>Ainda sem carreta na Programação para esse material e data — incluindo material diferente do que já foi programado. Passam sozinhos para a tabela verde quando vocês programarem.</p></div></div>' + tabela(nprog, false) + '</div>';
+    return '<div class="card sol-grupo prog" style="margin-bottom:16px"><div class="card-head"><div><h2>✅ Pedidos programados (' + prog.length + ')</h2><p>Já têm carreta programada com status <b>Tudo OK</b> para o material e a data pedidos. Ficam travados para a usina; mudança só por pedido de alteração.</p></div></div>' + tabela(prog, true) + '</div>' +
+      '<div class="card sol-grupo nprog" style="margin-bottom:16px"><div class="card-head"><div><h2>⏳ Pedidos não programados (' + nprog.length + ')</h2><p>Ainda sem carreta com status <b>Tudo OK</b> na Programação para esse material e data — incluindo material diferente do que já foi programado. Passam sozinhos para a tabela verde quando a linha ficar Tudo OK.</p></div></div>' + tabela(nprog, false) + '</div>';
   }
   async function solAltDecidir(id, aprovar){
     SOL.ocupado = true;
@@ -6727,8 +6720,26 @@
     await solCarregar(true);
     if (!r.error){ try { solProgCarregar().then(progDecorar); } catch (e) { } }
   }
+  // Apagar pedido não programado / cancelar carregamento programado → nova versão da solicitação + documento na Auditoria
+  async function solRemover(){
+    if (!SOL.rem || SOL.ocupado) return;
+    var mi = el("solRemMotivo"); SOL.rem.motivo = mi ? mi.value : (SOL.rem.motivo || "");
+    if (SOL.rem.motivo.trim().length < 5){ SOL.rem.erro = "Escreva o motivo (pelo menos 5 letras)."; paintSol(); return; }
+    SOL.ocupado = true; SOL.rem.erro = ""; paintSol();
+    var r; try { r = await sb.rpc("solic_linha_remover", { p_linha: SOL.rem.linha, p_acao: SOL.rem.acao, p_motivo: SOL.rem.motivo.trim() }); } catch (e) { r = { error: e }; }
+    SOL.ocupado = false;
+    var erro = r.error ? dbErr(r.error) : (r.data && r.data.erro ? r.data.erro : "");
+    if (erro){ SOL.rem.erro = erro; paintSol(); return; }
+    var canc = SOL.rem.acao === "cancelar"; SOL.rem = null;
+    SOL.msg = (canc ? "Carregamento cancelado. Retire a carreta na Programação." : "Pedido apagado.") + " Documento nº " + ((r.data && r.data.documento) || "?") + " gerado na Auditoria. A usina vê como “Pedido cancelado” em Meus pedidos."; SOL.ruim = false;
+    if (typeof AUD !== "undefined") AUD.d = null;
+    await solCarregar(true);
+    try { solProgCarregar().then(progDecorar); } catch (e) { }
+  }
   (function(){
     var v = el("view-solicitacoes"); if (!v) return;
+    v.addEventListener("input", function(ev){ if (ev.target && ev.target.id === "solRemMotivo" && SOL.rem) SOL.rem.motivo = ev.target.value; });
+    v.addEventListener("keydown", function(ev){ if (ev.target && ev.target.id === "solRemMotivo" && ev.key === "Enter"){ ev.preventDefault(); solRemover(); } });
     v.addEventListener("click", function(ev){
       var b = ev.target.closest && ev.target.closest("[data-sol]"); if (!b || b.disabled) return;
       var a = b.dataset.sol;
@@ -6743,6 +6754,9 @@
       else if (a === "negar"){ if (SOL.confirmaNegar !== b.dataset.id){ SOL.confirmaNegar = b.dataset.id; paintSol(); } else solDecidir(b.dataset.id, false); }
       else if (a === "alt-aprovar"){ solAltDecidir(b.dataset.id, true); }
       else if (a === "alt-negar"){ if (SOL.confirmaNegarAlt !== b.dataset.id){ SOL.confirmaNegarAlt = b.dataset.id; paintSol(); } else solAltDecidir(b.dataset.id, false); }
+      else if (a === "rem"){ SOL.rem = (SOL.rem && SOL.rem.linha === b.dataset.l) ? null : { linha: b.dataset.l, acao: b.dataset.acao, motivo: "" }; paintSol(); var mi = el("solRemMotivo"); if (mi) mi.focus(); }
+      else if (a === "rem-x"){ SOL.rem = null; paintSol(); }
+      else if (a === "rem-ok"){ solRemover(); }
       else if (a === "apagar"){ if (SOL.confirmaApagar !== b.dataset.u){ SOL.confirmaApagar = b.dataset.u; paintSol(); } else solApagar(b.dataset.u); }
     });
   })();
@@ -7588,6 +7602,639 @@
     add(ix.porUsina.get(String(progEntry.usina || "").trim().toUpperCase()));
     out.sort(function(a, b){ return ix.pos.get(a) - ix.pos.get(b); });
     return out;
+  }
+
+  /* ======================================================================
+     MÓDULOS: Auditoria · Transportadoras e frota · Operação · Relatórios
+     Tudo lê/grava pelo banco (funções auditoria_*, frota_*, veiculo_*,
+     transportadora_*, operacao_painel). Leitura vê; admin/operador alteram.
+     ====================================================================== */
+  function modHoje(){ return toISO(new Date()); }
+  function modIsoAdd(iso, n){ var d = fromISO(iso); d.setDate(d.getDate() + n); return toISO(d); }
+  var MAT_NOME = { CP2: "CP II", CP3: "CP III", CP5: "CP V", POZOLANA: "Pozolana" };
+  function matNome(m){ return MAT_NOME[m] || m || "—"; }
+  function modPodeEditar(){ return !!ME && (ME.papel === "admin" || ME.papel === "operador"); }
+  function modMsgHtml(st){ return st.msg ? '<div class="adm-msg ' + (st.ruim ? "bad" : "ok") + '" role="status">' + esc(st.msg) + '</div>' : ""; }
+  function modPeriodoHtml(st, extra){
+    return '<div class="mod-periodo"><label>De <input type="date" data-mp="de" value="' + esc(st.de) + '"></label><label>Até <input type="date" data-mp="ate" value="' + esc(st.ate) + '"></label>' +
+      '<button class="btn-ghost" data-mp="hoje">Hoje</button><button class="btn-ghost" data-mp="7">7 dias</button><button class="btn-ghost" data-mp="mes">Este mês</button>' +
+      '<button class="btn-ghost" data-mp="mesant">Mês passado</button><button class="btn-ghost" data-mp="atualizar" title="Buscar dados novos">↻ Atualizar</button>' + (extra || "") + '</div>';
+  }
+  // liga a barra de período de um módulo: st = estado (de/ate), carregar = função que busca de novo
+  function modPeriodoLigar(v, st, carregar){
+    v.addEventListener("click", function(ev){
+      var b = ev.target.closest && ev.target.closest("button[data-mp]"); if (!b) return;
+      var a = b.dataset.mp, h = modHoje();
+      if (a === "hoje"){ st.de = h; st.ate = h; }
+      else if (a === "7"){ st.de = modIsoAdd(h, -6); st.ate = h; }
+      else if (a === "mes"){ st.de = h.slice(0, 8) + "01"; st.ate = h; }
+      else if (a === "mesant"){ var d = fromISO(h.slice(0, 8) + "01"); d.setDate(0); st.ate = toISO(d); st.de = st.ate.slice(0, 8) + "01"; }
+      carregar();
+    });
+    v.addEventListener("change", function(ev){
+      var inp = ev.target; if (!inp.matches || !inp.matches("input[data-mp]") || !inp.value) return;
+      st[inp.dataset.mp] = inp.value;
+      if (st.de > st.ate){ if (inp.dataset.mp === "de") st.ate = st.de; else st.de = st.ate; }
+      carregar();
+    });
+  }
+  // fornecedor de uma fábrica da Programação ("CSN — CP III 40 RS" ou texto antigo tipo "CP 3 CSN SCZ")
+  var FORN_CHAVES = null;
+  function fornDe(fab){
+    var s = String(fab || "").trim(); if (!s) return "";
+    var i = s.indexOf(" — "); if (i > 0) return s.slice(0, i);
+    if (!FORN_CHAVES){
+      FORN_CHAVES = [];
+      var gen = { CIMENTO: 1, CIMENTOS: 1, DE: 1, DA: 1, CIA: 1, SA: 1, CONCRETO: 1, ENTRE: 1, FILIAIS: 1, TRANSFERENCIA: 1, NACIONAL: 0 };
+      (FABRICAS_CATALOGO || []).forEach(function(f){
+        var nm = f.fornecedor, n = normalizeMaterial(nm), ks = [n];
+        var par = nm.match(/\(([^)]+)\)/); if (par) ks.push(normalizeMaterial(par[1]));
+        n.split(/\s+/).forEach(function(w){ if (w.length >= 3 && !gen[w]) ks.push(w); });
+        (f.aliases || []).forEach(function(a){ ks.push(normalizeMaterial(a)); });
+        ks.forEach(function(k){ if (k) FORN_CHAVES.push([k, nm]); });
+      });
+      FORN_CHAVES.sort(function(a, b){ return b[0].length - a[0].length; });
+    }
+    var alvo = " " + normalizeMaterial(s).replace(/[^A-Z0-9 ]/g, " ").replace(/\s+/g, " ") + " ";
+    for (var j = 0; j < FORN_CHAVES.length; j++){ if (alvo.indexOf(" " + FORN_CHAVES[j][0] + " ") !== -1) return FORN_CHAVES[j][1]; }
+    return "Não identificado";
+  }
+  function modXls(nome, abas){
+    if (typeof XLSX === "undefined") return;
+    var wb = XLSX.utils.book_new();
+    abas.forEach(function(a){ var ws = XLSX.utils.aoa_to_sheet(a[1]); ws["!cols"] = (a[1][0] || []).map(function(){ return { wch: 18 }; }); XLSX.utils.book_append_sheet(wb, ws, a[0].slice(0, 31)); });
+    XLSX.writeFile(wb, nome);
+  }
+  // abre uma página limpa para imprimir / salvar como PDF
+  function modImprimir(titulo, corpo){
+    var w = window.open("", "_blank"); if (!w) { alert("O navegador bloqueou a janela. Libere pop-ups deste site para imprimir."); return; }
+    w.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>' + esc(titulo) + '</title><style>' +
+      'body{font:13px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#111;margin:28px 34px;} h1{font-size:19px;margin:0 0 4px;} h2{font-size:14px;margin:18px 0 6px;border-bottom:1px solid #999;padding-bottom:3px;}' +
+      '.topo{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:12px;} .marca{font-weight:800;letter-spacing:.06em;} .num{font-size:22px;font-weight:800;text-align:right;}' +
+      'table{border-collapse:collapse;width:100%;margin:4px 0 8px;} th,td{border:1px solid #bbb;padding:5px 7px;text-align:left;vertical-align:top;} th{background:#eee;font-size:11.5px;text-transform:uppercase;} td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;}' +
+      '.kv td:first-child{width:190px;font-weight:600;background:#f6f6f6;} .rod{margin-top:26px;font-size:11.5px;color:#444;border-top:1px solid #bbb;padding-top:8px;} .tot td{font-weight:700;background:#f2f2f2;}' +
+      '.noprint{margin-bottom:14px;} @media print{.noprint{display:none;} body{margin:12mm;}}</style></head><body>' +
+      '<div class="noprint"><button onclick="window.print()">🖨️ Imprimir / Salvar PDF</button></div>' + corpo + '</body></html>');
+    w.document.close(); w.focus();
+  }
+
+  /* ---------------- AUDITORIA ---------------- */
+  var AUD = { aba: "docs", de: null, ate: null, d: null, h: null, carregando: false, msg: "", ruim: false, tabela: "" };
+  var AUD_TIPO = { pedido_apagado: ["warning", "Pedido apagado"], carregamento_cancelado: ["danger", "Carregamento cancelado"] };
+  var AUD_TAB = { usinas: "Usinas", fornecedores: "Fornecedores", fabricas: "Fábricas", fornecedor_codigos: "Códigos de fornecedor", frota: "Frota (antiga)", transportadoras: "Transportadoras", veiculos: "Veículos",
+    lancamentos_puzl: "Lançamentos PUZL", notas_sefaz: "Notas SEFAZ", programacao_cargas: "Programação — cargas", programacao_dias: "Programação — dias", programacao_itens: "Programação — usinas",
+    rotas_pedagio: "Rotas e pedágio", solic_autorizacoes: "Autorizações", solic_chaves: "Chaves das usinas", solic_cimento: "Solicitações", chaves: "Chaves", usuarios: "Usuários", membros: "Membros",
+    vpo_dias: "VPO — dias", vpo_entradas: "VPO — lançamentos", auditoria_documentos: "Documentos de auditoria", cimento_lista: "Controle de cimento", usina_cimento_obs: "Controle de cimento — obs", encarregados: "Encarregados" };
+  var AUD_ACAO = { INSERT: ["success", "Criou"], UPDATE: ["info", "Alterou"], DELETE: ["danger", "Apagou"] };
+  var AUD_IGN = { id: 1, empresa_id: 1, created_at: 1, updated_at: 1, seq: 1, importacao_id: 1, deleted_by: 1, editado_em: 1 };
+  function audResumo(o){
+    if (!o) return "";
+    var ks = ["numero", "usina", "usina_nome", "nome", "fornecedor", "cavalo", "placa", "documento", "data", "dia", "material", "fabrica_nome", "fabrica", "codigo", "item"];
+    var out = []; ks.forEach(function(k){ if (o[k] != null && o[k] !== "" && out.length < 3) out.push(String(o[k]).slice(0, 40)); });
+    return out.join(" · ");
+  }
+  function audValor(v){ if (v == null || v === "") return "∅"; if (typeof v === "object") return JSON.stringify(v).slice(0, 80); return String(v).slice(0, 80); }
+  function audMudancas(it){
+    var a = it.antes, d = it.depois;
+    if (it.acao === "UPDATE" && a && d){
+      if (!a.deleted_at && d.deleted_at) return '<span class="badge danger">excluiu</span>';
+      if (a.deleted_at && !d.deleted_at) return '<span class="badge success">restaurou</span>';
+      var m = Object.keys(d).filter(function(k){ return !AUD_IGN[k] && JSON.stringify(a[k]) !== JSON.stringify(d[k]); });
+      if (!m.length) return '<span class="faint">sem mudança visível</span>';
+      return m.slice(0, 6).map(function(k){ return '<div><b>' + esc(k) + '</b>: <span class="aud-de">' + esc(audValor(a[k])) + '</span> → <span class="aud-para">' + esc(audValor(d[k])) + '</span></div>'; }).join("") + (m.length > 6 ? '<div class="faint">+' + (m.length - 6) + ' campo(s)</div>' : "");
+    }
+    if (!a && !d) return '<span class="faint">(conteúdo protegido)</span>';
+    return esc(audResumo(d || a));
+  }
+  async function audCarregar(){
+    if (!ME || !sb) return;
+    if (!AUD.de){ AUD.ate = modHoje(); AUD.de = modIsoAdd(AUD.ate, -29); }
+    AUD.carregando = true; AUD.msg = ""; paintAuditoria();
+    var r; try { r = await sb.rpc("auditoria_documentos_listar", { p_de: AUD.de, p_ate: AUD.ate }); } catch (e) { r = { error: e }; }
+    if (r.error){ AUD.msg = dbErr(r.error); AUD.ruim = true; } else AUD.d = Array.isArray(r.data) ? r.data : [];
+    if (ME.papel === "admin"){
+      var rh; try { rh = await sb.rpc("auditoria_historico", { p_de: AUD.de, p_ate: AUD.ate, p_tabela: AUD.tabela || null, p_limite: 1000 }); } catch (e) { rh = { error: e }; }
+      if (rh.error){ AUD.msg = dbErr(rh.error); AUD.ruim = true; } else AUD.h = rh.data || { tabelas: [], itens: [] };
+    }
+    AUD.carregando = false; paintAuditoria();
+  }
+  function audLinhaTxt(l){ l = l || {}; return solTxtLinha(l.material, l.carretas, l.periodo, l.fabrica); }
+  function paintAuditoria(){
+    var v = el("view-auditoria"); if (!v) return;
+    var adm = ME && ME.papel === "admin";
+    if (!adm) AUD.aba = "docs";
+    var h = '<div class="vpo-abas" role="tablist"><button type="button" class="vpo-aba' + (AUD.aba === "docs" ? " on" : "") + '" data-aud="aba" data-k="docs">📄 Documentos</button>' +
+      (adm ? '<button type="button" class="vpo-aba' + (AUD.aba === "hist" ? " on" : "") + '" data-aud="aba" data-k="hist">🕘 Histórico de alterações</button>' : "") + '</div>';
+    h += '<div class="card" style="margin-bottom:16px"><div class="card-head"><div><h2>' + (AUD.aba === "docs" ? "📄 Documentos de auditoria" : "🕘 Histórico de alterações") + '</h2><p>' +
+      (AUD.aba === "docs" ? "Cada pedido apagado ou carregamento cancelado gera um documento numerado, com o pedido original, o que estava programado, o motivo e quem fez. Abra para imprimir ou salvar em PDF."
+                          : "Tudo o que foi criado, alterado ou apagado no banco, por quem e quando. Chaves e usuários mostram só a ação, nunca o conteúdo.") + '</p></div></div>' +
+      modPeriodoHtml(AUD, AUD.aba === "hist" && AUD.h ? '<select data-aud="tabela"><option value="">Todas as tabelas</option>' + (AUD.h.tabelas || []).map(function(t){ return '<option value="' + esc(t) + '"' + (t === AUD.tabela ? " selected" : "") + '>' + esc(AUD_TAB[t] || t) + '</option>'; }).join("") + '</select>' : "") +
+      modMsgHtml(AUD) + '</div>';
+    if (AUD.carregando && !AUD.d) h += '<div class="adm-pad faint">Carregando…</div>';
+    else if (AUD.aba === "docs"){
+      var ds = AUD.d || [];
+      h += '<div class="card" id="audDocsCard"><div class="card-head"><div><h2>' + ds.length + ' documento(s) no período</h2></div></div>';
+      if (!ds.length) h += '<div class="adm-pad faint">Nenhum documento neste período.</div>';
+      else {
+        h += '<div class="table-wrap"><table class="adm-tbl"><thead><tr><th>Nº</th><th>Data/hora</th><th>Tipo</th><th>Usina</th><th>Entrega</th><th>Pedido</th><th>Motivo</th><th>Por</th><th></th></tr></thead><tbody>';
+        ds.forEach(function(x){
+          var t = AUD_TIPO[x.tipo] || ["neutral", x.titulo || x.tipo], dd = x.dados || {};
+          h += '<tr><td class="cell-strong">' + esc(x.numero) + '</td><td class="muted" style="white-space:nowrap">' + esc(solQuando(x.em)) + '</td><td><span class="badge ' + t[0] + '">' + esc(t[1]) + '</span></td>' +
+            '<td class="cell-strong">' + esc(x.usina || "") + '</td><td style="white-space:nowrap">' + esc(brDate(x.data_ref)) + '</td><td>' + audLinhaTxt(dd.linha) + '</td><td>' + esc(x.motivo || "") + '</td><td class="muted">' + esc(x.por_nome || "") + '</td>' +
+            '<td><button class="btn-ghost" data-aud="ver" data-id="' + esc(x.id) + '">🖨️ Abrir</button></td></tr>';
+        });
+        h += '</tbody></table></div>';
+      }
+      h += '</div>';
+    } else {
+      var it = (AUD.h && AUD.h.itens) || [];
+      h += '<div class="card" id="audHistCard"><div class="card-head"><div><h2>' + it.length + ' alteração(ões)' + (it.length >= 1000 ? " — mostrando as 1000 mais recentes; diminua o período ou escolha uma tabela" : "") + '</h2></div></div>';
+      if (!it.length) h += '<div class="adm-pad faint">Nada registrado neste período.</div>';
+      else {
+        h += '<div class="table-wrap"><table class="adm-tbl aud-tbl"><thead><tr><th>Data/hora</th><th>Quem</th><th>Onde</th><th>Ação</th><th>Registro</th><th>O que mudou</th></tr></thead><tbody>';
+        it.forEach(function(x){
+          var ac = AUD_ACAO[x.acao] || ["neutral", String(x.acao || "").replace(/_/g, " ").toLowerCase()];
+          h += '<tr><td class="muted" style="white-space:nowrap">' + esc(solQuando(x.em)) + '</td><td class="cell-strong">' + esc(x.por || "") + '</td><td>' + esc(AUD_TAB[x.tabela] || x.tabela) + '</td>' +
+            '<td><span class="badge ' + ac[0] + '">' + esc(ac[1]) + '</span></td><td class="muted">' + esc(audResumo(x.depois || x.antes) || "") + '</td><td class="aud-mud">' + audMudancas(x) + '</td></tr>';
+        });
+        h += '</tbody></table></div>';
+      }
+      h += '</div>';
+    }
+    v.innerHTML = h;
+    var c1 = el("audDocsCard"), c2 = el("audHistCard");
+    if (c1 && c1.querySelector("table")) xlEnhance(c1, "aud-docs", [8]);
+    if (c2 && c2.querySelector("table")) xlEnhance(c2, "aud-hist", [5]);
+    if (typeof agendaFit === "function") agendaFit();
+  }
+  function audDataHora(x){ var d = new Date(x); return isNaN(d) ? "" : d.toLocaleDateString("pt-BR", { timeZone: SOL_TZ }) + " às " + d.toLocaleTimeString("pt-BR", { timeZone: SOL_TZ, hour: "2-digit", minute: "2-digit" }); }
+  function audDocImprimir(id){
+    var x = (AUD.d || []).find(function(d){ return d.id === id; }); if (!x) return;
+    var dd = x.dados || {}, l = dd.linha || {}, p = dd.pedido || {}, pg = dd.programado || {}, t = AUD_TIPO[x.tipo] || ["", x.titulo || x.tipo];
+    var per = l.periodo ? (SOL_PER[l.periodo] || String(l.periodo).toLowerCase()) : "—";
+    var corpo = '<div class="topo"><div><div class="marca">CONCRELAGOS · LOGÍSTICA</div><h1>' + esc(x.titulo || t[1]) + '</h1><div>Documento de auditoria</div></div><div class="num">Nº ' + esc(x.numero) + '<div style="font-size:12px;font-weight:400">' + esc(audDataHora(x.em)) + '</div></div></div>' +
+      '<h2>Resumo</h2><table class="kv"><tr><td>Ação</td><td>' + esc(t[1]) + '</td></tr><tr><td>Usina</td><td>' + esc(x.usina || "") + '</td></tr><tr><td>Data de entrega</td><td>' + esc(brDate(x.data_ref)) + '</td></tr>' +
+      '<tr><td>Motivo</td><td>' + esc(x.motivo || "") + '</td></tr><tr><td>Feito por</td><td>' + esc(x.por_nome || "") + '</td></tr><tr><td>Data/hora</td><td>' + esc(audDataHora(x.em)) + '</td></tr></table>' +
+      '<h2>Pedido da usina (como estava)</h2><table class="kv"><tr><td>Material</td><td>' + esc(matNome(l.material)) + '</td></tr><tr><td>Fábrica</td><td>' + esc(l.fabrica || "não escolhida pela usina") + '</td></tr>' +
+      '<tr><td>Carretas</td><td>' + esc(l.carretas == null ? "" : l.carretas) + '</td></tr><tr><td>Período</td><td>' + esc(per) + '</td></tr>' +
+      (l.adicional ? '<tr><td>Observação</td><td>Pedido adicional</td></tr>' : "") + (l.alterada ? '<tr><td>Observação</td><td>Já tinha sido alterado depois de programado</td></tr>' : "") +
+      '<tr><td>Solicitação</td><td>Versão ' + esc(p.versao || "") + ' · enviada em ' + esc(audDataHora(p.enviado_em)) + (p.por ? ' · ' + esc(p.por) : "") + (p.fora_do_prazo ? " · fora do prazo" : "") + '</td></tr></table>' +
+      '<h2>Programação no momento</h2>' + ((pg.cargas || []).length ? '<table><thead><tr><th>Placa</th><th>Fábrica</th><th>Nº pedido</th><th>Nota</th></tr></thead><tbody>' + pg.cargas.map(function(c){
+        return '<tr><td>' + esc(c.placa || "") + '</td><td>' + esc(c.fabrica || "") + '</td><td>' + esc(c.pedido || "") + '</td><td>' + esc(c.nf ? "NF " + c.nf + (c.nf_status === "descarregada" ? " (descarregada)" : "") : "—") + '</td></tr>'; }).join("") + '</tbody></table>'
+        : '<p>Nada programado com status Tudo OK para este pedido.</p>') +
+      '<h2>Resultado</h2><p>A solicitação da usina passou para a versão ' + esc(dd.nova_versao || "") + ' sem esta linha. No link da usina, em “Meus pedidos”, o pedido aparece como <b>Pedido cancelado</b>, com o motivo acima.' +
+      (x.tipo === "carregamento_cancelado" ? ' A carga continua na Programação até a Logística retirar a carreta.' : "") + '</p>' +
+      '<div class="rod">Registrado eletronicamente no sistema de Logística Concrelagos por ' + esc(x.por_nome || "") + ' em ' + esc(audDataHora(x.em)) + '. Documento nº ' + esc(x.numero) + ' — identificador ' + esc(x.id) + '.</div>';
+    modImprimir("Documento " + x.numero + " — " + (x.titulo || t[1]), corpo);
+  }
+  (function(){
+    var v = el("view-auditoria"); if (!v) return;
+    modPeriodoLigar(v, AUD, audCarregar);
+    v.addEventListener("click", function(ev){
+      var b = ev.target.closest && ev.target.closest("[data-aud]"); if (!b || b.tagName === "SELECT") return;
+      if (b.dataset.aud === "aba"){ AUD.aba = b.dataset.k; paintAuditoria(); }
+      else if (b.dataset.aud === "ver") audDocImprimir(b.dataset.id);
+    });
+    v.addEventListener("change", function(ev){ var s = ev.target; if (s.matches && s.matches('select[data-aud="tabela"]')){ AUD.tabela = s.value; audCarregar(); } });
+  })();
+
+  /* ---------------- TRANSPORTADORAS E FROTA ---------------- */
+  var FRT = { d: null, aberto: null, q: "", msg: "", ruim: false, carregando: false, sureDel: null, novaT: false, novoV: false };
+  async function frtCarregar(){
+    if (!ME || !sb) return;
+    FRT.carregando = true; paintFrota();
+    var r; try { r = await sb.rpc("frota_listar"); } catch (e) { r = { error: e }; }
+    FRT.carregando = false;
+    if (r.error){ FRT.msg = dbErr(r.error); FRT.ruim = true; } else { FRT.d = r.data || { transportadoras: [], veiculos: [] }; try { vpoTranspAbas(); } catch (e) { } }
+    paintFrota();
+  }
+  function frtVeiculosDe(tid){ return ((FRT.d && FRT.d.veiculos) || []).filter(function(x){ return x.transportadora_id === tid; }); }
+  function frtNorm(s){ return String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); }
+  function frtVeicPorPlaca(placa){ var p = frtNorm(placa); if (!p || !FRT.d) return null; return (FRT.d.veiculos || []).find(function(x){ return frtNorm(x.cavalo) === p; }) || null; }
+  function frtTranspNome(id){ var t = FRT.d && (FRT.d.transportadoras || []).find(function(x){ return x.id === id; }); return t ? t.nome : ""; }
+  function frtInp(f, val, ph, w, tipo){ var ro = !modPodeEditar(); return '<input class="frt-in" data-frv="' + f + '" value="' + esc(val == null ? "" : val) + '" placeholder="' + esc(ph || "") + '"' + (tipo ? ' type="' + tipo + '" min="0" max="20"' : "") + (w ? ' style="width:' + w + '"' : "") + (ro ? " readonly" : "") + '>'; }
+  function frtLinhaV(x){
+    var ed = modPodeEditar();
+    return '<tr data-vid="' + esc(x.id || "novo") + '"' + (x.ativo === false ? ' class="frt-inativo"' : "") + '><td>' + frtInp("cavalo", x.cavalo, "Placa do cavalo", "110px") + '</td><td>' + frtInp("carreta", x.carreta, "Placa(s) da carreta", "150px") + '</td>' +
+      '<td>' + frtInp("tipo", x.tipo, "LS 30, BT…", "72px") + '</td><td>' + frtInp("eixos_ida", x.eixos_ida, "", "54px", "number") + '</td><td>' + frtInp("eixos_volta", x.eixos_volta, "", "54px", "number") + '</td>' +
+      '<td>' + frtInp("motorista", x.motorista, "Nome do motorista", "190px") + '</td>' +
+      (x.id && FRT.d && (FRT.d.transportadoras || []).length > 1 && ed ? '<td><select class="frt-in" data-frv="transportadora_id">' + FRT.d.transportadoras.map(function(t){ return '<option value="' + esc(t.id) + '"' + (t.id === x.transportadora_id ? " selected" : "") + '>' + esc(t.nome) + '</option>'; }).join("") + '</select></td>' : '<td class="muted">' + esc(frtTranspNome(x.transportadora_id)) + '</td>') +
+      '<td style="white-space:nowrap">' + (ed ? (x.id ? '<label class="frt-chk"><input type="checkbox" data-frv="ativo"' + (x.ativo !== false ? " checked" : "") + '> ativo</label> <button class="btn-ghost" style="color:var(--danger)" data-frt="del-v" data-id="' + esc(x.id) + '">' + (FRT.sureDel === x.id ? "Confirmar excluir" : "🗑") + '</button>'
+                                         : '<button class="btn-primary btn-inline" data-frt="salvar-novo">Adicionar</button> <button class="btn-ghost" data-frt="cancelar-novo">Cancelar</button>') : (x.ativo === false ? '<span class="badge neutral">inativo</span>' : "")) + '</td></tr>';
+  }
+  function frtTabelaV(lista, novoTid){
+    var h = '<div class="table-wrap frt-wrap"><table class="adm-tbl frt-tbl"><thead><tr><th>Cavalo</th><th>Carreta(s)</th><th>Tipo</th><th title="Eixos na ida">Eixos ida</th><th title="Eixos na volta">Eixos volta</th><th>Motorista</th><th>Transportadora</th><th></th></tr></thead><tbody>';
+    lista.forEach(function(x){ h += frtLinhaV(x); });
+    if (novoTid) h += frtLinhaV({ id: null, transportadora_id: novoTid, ativo: true });
+    if (!lista.length && !novoTid) h += '<tr><td colspan="8" class="faint" style="text-align:center;padding:18px">Nenhum veículo.</td></tr>';
+    return h + '</tbody></table></div>';
+  }
+  function paintFrota(){
+    var v = el("view-dados"); if (!v) return;
+    var ed = modPodeEditar(), D = FRT.d;
+    var h = '<div class="card" style="margin-bottom:16px"><div class="card-head"><div><h2>🚛 Transportadoras e frota</h2><p>Cada transportadora com os veículos dela: cavalo, carreta(s), eixos (ida e volta, para o VPO) e motorista. A placa do cavalo liga a frota à Programação, à Operação e aos Relatórios.' + (ed ? " Tudo editável: alterou, salvou." : "") + '</p></div>' +
+      '<div class="adm-acoes">' + (ed ? '<button class="btn-ghost" data-frt="nova-t">＋ Transportadora</button><label class="btn-ghost frt-imp" title="Planilha com blocos por transportadora: CAVALO · CARRETA · tipo · EIXOS IDA · EIXOS VOLTA · Motorista">📥 Importar planilha de placas<input type="file" accept=".xlsx,.xls" data-frt="importar" hidden></label>' : "") + '</div></div>' +
+      '<div class="mod-periodo"><input type="search" data-frt="q" placeholder="Buscar placa ou motorista em todas as transportadoras" value="' + esc(FRT.q) + '" style="flex:1 1 280px"></div>' + modMsgHtml(FRT) + '</div>';
+    if (FRT.novaT && ed) h += '<div class="card" style="margin-bottom:16px"><div class="adm-pad frt-nova"><b>Nova transportadora</b><input id="frtNovaNome" placeholder="Nome" maxlength="80"><input id="frtNovaContato" placeholder="Contato (telefone/WhatsApp)" maxlength="80"><button class="btn-primary btn-inline" data-frt="salvar-t">Salvar</button><button class="btn-ghost" data-frt="cancelar-t">Cancelar</button></div></div>';
+    if (!D){ v.innerHTML = h + '<div class="adm-pad faint">' + (FRT.carregando ? "Carregando…" : "Sem dados ainda.") + '</div>'; return; }
+    var q = frtNorm(FRT.q);
+    if (q){
+      var achou = (D.veiculos || []).filter(function(x){ return frtNorm(x.cavalo).indexOf(q) !== -1 || frtNorm(x.carreta).indexOf(q) !== -1 || frtNorm(x.motorista).indexOf(q) !== -1; });
+      h += '<div class="card" id="frtBuscaCard"><div class="card-head"><div><h2>' + achou.length + ' veículo(s) encontrados</h2></div></div>' + frtTabelaV(achou) + '</div>';
+      v.innerHTML = h; return;
+    }
+    h += '<div class="fab-grid">';
+    (D.transportadoras || []).slice().sort(function(a, b){ return frtVeiculosDe(b.id).length - frtVeiculosDe(a.id).length || (a.nome < b.nome ? -1 : 1); }).forEach(function(t){
+      var vs = frtVeiculosDe(t.id), ab = FRT.aberto === t.id, ativos = vs.filter(function(x){ return x.ativo !== false; }).length;
+      h += '<div class="fab-box' + (ab ? " aberto" : "") + (t.ativo === false ? " frt-inativo" : "") + '" data-tid="' + esc(t.id) + '">' +
+        '<div class="frt-cab" data-frt="abrir"><div><b class="frt-nome">' + esc(t.nome) + '</b>' + (t.ativo === false ? ' <span class="badge neutral">inativa</span>' : "") +
+        '<div class="faint" style="font-size:12px">' + ativos + ' veículo(s) ativo(s)' + (vs.length > ativos ? " · " + (vs.length - ativos) + " inativo(s)" : "") + (t.contato ? " · " + esc(t.contato) : "") + '</div></div><span class="frt-seta">' + (ab ? "▴" : "▾") + '</span></div>';
+      if (ab){
+        if (ed) h += '<div class="frt-tedit"><label>Nome <input class="frt-in" data-frtt="nome" value="' + esc(t.nome) + '"></label><label>Contato <input class="frt-in" data-frtt="contato" value="' + esc(t.contato || "") + '"></label>' +
+          '<label>Obs. <input class="frt-in" data-frtt="obs" value="' + esc(t.obs || "") + '" style="width:240px"></label><label class="frt-chk"><input type="checkbox" data-frtt="ativo"' + (t.ativo !== false ? " checked" : "") + '> ativa</label>' +
+          '<button class="btn-ghost" style="color:var(--danger)" data-frt="del-t">' + (FRT.sureDel === t.id ? "Confirmar excluir" : "🗑 Excluir") + '</button></div>';
+        h += frtTabelaV(vs, ed && FRT.novoV ? t.id : null) + (ed && !FRT.novoV ? '<div style="padding:8px 0 0"><button class="btn-ghost" data-frt="novo-v">＋ Veículo</button></div>' : "");
+      }
+      h += '</div>';
+    });
+    if (!(D.transportadoras || []).length) h += '<div class="adm-pad faint">Nenhuma transportadora cadastrada. ' + (ed ? "Use ＋ Transportadora ou importe a planilha de placas." : "") + '</div>';
+    h += '</div>';
+    v.innerHTML = h;
+  }
+  function frtDadosLinha(tr){
+    var g = function(f){ var i = tr.querySelector('[data-frv="' + f + '"]'); return i ? (i.type === "checkbox" ? i.checked : i.value) : null; };
+    var n = function(x){ return x === "" || x == null ? null : parseInt(x, 10); };
+    var vid = tr.dataset.vid, atual = vid !== "novo" && FRT.d ? (FRT.d.veiculos || []).find(function(x){ return x.id === vid; }) : null;
+    var tid = g("transportadora_id") || (atual ? atual.transportadora_id : FRT.aberto);
+    return { p_id: vid === "novo" ? null : vid, p_transportadora: tid, p_cavalo: g("cavalo") || "", p_carreta: g("carreta"), p_tipo: g("tipo"), p_eixos_ida: n(g("eixos_ida")), p_eixos_volta: n(g("eixos_volta")),
+      p_motorista: g("motorista"), p_obs: atual ? atual.obs : null, p_ativo: vid === "novo" ? true : !!g("ativo") };
+  }
+  async function frtRpc(nome, args, okMsg){
+    var r; try { r = await sb.rpc(nome, args); } catch (e) { r = { error: e }; }
+    var erro = r.error ? dbErr(r.error) : (r.data && r.data.erro ? r.data.erro : "");
+    FRT.msg = erro || okMsg || ""; FRT.ruim = !!erro;
+    return !erro ? (r.data || {}) : null;
+  }
+  async function frtSalvarV(tr){
+    var a = frtDadosLinha(tr);
+    if (!a.p_id) return;   // linha nova só salva no botão Adicionar
+    var ok = await frtRpc("veiculo_salvar", a, "Salvo.");
+    if (ok) await frtCarregar(); else paintFrota();
+  }
+  async function frtSalvarT(tid){
+    var box = el("view-dados").querySelector('.fab-box[data-tid="' + tid + '"]'); if (!box) return;
+    var g = function(f){ var i = box.querySelector('[data-frtt="' + f + '"]'); return i ? (i.type === "checkbox" ? i.checked : i.value) : null; };
+    var ok = await frtRpc("transportadora_salvar", { p_id: tid, p_nome: g("nome"), p_contato: g("contato"), p_obs: g("obs"), p_ativo: !!g("ativo") }, "Salvo.");
+    if (ok) await frtCarregar(); else paintFrota();
+  }
+  // Lê a planilha de placas: blocos lado a lado (a cada 7 colunas), cada um com o nome da transportadora numa linha,
+  // o cabeçalho CAVALO | CARRETA | (tipo) | EIXOS IDA | EIXOS VOLTA | Motorista e os veículos embaixo.
+  function frtLerPlanilha(wb){
+    var nome = wb.SheetNames.find(function(n){ return /placa/i.test(n); }) || wb.SheetNames[0];
+    var rows = XLSX.utils.sheet_to_json(wb.Sheets[nome], { header: 1, defval: null, raw: true });
+    var PL = /^[A-Z]{3}-?\s?\d[A-Z0-9]\d{2}$/, s = function(x){ return x == null ? "" : String(x).trim(); }, num = function(x){ var n = parseInt(String(x).replace(",", "."), 10); return isNaN(n) ? null : n; };
+    var largura = rows.reduce(function(m, r){ return Math.max(m, r.length); }, 0), out = [];
+    for (var off = 0; off + 5 < largura + 1; off += 7){
+      var cur = null;
+      for (var i = 0; i < rows.length; i++){
+        var r = rows[i] || [], nx = rows[i + 1] || [], a = s(r[off]).toUpperCase(), b = s(r[off + 1]);
+        if (a === "CAVALO") continue;
+        var nm = s(r[off]) || b, resto = [2, 3, 4, 5].some(function(k){ return s(r[off + k]); });
+        if (s(nx[off]).toUpperCase() === "CAVALO" || (nm && !PL.test(nm.toUpperCase().replace(/\s/g, "")) && !PL.test(nm.toUpperCase()) && !resto)){ cur = nm; continue; }
+        if (!a || !cur || !(PL.test(a.replace(/\s/g, "")) || PL.test(a))) continue;
+        var tipo = s(r[off + 2]), car = s(r[off + 1]);
+        if (PL.test(tipo.toUpperCase())){ car = car ? car + " - " + tipo.toUpperCase() : tipo.toUpperCase(); tipo = ""; }
+        out.push({ transportadora: cur, cavalo: a, carreta: car.replace(/\s+/g, " "), tipo: tipo, eixos_ida: num(r[off + 3]), eixos_volta: num(r[off + 4]), motorista: s(r[off + 5]) });
+      }
+    }
+    return out;
+  }
+  async function frtImportar(file){
+    FRT.msg = "Lendo a planilha…"; FRT.ruim = false; paintFrota();
+    try {
+      var buf = await file.arrayBuffer(), itens = frtLerPlanilha(XLSX.read(buf, { type: "array" }));
+      if (!itens.length){ FRT.msg = "Não encontrei veículos na planilha (procuro blocos com CAVALO / CARRETA / EIXOS / Motorista)."; FRT.ruim = true; paintFrota(); return; }
+      var ok = await frtRpc("frota_importar", { p_itens: itens });
+      if (ok) FRT.msg = "Importado: " + ok.veiculos_novos + " veículo(s) novo(s), " + ok.veiculos_atualizados + " atualizado(s), " + ok.transportadoras_novas + " transportadora(s) nova(s)." + (ok.ignorados ? " " + ok.ignorados + " linha(s) ignorada(s)." : "");
+      await frtCarregar();
+    } catch (e) { FRT.msg = "Não consegui ler a planilha: " + (e && e.message || e); FRT.ruim = true; paintFrota(); }
+  }
+  (function(){
+    var v = el("view-dados"); if (!v) return;
+    v.addEventListener("click", async function(ev){
+      var b = ev.target.closest && ev.target.closest("[data-frt]"); if (!b || b.tagName === "INPUT") return;
+      var a = b.dataset.frt, box = b.closest(".fab-box"), tid = box ? box.dataset.tid : null;
+      if (a === "abrir"){ FRT.aberto = FRT.aberto === tid ? null : tid; FRT.novoV = false; FRT.sureDel = null; paintFrota(); return; }
+      if (!modPodeEditar()) return;
+      if (a === "nova-t"){ FRT.novaT = true; paintFrota(); var i = el("frtNovaNome"); if (i) i.focus(); }
+      else if (a === "cancelar-t"){ FRT.novaT = false; paintFrota(); }
+      else if (a === "salvar-t"){ var ok = await frtRpc("transportadora_salvar", { p_id: null, p_nome: el("frtNovaNome").value, p_contato: el("frtNovaContato").value, p_obs: null, p_ativo: true }, "Transportadora criada.");
+        if (ok){ FRT.novaT = false; FRT.aberto = ok.id; await frtCarregar(); } else paintFrota(); }
+      else if (a === "novo-v"){ FRT.novoV = true; paintFrota(); var c = v.querySelector('tr[data-vid="novo"] input'); if (c) c.focus(); }
+      else if (a === "cancelar-novo"){ FRT.novoV = false; paintFrota(); }
+      else if (a === "salvar-novo"){ var tr = b.closest("tr"), ok2 = await frtRpc("veiculo_salvar", frtDadosLinha(tr), "Veículo adicionado."); if (ok2){ FRT.novoV = false; await frtCarregar(); } else paintFrota(); }
+      else if (a === "del-v"){ if (FRT.sureDel !== b.dataset.id){ FRT.sureDel = b.dataset.id; paintFrota(); return; } FRT.sureDel = null; if (await frtRpc("veiculo_excluir", { p_id: b.dataset.id }, "Veículo excluído.")) await frtCarregar(); else paintFrota(); }
+      else if (a === "del-t"){ if (FRT.sureDel !== tid){ FRT.sureDel = tid; paintFrota(); return; } FRT.sureDel = null; if (await frtRpc("transportadora_excluir", { p_id: tid }, "Transportadora excluída.")){ FRT.aberto = null; await frtCarregar(); } else paintFrota(); }
+    });
+    v.addEventListener("change", function(ev){
+      var t = ev.target;
+      if (t.dataset.frt === "importar" && t.files && t.files[0]){ frtImportar(t.files[0]); t.value = ""; return; }
+      if (!modPodeEditar()) return;
+      if (t.dataset.frv){ var tr = t.closest("tr"); if (tr && tr.dataset.vid !== "novo") frtSalvarV(tr); }
+      else if (t.dataset.frtt){ var box = t.closest(".fab-box"); if (box) frtSalvarT(box.dataset.tid); }
+    });
+    v.addEventListener("input", function(ev){ var t = ev.target; if (t.dataset.frt === "q"){ FRT.q = t.value; var pos = t.selectionStart; paintFrota(); var n = v.querySelector('[data-frt="q"]'); if (n){ n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) { } } } });
+    v.addEventListener("keydown", function(ev){ if (ev.key === "Enter" && ev.target.matches && ev.target.matches("input.frt-in")) ev.target.blur(); });
+  })();
+
+  /* ---------------- OPERAÇÃO ---------------- */
+  // Um dia por vez: o que foi pedido, o que está programado e em que etapa cada carga está; o que falta programar e o que ficou para trás.
+  var OPR = { dia: null, d: null, atras: null, carregando: false, msg: "", ruim: false };
+  var OPR_ETAPA = { prog: ["warning", "Em programação", 1], ok: ["info", "Programada", 2], nf: ["nfe", "Nota emitida", 3], desc: ["success", "Descarregada", 4], adiado: ["neutral", "Adiada", 0] };
+  function oprEtapa(c){
+    if (c.status === "adiado") return "adiado";
+    if (c.descarregada_em) return "desc";
+    if (c.nf) return "nf";
+    if (c.status === "ok" && c.placa) return "ok";
+    return "prog";
+  }
+  function oprTransp(c){ if (c.transportadora) return c.transportadora; var v = frtVeicPorPlaca(c.placa); return v ? frtTranspNome(v.transportadora_id) : ""; }
+  async function oprCarregar(){
+    if (!ME || !sb) return;
+    if (!OPR.dia) OPR.dia = modHoje();
+    OPR.carregando = true; paintOperacao();
+    var r, ra;
+    try { r = await sb.rpc("operacao_painel", { p_de: OPR.dia, p_ate: OPR.dia }); } catch (e) { r = { error: e }; }
+    try { ra = await sb.rpc("operacao_painel", { p_de: modIsoAdd(OPR.dia, -7), p_ate: modIsoAdd(OPR.dia, -1) }); } catch (e) { ra = { error: e }; }
+    OPR.carregando = false;
+    var erro = r.error ? dbErr(r.error) : (r.data && r.data.erro);
+    if (erro){ OPR.msg = erro; OPR.ruim = true; } else { OPR.d = r.data; OPR.msg = ""; }
+    OPR.atras = (!ra.error && ra.data && !ra.data.erro) ? ra.data : null;
+    paintOperacao();
+  }
+  function paintOperacao(){
+    var v = el("view-operacoes"); if (!v) return;
+    var d = OPR.d, dia = OPR.dia || modHoje(), hoje = modHoje();
+    var rot = dia === hoje ? "Hoje" : (dia === modIsoAdd(hoje, 1) ? "Amanhã" : (dia === modIsoAdd(hoje, -1) ? "Ontem" : ""));
+    var h = '<div class="card" style="margin-bottom:16px"><div class="card-head"><div><h2>🚦 Operação do dia</h2><p>Pedido da usina → programação (Tudo OK) → nota emitida → descarregada. Cada carga aparece na etapa em que está agora.</p></div>' +
+      '<div class="sol-barra"><button class="btn-ghost" data-opr="ant">◀</button><input type="date" data-opr="dia" value="' + esc(dia) + '"><button class="btn-ghost" data-opr="prox">▶</button>' +
+      '<button class="btn-ghost" data-opr="hoje">Hoje</button><button class="btn-ghost" data-opr="amanha">Amanhã</button><button class="btn-ghost" data-opr="atualizar">↻ Atualizar</button></div></div>' +
+      '<div class="adm-pad sol-nota"><b>' + esc(brDate(dia)) + '</b>' + (rot ? ' · ' + rot : "") + ' · ' + esc(weekdayLong(fromISO(dia))) + (feriadoNome(fromISO(dia)) ? ' · <span class="badge warning">' + esc(feriadoNome(fromISO(dia))) + '</span>' : "") + '</div>' + modMsgHtml(OPR);
+    if (!d){ v.innerHTML = h + '<div class="adm-pad faint">' + (OPR.carregando ? "Carregando…" : "Sem dados ainda.") + '</div></div>'; return; }
+    var cargas = d.cargas || [], peds = d.pedidos || [];
+    var cont = { prog: 0, ok: 0, nf: 0, desc: 0, adiado: 0 };
+    cargas.forEach(function(c){ c._e = oprEtapa(c); cont[c._e]++; });
+    var pedidas = peds.reduce(function(s, l){ return s + (l.carretas || 0); }, 0), atendidas = peds.reduce(function(s, l){ return s + Math.min(l.prog_qtd || 0, l.carretas || 0); }, 0);
+    var falta = peds.filter(function(l){ return (l.prog_qtd || 0) < (l.carretas || 0); });
+    var progOk = cont.ok + cont.nf + cont.desc;
+    var tile = function(n, r, cor){ return '<div class="sol-tile" style="--st:' + cor + ';cursor:default"><b>' + n + '</b><span>' + r + '</span></div>'; };
+    h += '<div class="sol-tiles">' + tile(pedidas, "Carretas pedidas", "var(--accent)") + tile(progOk, "Programadas (Tudo OK)", "var(--info)") + tile(cont.nf + cont.desc, "Nota emitida", "var(--accent)") +
+      tile(cont.desc, "Descarregadas", "var(--success)") + tile(pedidas - atendidas, "Falta programar", (pedidas - atendidas) ? "var(--danger)" : "var(--success)") + tile(cont.prog, "Em programação (sem Tudo OK)", "var(--warning)") + '</div></div>';
+    // falta programar
+    if (falta.length){
+      h += '<div class="card sol-grupo nprog" style="margin-bottom:16px"><div class="card-head"><div><h2>⏳ Falta programar (' + falta.length + ')</h2><p>Pedidos das usinas para este dia que ainda não têm carreta com status Tudo OK.</p></div></div><div class="table-wrap"><table class="adm-tbl"><thead><tr><th>Usina</th><th>Pedido</th><th>Pedidas</th><th>Programadas</th><th>Falta</th></tr></thead><tbody>';
+      falta.forEach(function(l){ h += '<tr><td class="cell-strong">' + esc(l.usina) + '</td><td>' + solTxtLinha(l.material, l.carretas, l.periodo, l.fabrica) + (l.fora_do_prazo ? ' <span class="badge warning">fora do prazo</span>' : "") + '</td><td class="num">' + l.carretas + '</td><td class="num">' + (l.prog_qtd || 0) + '</td><td class="num"><b>' + (l.carretas - (l.prog_qtd || 0)) + '</b></td></tr>'; });
+      h += '</tbody></table></div></div>';
+    }
+    // cargas do dia
+    var ord = cargas.slice().sort(function(a, b){ return OPR_ETAPA[a._e][2] - OPR_ETAPA[b._e][2] || (a.usina < b.usina ? -1 : 1); });
+    h += '<div class="card" id="oprCargasCard" style="margin-bottom:16px"><div class="card-head"><div><h2>🚚 Cargas do dia (' + cargas.length + ')</h2><p>Da Programação de Cimento. A transportadora vem da placa do cavalo (Base de Dados › Transportadoras e frota).</p></div></div>';
+    if (!ord.length) h += '<div class="adm-pad faint">Nenhuma carga na Programação para este dia.</div>';
+    else {
+      h += '<div class="table-wrap"><table class="adm-tbl"><thead><tr><th>Etapa</th><th>Usina</th><th>Fábrica</th><th>Placa</th><th>Transportadora</th><th>Nº pedido</th><th>Nota</th></tr></thead><tbody>';
+      ord.forEach(function(c){
+        var e = OPR_ETAPA[c._e];
+        h += '<tr><td><span class="badge ' + e[0] + '">' + e[1] + '</span></td><td class="cell-strong">' + esc(c.usina || "") + '</td><td>' + esc(c.fabrica || "—") + '</td><td class="cell-strong" style="white-space:nowrap">' + esc(c.placa || "—") + '</td>' +
+          '<td>' + esc(oprTransp(c) || "—") + '</td><td>' + esc(c.pedido || "—") + '</td><td class="muted" style="white-space:nowrap">' + (c.nf ? "NF " + esc(c.nf) + (c.descarregada_em ? " · desc. " + esc(brDate(c.descarregada_em)) : "") : "—") + '</td></tr>';
+      });
+      h += '</tbody></table></div>';
+    }
+    h += '</div>';
+    // pendências dos 7 dias anteriores
+    var at = OPR.atras && (OPR.atras.cargas || []).filter(function(c){ var e = oprEtapa(c); return e === "ok" || e === "nf"; });
+    if (at && at.length){
+      h += '<div class="card" id="oprAtrasCard" style="border-left:4px solid var(--danger)"><div class="card-head"><div><h2 style="color:var(--danger)">⚠️ Ficaram para trás (' + at.length + ')</h2><p>Cargas programadas (Tudo OK) nos 7 dias antes de ' + esc(brDate(dia)) + ' que ainda não tiveram nota emitida ou não foram descarregadas.</p></div></div>' +
+        '<div class="table-wrap"><table class="adm-tbl"><thead><tr><th>Programada para</th><th>Atraso</th><th>Usina</th><th>Fábrica</th><th>Placa</th><th>Transportadora</th><th>Situação</th></tr></thead><tbody>';
+      at.sort(function(a, b){ return a.data < b.data ? -1 : 1; }).forEach(function(c){
+        var dias = Math.round((fromISO(dia) - fromISO(c.data)) / 86400000), e = oprEtapa(c);
+        h += '<tr><td style="white-space:nowrap">' + esc(brDate(c.data)) + '</td><td class="num">' + dias + ' dia(s)</td><td class="cell-strong">' + esc(c.usina || "") + '</td><td>' + esc(c.fabrica || "—") + '</td><td class="cell-strong">' + esc(c.placa || "") + '</td><td>' + esc(oprTransp(c) || "—") + '</td>' +
+          '<td>' + (e === "ok" ? '<span class="badge warning">Sem nota emitida</span>' : '<span class="badge danger">NF ' + esc(c.nf) + ' sem descarga</span>') + '</td></tr>';
+      });
+      h += '</tbody></table></div></div>';
+    }
+    v.innerHTML = h;
+    ["oprCargasCard", "oprAtrasCard"].forEach(function(id){ var c = el(id); if (c && c.querySelector("table")) xlEnhance(c, id); });
+    if (typeof agendaFit === "function") agendaFit();
+  }
+  (function(){
+    var v = el("view-operacoes"); if (!v) return;
+    v.addEventListener("click", function(ev){
+      var b = ev.target.closest && ev.target.closest("button[data-opr]"); if (!b) return;
+      var a = b.dataset.opr, h = modHoje(); OPR.dia = OPR.dia || h;
+      if (a === "ant") OPR.dia = modIsoAdd(OPR.dia, -1); else if (a === "prox") OPR.dia = modIsoAdd(OPR.dia, 1);
+      else if (a === "hoje") OPR.dia = h; else if (a === "amanha") OPR.dia = modIsoAdd(h, 1);
+      oprCarregar();
+    });
+    v.addEventListener("change", function(ev){ var t = ev.target; if (t.dataset.opr === "dia" && t.value){ OPR.dia = t.value; oprCarregar(); } });
+  })();
+
+  /* ---------------- RELATÓRIOS ---------------- */
+  var REL = { de: null, ate: null, por: "usina", d: null, carregando: false, msg: "", ruim: false };
+  var REL_POR = [["usina", "Usina"], ["fornecedor", "Fornecedor"], ["material", "Tipo de cimento"], ["transportadora", "Transportadora"], ["dia", "Dia"]];
+  async function relCarregar(){
+    if (!ME || !sb) return;
+    if (!REL.de){ REL.ate = modHoje(); REL.de = REL.ate.slice(0, 8) + "01"; }
+    REL.carregando = true; paintRelatorios();
+    var r; try { r = await sb.rpc("operacao_painel", { p_de: REL.de, p_ate: REL.ate }); } catch (e) { r = { error: e }; }
+    REL.carregando = false;
+    var erro = r.error ? dbErr(r.error) : (r.data && r.data.erro);
+    if (erro){ REL.msg = erro; REL.ruim = true; } else { REL.d = r.data; REL.msg = ""; }
+    paintRelatorios();
+  }
+  function relChave(por, o, ehPedido){
+    if (por === "usina") return o.usina || "—";
+    if (por === "dia") return String(ehPedido ? o.data_desejada : o.data).slice(0, 10);
+    if (por === "material") return matNome(ehPedido ? o.material : o.mat) || "—";
+    if (por === "fornecedor") return ehPedido ? (o.fabrica ? fornDe(o.fabrica) : "Usina não escolheu fábrica") : (fornDe(o.fabrica) || "Fábrica em branco");
+    if (por === "transportadora") return ehPedido ? null : (oprTransp(o) || (o.placa ? "Placa não cadastrada" : "Sem placa"));
+    return "—";
+  }
+  function relCalcular(porX){
+    var d = REL.d; if (!d) return null;
+    var g = {}, por = porX || REL.por, pega = function(k){ return g[k] || (g[k] = { k: k, pedidas: 0, atendidas: 0, prog: 0, nf: 0, desc: 0, noPrazo: 0, atraso: 0, emProg: 0, canc: 0 }); };
+    (d.pedidos || []).forEach(function(l){ var k = relChave(por, l, true); if (k == null) return; var x = pega(k); x.pedidas += l.carretas || 0; x.atendidas += Math.min(l.prog_qtd || 0, l.carretas || 0); });
+    (d.cargas || []).forEach(function(c){
+      var e = oprEtapa(c); if (e === "adiado") return;
+      var x = pega(relChave(por, c, false));
+      if (e === "prog"){ x.emProg++; return; }
+      x.prog++; if (c.nf) x.nf++;
+      if (c.descarregada_em){ x.desc++; if (c.descarregada_em <= c.data) x.noPrazo++; else x.atraso++; }
+    });
+    if (por !== "transportadora") (d.cancelados || []).forEach(function(a){
+      var l = a.linha || {}, o = { usina: a.usina, data_desejada: a.data_ref, material: l.material, fabrica: l.fabrica }, k = relChave(por, o, true); if (k != null) pega(k).canc++; });
+    var lista = Object.keys(g).map(function(k){ return g[k]; });
+    lista.sort(por === "dia" ? function(a, b){ return a.k < b.k ? -1 : 1; } : function(a, b){ return (b.pedidas + b.prog) - (a.pedidas + a.prog) || (a.k < b.k ? -1 : 1); });
+    var tot = { k: "TOTAL", pedidas: 0, atendidas: 0, prog: 0, nf: 0, desc: 0, noPrazo: 0, atraso: 0, emProg: 0, canc: 0 };
+    lista.forEach(function(x){ Object.keys(tot).forEach(function(c){ if (c !== "k") tot[c] += x[c]; }); });
+    return { lista: lista, tot: tot };
+  }
+  function relPct(a, b){ return b ? Math.round(a * 100 / b) + "%" : "—"; }
+  var REL_COLS = [["Pedidas", "pedidas"], ["Atendidas", "atendidas"], ["% atendido", null], ["Programadas", "prog"], ["Nota emitida", "nf"], ["Descarregadas", "desc"], ["No dia", "noPrazo"], ["Depois do dia", "atraso"], ["Sem Tudo OK", "emProg"], ["Canceladas", "canc"]];
+  function relLinhaVals(x){ return REL_COLS.map(function(c){ return c[1] ? x[c[1]] : relPct(x.atendidas, x.pedidas); }); }
+  function relNaoAtendidos(){
+    var d = REL.d, hoje = modHoje(); if (!d) return [];
+    return (d.pedidos || []).filter(function(l){ return (l.prog_qtd || 0) < (l.carretas || 0) && String(l.data_desejada) < hoje; });
+  }
+  function paintRelatorios(){
+    var v = el("view-relatorios"); if (!v) return;
+    var porNome = (REL_POR.find(function(p){ return p[0] === REL.por; }) || [0, ""])[1];
+    var h = '<div class="card" style="margin-bottom:16px"><div class="card-head"><div><h2>📈 Relatórios de cimento</h2><p>Pedido das usinas × programado (Tudo OK) × nota emitida × descarregado, no período. “No dia” = descarregou até a data programada; “depois do dia” = atrasou. Máximo de 93 dias por vez.</p></div>' +
+      '<div class="adm-acoes"><button class="btn-ghost" data-rel="xls">⬇️ Excel</button><button class="btn-ghost" data-rel="pdf">🖨️ Imprimir / PDF</button></div></div>' +
+      modPeriodoHtml(REL || {}) + '<div class="mod-periodo"><span class="faint">Agrupar por</span>' + REL_POR.map(function(p){ return '<button class="btn-ghost' + (p[0] === REL.por ? " on" : "") + '" data-rel="por" data-k="' + p[0] + '">' + p[1] + '</button>'; }).join("") + '</div>' + modMsgHtml(REL) + '</div>';
+    var R = relCalcular();
+    if (!R){ v.innerHTML = h + '<div class="adm-pad faint">' + (REL.carregando ? "Carregando…" : "Sem dados ainda.") + '</div>'; return; }
+    var t = relCalcular("usina").tot;   // os quadros não mudam com o agrupamento
+    var tile = function(n, r, cor){ return '<div class="sol-tile" style="--st:' + cor + ';cursor:default"><b>' + n + '</b><span>' + r + '</span></div>'; };
+    h += '<div class="card" style="margin-bottom:16px"><div class="sol-tiles" style="padding-top:18px">' + tile(t.pedidas, "Carretas pedidas", "var(--accent)") + tile(relPct(t.atendidas, t.pedidas), "Pedidos atendidos", "var(--info)") +
+      tile(t.prog, "Programadas", "var(--info)") + tile(t.desc, "Descarregadas", "var(--success)") + tile(relPct(t.noPrazo, t.desc), "Descarregadas no dia", "var(--success)") + tile(t.canc, "Cancelamentos", "var(--danger)") + '</div></div>';
+    h += '<div class="card" id="relTabCard" style="margin-bottom:16px"><div class="card-head"><div><h2>Por ' + esc(porNome.toLowerCase()) + '</h2><p>' + esc(brDate(REL.de)) + ' a ' + esc(brDate(REL.ate)) + (REL.por === "transportadora" ? " · pedidos das usinas não têm transportadora, por isso só contam as cargas." : "") + '</p></div></div>' +
+      '<div class="table-wrap"><table class="adm-tbl rel-tbl"><thead><tr><th>' + esc(porNome) + '</th>' + REL_COLS.map(function(c){ return '<th class="num">' + c[0] + '</th>'; }).join("") + '</tr></thead><tbody>';
+    R.lista.forEach(function(x){ h += '<tr><td class="cell-strong">' + esc(REL.por === "dia" ? brDate(x.k) : x.k) + '</td>' + relLinhaVals(x).map(function(n){ return '<td class="num">' + esc(n) + '</td>'; }).join("") + '</tr>'; });
+    h += '</tbody><tfoot><tr class="rel-tot"><td>TOTAL</td>' + relLinhaVals(t).map(function(n){ return '<td class="num">' + esc(n) + '</td>'; }).join("") + '</tr></tfoot></table></div></div>';
+    var na = relNaoAtendidos();
+    h += '<div class="card" id="relNaCard"><div class="card-head"><div><h2>Pedidos não atendidos (' + na.length + ')</h2><p>Datas já passadas em que a usina pediu mais carretas do que foi programado com Tudo OK.</p></div></div>';
+    if (!na.length) h += '<div class="adm-pad faint">Nenhum no período. 👍</div>';
+    else {
+      h += '<div class="table-wrap"><table class="adm-tbl"><thead><tr><th>Entrega</th><th>Usina</th><th>Pedido</th><th class="num">Pedidas</th><th class="num">Programadas</th><th class="num">Faltaram</th></tr></thead><tbody>';
+      na.forEach(function(l){ h += '<tr><td style="white-space:nowrap">' + esc(brDate(l.data_desejada)) + '</td><td class="cell-strong">' + esc(l.usina) + '</td><td>' + solTxtLinha(l.material, l.carretas, l.periodo, l.fabrica) + '</td><td class="num">' + l.carretas + '</td><td class="num">' + (l.prog_qtd || 0) + '</td><td class="num"><b>' + (l.carretas - (l.prog_qtd || 0)) + '</b></td></tr>'; });
+      h += '</tbody></table></div>';
+    }
+    h += '</div>';
+    v.innerHTML = h;
+    var c = el("relTabCard"); if (c) xlEnhance(c, "rel-tab-" + REL.por);
+    var c2 = el("relNaCard"); if (c2 && c2.querySelector("table")) xlEnhance(c2, "rel-na");
+    if (typeof agendaFit === "function") agendaFit();
+  }
+  function relExportar(pdf){
+    var R = relCalcular(); if (!R) return;
+    var porNome = (REL_POR.find(function(p){ return p[0] === REL.por; }) || [0, ""])[1], cab = [porNome].concat(REL_COLS.map(function(c){ return c[0]; }));
+    var linhas = R.lista.map(function(x){ return [REL.por === "dia" ? brDate(x.k) : x.k].concat(relLinhaVals(x)); }), tot = ["TOTAL"].concat(relLinhaVals(R.tot));
+    var na = relNaoAtendidos().map(function(l){ return [brDate(l.data_desejada), l.usina, matNome(l.material) + (l.fabrica ? " · " + l.fabrica : ""), l.carretas, l.prog_qtd || 0, l.carretas - (l.prog_qtd || 0)]; });
+    var titulo = "Relatório de cimento — " + brDate(REL.de) + " a " + brDate(REL.ate);
+    if (!pdf){
+      modXls("Relatorio_cimento_" + REL.de + "_" + REL.ate + "_por_" + REL.por + ".xlsx", [
+        ["Por " + porNome, [[titulo], []].concat([cab], linhas, [tot])],
+        ["Não atendidos", [["Entrega", "Usina", "Pedido", "Pedidas", "Programadas", "Faltaram"]].concat(na)]]);
+      return;
+    }
+    var tab = function(c, ls, t){ return '<table><thead><tr>' + c.map(function(x, i){ return '<th' + (i ? ' class="n"' : "") + '>' + esc(x) + '</th>'; }).join("") + '</tr></thead><tbody>' +
+      ls.map(function(r){ return '<tr>' + r.map(function(x, i){ return '<td' + (i && typeof x !== "string" || /%$|^—$/.test(String(x)) ? ' class="n"' : "") + '>' + esc(x) + '</td>'; }).join("") + '</tr>'; }).join("") +
+      (t ? '<tr class="tot">' + t.map(function(x, i){ return '<td' + (i ? ' class="n"' : "") + '>' + esc(x) + '</td>'; }).join("") + '</tr>' : "") + '</tbody></table>'; };
+    modImprimir(titulo, '<div class="topo"><div><div class="marca">CONCRELAGOS · LOGÍSTICA</div><h1>' + esc(titulo) + '</h1><div>Agrupado por ' + esc(porNome.toLowerCase()) + '</div></div><div style="text-align:right;font-size:12px">Gerado em ' + esc(solQuando(new Date().toISOString())) + '<br>por ' + esc((ME && ME.nome) || "") + '</div></div>' +
+      tab(cab, linhas, tot) + '<h2>Pedidos não atendidos</h2>' + (na.length ? tab(["Entrega", "Usina", "Pedido", "Pedidas", "Programadas", "Faltaram"], na) : "<p>Nenhum.</p>") +
+      '<div class="rod">“Programadas” = cargas com status Tudo OK na Programação. “No dia” = descarregada (PUZL) até a data programada.</div>');
+  }
+  (function(){
+    var v = el("view-relatorios"); if (!v) return;
+    modPeriodoLigar(v, REL, relCarregar);
+    v.addEventListener("click", function(ev){
+      var b = ev.target.closest && ev.target.closest("[data-rel]"); if (!b) return;
+      if (b.dataset.rel === "por"){ REL.por = b.dataset.k; paintRelatorios(); }
+      else if (b.dataset.rel === "xls") relExportar(false);
+      else if (b.dataset.rel === "pdf") relExportar(true);
+    });
+  })();
+
+  /* ---------------- VPO por transportadora ----------------
+     Uma aba por transportadora (Base de Dados › Transportadoras e frota). Mostra as cargas da Programação
+     do dia do VPO feitas com os cavalos dela, com eixos, motorista e se a rota tem pedágio. */
+  var VPT = { dia: null, d: null, diaD: null, carregando: false, erro: "" };
+  function vpoTranspAbas(){
+    var v = el("view-vpo"), ab = v && v.querySelector(".vpo-abas"); if (!ab) return;
+    var ts = ((FRT.d && FRT.d.transportadoras) || []).filter(function(t){ return t.ativo !== false; });
+    VPO_ABAS = [["dia", "📋 VPOs do dia"]].concat(ts.map(function(t){ return ["t:" + t.id, "🚛 " + esc(t.nome)]; }), ts.length ? [["semcad", "❓ Placas sem cadastro"]] : [], [["rotas", "🛣️ Rotas e pedágio"]]);
+    ab.outerHTML = vpoAbasHtml();
+    var rotas = v.querySelector('.vpo-painel[data-vpop="rotas"]');
+    VPO_ABAS.forEach(function(a){
+      if (!/^t:|^semcad$/.test(a[0]) || v.querySelector('.vpo-painel[data-vpop="' + a[0] + '"]')) return;
+      var d = document.createElement("div"); d.className = "vpo-painel"; d.dataset.vpop = a[0]; d.hidden = true; rotas.parentNode.insertBefore(d, rotas);
+    });
+    var existe = function(id){ return VPO_ABAS.some(function(x){ return x[0] === id; }); };
+    var alvo = existe(VPO_ABA_PEDIDA) ? VPO_ABA_PEDIDA : (existe(VPO_ABA) ? VPO_ABA : "dia"); VPO_ABA_PEDIDA = "";
+    vpoAbaMostrar(alvo);
+  }
+  async function vptCarregar(){
+    if (!ME || !sb) return;
+    if (!VPT.dia) VPT.dia = toISO(progPeriodoPadrao().de);
+    VPT.carregando = true; vptPintar(VPO_ABA);
+    var dia = VPT.dia, r; try { r = await sb.rpc("operacao_painel", { p_de: dia, p_ate: dia }); } catch (e) { r = { error: e }; }
+    VPT.carregando = false;
+    if (r.error || (r.data && r.data.erro)) VPT.erro = r.error ? dbErr(r.error) : r.data.erro; else { VPT.d = r.data; VPT.diaD = dia; VPT.erro = ""; }
+    vptPintar(VPO_ABA);
+  }
+  function vptAbrir(id){ if (!VPT.d || VPT.diaD !== (VPT.dia || toISO(progPeriodoPadrao().de))) vptCarregar(); else vptPintar(id); }
+  function vptFornRota(f){ return fornDe(String(f || "").split(" - ")[0]); }
+  function vptPedagio(c){
+    var rotas = ROTAS_POR_USINA[String(c.usina || "").trim().toUpperCase()] || [], forn = fornDe(c.fabrica);
+    var m = rotas.filter(function(r){ return forn && vptFornRota(r.fabrica) === forn; });
+    if (!m.length) return ["warning", "Rota não cadastrada", "?"];
+    var vs = m.map(function(r){ return r.pedagio || "incerto"; }).filter(function(x, i, a){ return a.indexOf(x) === i; });
+    if (vs.length > 1) return ["warning", "Depende do local (" + m.map(function(r){ return String(r.fabrica).split(" - ")[1] || r.fabrica; }).join(", ") + ")", "?"];
+    return [PEDAGIO_TONE[vs[0]] || "neutral", PEDAGIO_LABEL[vs[0]] || vs[0], vs[0]];
+  }
+  function vptPintar(id){
+    if (!/^t:|^semcad$/.test(id || "")) return;
+    var v = el("view-vpo"), p = v && v.querySelector('.vpo-painel[data-vpop="' + id + '"]'); if (!p) return;
+    var tid = id.indexOf("t:") === 0 ? id.slice(2) : null, t = tid && (FRT.d.transportadoras || []).find(function(x){ return x.id === tid; });
+    var dia = VPT.dia || toISO(progPeriodoPadrao().de);
+    var h = '<div class="card" style="margin-bottom:16px"><div class="card-head"><div><h2>' + (t ? "🚛 " + esc(t.nome) : "❓ Placas sem cadastro") + '</h2><p>' +
+      (t ? "Cargas da Programação feitas com os cavalos desta transportadora, com os eixos para o VPO e o pedágio da rota (aba Rotas e pedágio)."
+         : "Cargas da Programação cuja placa não está em nenhuma transportadora. Cadastre o cavalo em Base de Dados › Transportadoras e frota.") + '</p></div>' +
+      '<div class="sol-barra"><button class="btn-ghost" data-vpt="ant">◀</button><input type="date" data-vpt="dia" value="' + esc(dia) + '"><button class="btn-ghost" data-vpt="prox">▶</button><button class="btn-ghost" data-vpt="padrao" title="Próximo dia útil, como na Programação">Dia do VPO</button><button class="btn-ghost" data-vpt="atualizar">↻</button></div></div>' +
+      '<div class="adm-pad sol-nota"><b>' + esc(brDate(dia)) + '</b> · ' + esc(weekdayLong(fromISO(dia))) + '</div>' + (VPT.erro ? '<div class="adm-msg bad">' + esc(VPT.erro) + '</div>' : "") + '</div>';
+    if (!VPT.d || VPT.diaD !== dia){ p.innerHTML = h + '<div class="adm-pad faint">' + (VPT.carregando ? "Carregando…" : "Sem dados.") + '</div>'; return; }
+    var cargas = (VPT.d.cargas || []).filter(function(c){ if (!c.placa || c.status === "adiado") return false; var vc = frtVeicPorPlaca(c.placa); return t ? (vc && vc.transportadora_id === tid) : !vc; });
+    var comP = cargas.filter(function(c){ return vptPedagio(c)[2] === "com"; }).length, duv = cargas.filter(function(c){ var x = vptPedagio(c)[2]; return x === "?" || x === "incerto"; }).length;
+    h += '<div class="card" id="vpt-' + esc(id.replace(":", "-")) + '" style="margin-bottom:16px"><div class="card-head"><div><h2>' + cargas.length + ' carga(s) · ' + comP + ' com pedágio (VPO)' + (duv ? ' · <span style="color:var(--warning)">' + duv + ' a conferir</span>' : "") + '</h2></div></div>';
+    if (!cargas.length) h += '<div class="adm-pad faint">Nenhuma carga desta ' + (t ? "transportadora" : "lista") + ' na Programação de ' + esc(brDate(dia)) + '.</div>';
+    else {
+      h += '<div class="table-wrap"><table class="adm-tbl"><thead><tr><th>Pedágio</th><th>Usina</th><th>Fábrica</th><th>Cavalo</th><th>Carreta(s)</th><th class="num">Eixos ida</th><th class="num">Eixos volta</th><th>Motorista</th><th>Programação</th></tr></thead><tbody>';
+      cargas.sort(function(a, b){ var o = { com: 0, "?": 1, incerto: 1, sem: 2 }; return (o[vptPedagio(a)[2]] - o[vptPedagio(b)[2]]) || (a.usina < b.usina ? -1 : 1); }).forEach(function(c){
+        var vc = frtVeicPorPlaca(c.placa) || {}, pd = vptPedagio(c);
+        h += '<tr><td><span class="badge ' + pd[0] + '">' + esc(pd[1]) + '</span></td><td class="cell-strong">' + esc(c.usina || "") + '</td><td>' + esc(c.fabrica || "—") + '</td><td class="cell-strong" style="white-space:nowrap">' + esc(c.placa) + '</td>' +
+          '<td>' + esc(vc.carreta || "—") + '</td><td class="num">' + esc(vc.eixos_ida == null ? "—" : vc.eixos_ida) + '</td><td class="num">' + esc(vc.eixos_volta == null ? "—" : vc.eixos_volta) + '</td><td>' + esc(vc.motorista || "—") + '</td>' +
+          '<td>' + (c.status === "ok" ? '<span class="badge success">Tudo OK</span>' : '<span class="badge warning">' + esc(c.status || "sem status") + '</span>') + '</td></tr>';
+      });
+      h += '</tbody></table></div>';
+    }
+    h += '</div>';
+    if (t){
+      var usados = {}; cargas.forEach(function(c){ usados[frtNorm(c.placa)] = 1; });
+      var livres = frtVeiculosDe(tid).filter(function(x){ return x.ativo !== false && !usados[frtNorm(x.cavalo)]; });
+      h += '<details class="card vpt-livres"><summary class="adm-pad">Veículos sem carga neste dia (' + livres.length + ')</summary>' + (livres.length ? '<div class="table-wrap"><table class="adm-tbl"><thead><tr><th>Cavalo</th><th>Carreta(s)</th><th>Tipo</th><th class="num">Eixos ida</th><th class="num">Eixos volta</th><th>Motorista</th></tr></thead><tbody>' +
+        livres.map(function(x){ return '<tr><td class="cell-strong">' + esc(x.cavalo) + '</td><td>' + esc(x.carreta || "—") + '</td><td>' + esc(x.tipo || "—") + '</td><td class="num">' + esc(x.eixos_ida == null ? "—" : x.eixos_ida) + '</td><td class="num">' + esc(x.eixos_volta == null ? "—" : x.eixos_volta) + '</td><td>' + esc(x.motorista || "—") + '</td></tr>'; }).join("") + '</tbody></table></div>' : '<div class="adm-pad faint">Todos os veículos ativos têm carga.</div>') + '</details>';
+    }
+    p.innerHTML = h;
+    var c = el("vpt-" + id.replace(":", "-")); if (c && c.querySelector("table")) xlEnhance(c, "vpt", [0]);
+    if (typeof agendaFit === "function") agendaFit();
+  }
+  (function(){
+    var v = el("view-vpo"); if (!v) return;
+    v.addEventListener("click", function(ev){
+      var b = ev.target.closest && ev.target.closest("button[data-vpt]"); if (!b) return;
+      var a = b.dataset.vpt, d = VPT.dia || toISO(progPeriodoPadrao().de);
+      if (a === "ant") VPT.dia = modIsoAdd(d, -1); else if (a === "prox") VPT.dia = modIsoAdd(d, 1); else if (a === "padrao") VPT.dia = toISO(progPeriodoPadrao().de);
+      vptCarregar();
+    });
+    v.addEventListener("change", function(ev){ var t = ev.target; if (t.dataset && t.dataset.vpt === "dia" && t.value){ VPT.dia = t.value; vptCarregar(); } });
+  })();
+  // a frota é usada também na Operação/Relatórios (transportadora pela placa) e nas abas do VPO
+  function modAoAbrir(id){
+    if (id === "auditoria") audCarregar();
+    else if (id === "dados") frtCarregar();
+    else if (id === "operacoes"){ if (!FRT.d) frtCarregar(); oprCarregar(); }
+    else if (id === "relatorios"){ if (!FRT.d) frtCarregar(); relCarregar(); }
+    else if (id === "vpo"){ if (!FRT.d) frtCarregar(); else if (/^t:|^semcad$/.test(VPO_ABA)) vptCarregar(); }
   }
 
   window.__app = { syncNow: syncNow, takeSnap: takeSnap, progRefresh: progRefresh, presPeers: function(){ return PRES.peers; }, presStatus: function(){ return PRES.status; } };

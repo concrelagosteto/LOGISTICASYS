@@ -146,6 +146,7 @@
   .mp-dia:first-child{border-top:none;}
   .mp-dia-cab{display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:12px 18px 6px; font-size:13px; font-weight:700;}
   .mp-linha{padding:8px 18px 12px; display:flex; flex-direction:column; gap:6px;}
+  .mp-cancelado b{text-decoration:line-through; color:var(--text-muted, #64748b);}
   .mp-topo{display:flex; flex-wrap:wrap; gap:8px; align-items:center; font-size:13.5px;}
   .mp-cargas{display:flex; flex-direction:column; gap:4px; padding-left:4px;}
   .mp-carga{display:flex; flex-wrap:wrap; gap:8px; align-items:center; font-size:12.5px; color:var(--text-muted);}
@@ -519,12 +520,20 @@
     (mp.pedidos || []).forEach(function(p){ (p.linhas || []).forEach(function(l){
       var d = String(l.data_desejada).slice(0, 10); (porData[d] = porData[d] || []).push({ l: l, p: p });
     }); });
+    (mp.cancelados || []).forEach(function(c){ var d = String(c.data_desejada || "").slice(0, 10); if (d) (porData[d] = porData[d] || []).push({ canc: c }); });
     var datas = Object.keys(porData).sort(function(a, b){ var fa = a >= hoje, fb = b >= hoje; if (fa !== fb) return fa ? -1 : 1; return fa ? (a < b ? -1 : 1) : (a < b ? 1 : -1); });
     if (!datas.length) h += '<div class="centro">Nenhum pedido nos últimos 30 dias.</div>';
     datas.forEach(function(d){
       var itens = porData[d], futuro = d >= hoje;
       h += '<div class="mp-dia"><div class="mp-dia-cab">' + esc(fmtData(d)) + (d === hoje ? ' <span class="badge info">hoje</span>' : "") + (!futuro ? ' <span class="badge neutral">já passou</span>' : "") + '</div>';
       itens.forEach(function(it){
+        if (it.canc){
+          var c = it.canc, cl = c.linha || {};
+          h += '<div class="mp-linha mp-cancelado"><div class="mp-topo"><b>' + txtLinha(cl.material, cl.carretas, cl.periodo, cl.fabrica) + '</b><span class="badge danger">✖ Pedido cancelado</span>' +
+            '<span class="faint" style="font-size:11.5px">pela Logística em ' + esc(fmtDiaHora(c.em)) + '</span></div>' +
+            (c.motivo ? '<span class="muted">Motivo: “' + esc(c.motivo) + '”</span>' : "") + '</div>';
+          return;
+        }
         var l = it.l, p = it.p, q = (l.prog && l.prog.qtd) || 0, car = l.carretas, pend = pendPorLinha[l.id];
         var st = q === 0 ? (futuro ? '<span class="badge neutral">⏳ Aguardando programação</span>' : '<span class="badge danger">Não programado</span>')
                : (q >= car ? '<span class="badge success">🔒 Programado</span>' : '<span class="badge warning">🔒 Programado parcial (' + q + ' de ' + car + ')</span>');
