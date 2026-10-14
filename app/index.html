@@ -898,7 +898,9 @@
       </div>
       <div class="nav-group" id="navAdm" data-group="adm" hidden>
         <div class="nav-group-label" data-toggle="adm"><span class="nav-group-chevron">▾</span>Administração</div>
-        <button class="nav-item" data-view="adm"><span class="ic">🔐</span>Adm</button>
+        <button class="nav-item" data-view="adm" id="navItemAdm"><span class="ic">🔐</span>Adm</button>
+        <button class="nav-item" data-view="relatorios"><span class="ic">📈</span>Relatórios</button>
+        <button class="nav-item" data-view="auditoria"><span class="ic">🔍</span>Auditoria</button>
       </div>
       <div class="nav-group" id="navOutros" data-group="outros">
         <div class="nav-group-label" data-toggle="outros"><span class="nav-group-chevron">▾</span>Outros</div>
@@ -1429,8 +1431,6 @@
   var NAV = [
     {id:"consultas", label:"Consultas", icon:"🔎"},
     {id:"dashboard", label:"Dashboard", icon:"📊"},
-    {id:"relatorios", label:"Relatórios", icon:"📈"},
-    {id:"auditoria", label:"Auditoria", icon:"🔍"},
     {id:"configuracoes", label:"Configurações", icon:"⚙️"}
   ];
   /* Módulos ainda em definição (telas com dados de exemplo) — grupo "Em breve". */
@@ -1460,8 +1460,8 @@
     operacoes:"Cimento <b>›</b> Controle <b>›</b> Operação do dia — pedido, programação, nota e descarga de cada carga",
     exececoes:"Em breve <b>›</b> Itens que exigem intervenção humana (exemplo)",
     dados:"Base de Dados <b>›</b> Transportadoras e frota — veículos, eixos e motoristas",
-    relatorios:"Outros <b>›</b> Relatórios — pedido × programado × entregue",
-    auditoria:"Outros <b>›</b> Auditoria — documentos e histórico de alterações",
+    relatorios:"Administração <b>›</b> Relatórios — pedido × programado × entregue",
+    auditoria:"Administração <b>›</b> Auditoria — documentos e histórico de alterações",
     configuracoes:"Outros <b>›</b> Configurações — aparência e perfil",
     adm:"Administração <b>›</b> Usuários, senhas e segurança — somente administrador"
   };
@@ -1788,7 +1788,9 @@
   function saveCollapsedGroups(state){
     try { localStorage.setItem(NAV_COLLAPSE_KEY, JSON.stringify(state)); } catch (e){}
   }
-  var navCollapsed = loadCollapsedGroups();
+  // Ao abrir o site, todos os grupos do menu começam recolhidos (clique no nome do grupo para abrir).
+  var navCollapsed = {};
+  document.querySelectorAll(".nav-group[data-group]").forEach(function(g){ navCollapsed[g.dataset.group] = true; });
   function applyNavCollapse(){
     document.querySelectorAll(".nav-group[data-group]").forEach(function(g){
       g.classList.toggle("collapsed", !!navCollapsed[g.dataset.group]);
@@ -5966,11 +5968,13 @@
     ["sem “concrelagos”, “senha” ou sequências (123456, qwerty…)", function(s){ return !/(concrelagos|senha|password|123456|qwerty|abcdef)/i.test(s); }]
   ];
   function admInit(){
-    var ehAdm = !!ME && ME.papel === "admin";
-    el("navAdm").hidden = !ehAdm;
-    if (!ehAdm && el("view-adm").classList.contains("active")) showView("programacao-cimento");
+    // Administração: Adm só para o administrador; Relatórios e Auditoria para administrador e operadores da Logística
+    var ehAdm = !!ME && ME.papel === "admin", ehLog = ehAdm || (!!ME && ME.papel === "operador");
+    el("navAdm").hidden = !ehLog; el("navItemAdm").style.display = ehAdm ? "" : "none";
+    var ativa = ["adm", "relatorios", "auditoria"].filter(function(v){ return el("view-" + v).classList.contains("active"); })[0];
+    if ((ativa === "adm" && !ehAdm) || (ativa && !ehLog)) showView("programacao-cimento");
   }
-  document.querySelector("#navAdm .nav-item").addEventListener("click", function(){ showView("adm"); });
+  document.querySelectorAll("#navAdm .nav-item").forEach(function(b){ b.addEventListener("click", function(){ showView(b.dataset.view); }); });
   function admSenhaAleatoria(){
     var L = "abcdefghijkmnpqrstuvwxyz", U = "ABCDEFGHJKLMNPQRSTUVWXYZ", N = "23456789", S = "!?#@%&*-_+=", all = L + U + N + S;
     var buf = new Uint32Array(20); crypto.getRandomValues(buf);
@@ -7898,7 +7902,7 @@
     AUD.carregando = true; AUD.msg = ""; paintAuditoria();
     var r; try { r = await sb.rpc("auditoria_documentos_listar", { p_de: AUD.de, p_ate: AUD.ate }); } catch (e) { r = { error: e }; }
     if (r.error){ AUD.msg = dbErr(r.error); AUD.ruim = true; } else AUD.d = Array.isArray(r.data) ? r.data : [];
-    if (ME.papel === "admin"){
+    if (modPodeEditar()){
       var rh; try { rh = await sb.rpc("auditoria_historico", { p_de: AUD.de, p_ate: AUD.ate, p_tabela: AUD.tabela || null, p_limite: 1000 }); } catch (e) { rh = { error: e }; }
       if (rh.error){ AUD.msg = dbErr(rh.error); AUD.ruim = true; } else AUD.h = rh.data || { tabelas: [], itens: [] };
     }
@@ -7907,7 +7911,7 @@
   function audLinhaTxt(l){ l = l || {}; return solTxtLinha(l.material, l.carretas, l.periodo, l.fabrica); }
   function paintAuditoria(){
     var v = el("view-auditoria"); if (!v) return;
-    var adm = ME && ME.papel === "admin";
+    var adm = modPodeEditar();   // histórico: administrador e operadores
     if (!adm) AUD.aba = "docs";
     var h = '<div class="vpo-abas" role="tablist"><button type="button" class="vpo-aba' + (AUD.aba === "docs" ? " on" : "") + '" data-aud="aba" data-k="docs">📄 Documentos</button>' +
       (adm ? '<button type="button" class="vpo-aba' + (AUD.aba === "hist" ? " on" : "") + '" data-aud="aba" data-k="hist">🕘 Histórico de alterações</button>' : "") + '</div>';
@@ -8439,6 +8443,7 @@
   })();
   // a frota é usada também na Operação/Relatórios (transportadora pela placa) e nas abas do VPO
   function modAoAbrir(id){
+    if ((id === "auditoria" || id === "relatorios") && !modPodeEditar()) return;
     if (id === "auditoria") audCarregar();
     else if (id === "dados") frtCarregar();
     else if (id === "operacoes"){ if (!FRT.d) frtCarregar(); oprCarregar(); }
