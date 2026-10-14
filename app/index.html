@@ -343,7 +343,7 @@
   .cc-tbl td.cc-prog{background:rgba(217,119,6,.13);} .cc-tbl td.cc-pend{background:rgba(225,29,72,.14);}
   .cc-troca{font-weight:700;} .cc-sub{display:block; font-size:10.5px; color:var(--text-faint); margin-top:3px;}
   .cc-tag{display:inline-block; font-size:9.5px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; padding:1px 7px; border-radius:99px; margin-left:6px; vertical-align:1px;}
-  .cc-tag.prog{background:var(--warning-soft); color:var(--warning);} .cc-tag.pend{background:var(--danger-soft); color:var(--danger);}
+  .cc-tag.prog{background:var(--warning-soft); color:var(--warning);} .cc-tag.pend{background:var(--danger-soft); color:var(--danger);} .cc-tag.ok{background:var(--success-soft); color:var(--success);}
   .cc-feita{margin-left:6px; background:var(--success-soft); color:var(--success); border:1px solid transparent; border-radius:6px; padding:2px 8px; font-size:11.5px; font-weight:700; cursor:pointer; font-family:inherit;}
   .cc-feita:hover{border-color:var(--success);}
   .cc-tbl td.cc-clic{cursor:pointer;} .cc-tbl td.cc-clic:hover{box-shadow:inset 0 0 0 1px var(--accent);}
@@ -7169,6 +7169,7 @@
   async function siloCarregar(){
     if (!ME || !sb) return;
     SILO.carregando = !SILO.d; siloPintar();
+    if (ME.papel !== "leitura"){ try { await sb.rpc("cimento_trocas_aplicar"); } catch (e){ } }   // trocas confirmadas cujo dia chegou viram o cimento atual
     var r; try { r = await sb.rpc("cimento_controle_listar"); } catch (e){ r = { error: e }; }
     SILO.carregando = false;
     if (r.error){ SILO.msg = dbErr(r.error); SILO.ruim = true; }
@@ -7259,8 +7260,8 @@
         h += '<td class="cc-ini cc-c cc-clic' + cls + '"' + q("c") + ((s.por || s.planilha) ? ' title="' + esc((s.planilha ? "Na planilha: " + s.planilha : "") + (s.planilha && s.por ? " · " : "") + (s.por ? "Atualizado por " + s.por : "")) + '"' : "") + '>' +
             (inl === "c" ? ctl("c") : ccChip(s.cimento, s.mat) + (s.desde ? '<span class="cc-sub">desde ' + ccDataCurta(s.desde) + '</span>' : "")) + '</td>' +
           '<td class="cc-t cc-clic' + cls + '"' + q("t") + '>' + (inl === "t" ? ctl("t") : s.troca ? '<span class="cc-troca">→</span> ' + ccChip(s.troca, s.troca_mat) : '<span class="faint">NÃO</span>') + '</td>' +
-          '<td class="cc-d' + (s.troca ? " cc-clic" : "") + cls + '"' + (s.troca ? q("d") : "") + '>' + (inl === "d" ? ctl("d") : s.troca ? (s.data ? ccDataCurta(s.data) : '<span class="faint">sem data</span>') + '<div class="cc-acao"><span class="cc-tag ' + e + '">' + (e === "prog" ? "programada" : "pendente") + '</span>' +
-            (pode ? '<button type="button" class="cc-feita" data-cc="feita" data-u="' + esc(u.usina_id) + '" data-s="' + k + '" title="A troca aconteceu: passa para o cimento atual">✔ Feita</button>' : "") + '</div>' : "") + '</td>';
+          '<td class="cc-d' + (s.troca ? " cc-clic" : "") + cls + '"' + (s.troca ? q("d") : "") + '>' + (inl === "d" ? ctl("d") : s.troca ? (s.data ? ccDataCurta(s.data) : '<span class="faint">sem data</span>') + '<div class="cc-acao"><span class="cc-tag ' + (s.confirmada ? "ok" : e) + '">' + (s.confirmada ? "✔ confirmada" : (e === "prog" ? "programada" : "pendente")) + '</span>' +
+            (pode ? '<button type="button" class="cc-feita" data-cc="feita" data-u="' + esc(u.usina_id) + '" data-s="' + k + '" title="Registrar a troca: data de hoje/passada = feita agora; data futura = confirmada para o dia em que o cimento chega">' + (s.confirmada ? "Mudar data" : "✔ Feita") + '</button>' : "") + '</div>' : "") + '</td>';
       });
       var ab = !!SILO.hist[u.usina_id];
       h += '<td class="cc-ini cc-obs">' + (u.obs ? esc(u.obs) : "") + '</td><td><div class="adm-acoes">' + (pode ? '<button class="btn-ghost" data-cc="editar" data-u="' + esc(u.usina_id) + '" title="Editar ' + esc(u.usina) + '" aria-label="Editar ' + esc(u.usina) + '">✏️</button>' : "") +
@@ -7268,8 +7269,9 @@
       if (SILO.feita && SILO.feita.u === u.usina_id){
         var sf = u.slots[SILO.feita.s] || {};
         h += '<tr class="cc-edit-info"><td colspan="12"><div class="silo-form"><b style="flex:1 1 100%;font-size:13px">Troca feita — ' + esc(u.usina) + ' · Cimento ' + SILO.feita.s + ': ' + esc(sf.cimento || "—") + ' → ' + esc(sf.troca || "—") + '</b>' +
-          '<label>Data em que foi feita<input type="date" id="ccFeitaData" max="' + hoje + '" value="' + esc(SILO.feita.data) + '"></label>' +
-          '<div class="adm-acoes"><button class="btn-primary btn-inline" data-cc="feita-ok">Confirmar troca feita</button><button class="btn-ghost" data-cc="fechar">Cancelar</button></div>' +
+          '<label>Data da troca (hoje, passada ou o dia em que vai chegar)<input type="date" id="ccFeitaData" value="' + esc(SILO.feita.data) + '"></label>' +
+          '<p class="faint" style="flex:1 1 100%;margin:0;font-size:12px">Data futura: a troca fica <b>confirmada</b> e, nesse dia, o cimento novo passa a ser o atual sozinho. A Programação já usa o cimento novo a partir dessa data.</p>' +
+          '<div class="adm-acoes"><button class="btn-primary btn-inline" data-cc="feita-ok">' + (SILO.feita.data > hoje ? "Confirmar troca para " + esc(brDate(SILO.feita.data).slice(0, 5)) : "Confirmar troca feita") + '</button><button class="btn-ghost" data-cc="fechar">Cancelar</button></div>' +
           (SILO.feita.erro ? '<p style="flex:1 1 100%;margin:0;color:var(--danger);font-size:12.5px">' + esc(SILO.feita.erro) + '</p>' : "") + '</div></td></tr>';
       }
       if (ab){
@@ -7372,17 +7374,19 @@
       }
       if (a === "feita"){
         u = ccUsina(b.dataset.u); if (!u) return; var s0 = u.slots[b.dataset.s] || {}, hj = ccHoje();
-        SILO.feita = { u: u.usina_id, s: +b.dataset.s, data: s0.data && s0.data <= hj ? s0.data : hj }; SILO.ed = null; SILO.msg = ""; siloPintar();
+        SILO.feita = { u: u.usina_id, s: +b.dataset.s, data: s0.data || hj }; SILO.ed = null; SILO.msg = ""; siloPintar();
         var fd = el("ccFeitaData"); if (fd) fd.focus(); return;
       }
       if (a === "feita-ok"){
         var F = SILO.feita; if (!F) return;
         if (!F.data){ F.erro = "Informe a data em que a troca foi feita."; siloPintar(); return; }
-        if (F.data > ccHoje()){ F.erro = "A data da troca feita não pode ser no futuro."; siloPintar(); return; }
         b.disabled = true; u = ccUsina(F.u); var sx = (u && u.slots[F.s]) || {};
         var rf = await sb.rpc("cimento_troca_feita", { p_usina: F.u, p_slot: F.s, p_data: F.data });
         if (rf.error) return falha(rf.error, F);
-        SILO.msg = "Troca registrada: " + (u ? u.usina : "") + " · Cimento " + F.s + " agora é " + (sx.troca || "") + " (desde " + brDate(F.data) + ")."; SILO.ruim = false; SILO.feita = null; await siloCarregar(); return;
+        SILO.msg = F.data > ccHoje()
+          ? "Troca confirmada: " + (u ? u.usina : "") + " · Cimento " + F.s + " passa a ser " + (sx.troca || "") + " em " + brDate(F.data) + " (sozinho, nesse dia)."
+          : "Troca registrada: " + (u ? u.usina : "") + " · Cimento " + F.s + " agora é " + (sx.troca || "") + " (desde " + brDate(F.data) + ").";
+        SILO.ruim = false; SILO.feita = null; await siloCarregar(); return;
       }
       if (a === "salvar"){
         ler(); var E = SILO.ed; if (!E) return; u = ccUsina(E.u); if (!u) return;
