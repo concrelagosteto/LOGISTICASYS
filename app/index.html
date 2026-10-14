@@ -155,7 +155,9 @@
   .vpo-tbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:0 0 12px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);} .vpo-tbar .grow{flex:1;}
   .vpo-novo{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:-4px 0 14px; padding:10px 14px; background:var(--surface-2); border:1px solid var(--accent); border-radius:var(--radius);}
   .vpo-novo input{padding:7px 9px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text); font:inherit; font-size:13px;}
-  .vpo-vin[data-vf=motorista]{min-width:220px;} .vpo-vin[data-vf=carreta]{min-width:160px;} .vpo-vin[data-vf=fabrica]{min-width:110px;}
+  .vpo-ro[data-vf=motorista]{min-width:220px;} .vpo-ro[data-vf=carreta]{min-width:160px;} .vpo-ro[data-vf=fabrica]{min-width:110px;}
+  .vpo-ro{cursor:pointer; text-overflow:ellipsis;} .vpo-ro:focus{outline:2px solid var(--success); outline-offset:-2px; border-color:transparent !important; background:var(--success-soft) !important;}
+  #vpoBlocks td{position:relative;} #vpoBlocks td.copiado::after{content:"📋 copiado"; position:absolute; right:6px; top:2px; font-size:10.5px; font-weight:700; color:var(--success); background:var(--surface); padding:0 4px; border-radius:4px; pointer-events:none;}
   .vpo-placa{font-weight:700; letter-spacing:.02em; cursor:copy; min-width:96px;} td.usina-ok .vpo-placa, td.usina-conferir .vpo-placa{background:transparent;}
   .vpo-conf{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:-4px 0 14px; padding:10px 14px; background:var(--warning-soft); border:1px solid var(--warning); border-radius:var(--radius); font-size:13px;} .vpo-conf .grow{flex:1;}
   .vpo-erro{color:var(--danger); font-size:12.5px; font-weight:600;}
@@ -4996,7 +4998,7 @@
   function renderVpo(){
     el("view-vpo").innerHTML = vpoAbasHtml() +
       '<div class="vpo-painel" data-vpop="dia">' +
-      '<div class="card banner" style="margin-bottom:16px;">Uma aba por transportadora, no formato do <b>Controle Claudir</b>: placa, motorista, carreta(s) e fábrica vêm da frota (Base de Dados › Transportadoras e frota) e podem ser corrigidos aqui mesmo.<br/>' +
+      '<div class="card banner" style="margin-bottom:16px;">Uma aba por transportadora, no formato do <b>Controle Claudir</b>: placa, motorista, carreta(s) e fábrica vêm da frota — para mudar, use <b>Frota completa</b> (Base de Dados › Transportadoras e frota). <b>Clique em qualquer célula para copiar</b> (Tab vai para a direita, Enter desce).<br/>' +
       'Em <b>Usina 1</b> e <b>Usina 2</b>, <b>digite parte do nome</b> da usina ou da fábrica e escolha o roteiro na lista. Quando a placa está na Programação do dia, o roteiro já vem preenchido (📋, contorno verde). O status é sugerido pelo pedágio do roteiro: <span class="badge success">sem pedágio → Feito</span> <span class="badge warning">incerto → confirmar</span> <span class="badge neutral">com pedágio → pendente</span>. Os roteiros ficam na aba <b>Rotas e pedágio</b>.</div>' +
       '<div id="vpoStats"></div>' +
       '<div class="card" style="margin-bottom:16px;"><div class="filters" style="align-items:center;">' +
@@ -5101,9 +5103,9 @@
     return { key: null, txt: txt, auto: false };
   }
   function vpoTranspAtual(){ return VPO_TRANSP && FRT.d ? (FRT.d.transportadoras || []).find(function(t){ return t.id === VPO_TRANSP; }) : null; }
+  // dados do veículo no VPO: só leitura (muda em Base de Dados › Transportadoras e frota); clicar copia
   function vpoVeicCel(v, f, ph, iso){
-    var ro = !modPodeEditar(), lista = f === "motorista" ? ' list="dlVpoMot"' : (f === "carreta" ? ' list="dlVpoCar"' : "");
-    return '<input class="vpo-cel vpo-vin" data-iso="' + iso + '" data-vid="' + esc(v.id) + '" data-vf="' + f + '" value="' + esc(v[f] || "") + '" placeholder="' + esc(ph) + '"' + lista + ' autocomplete="off"' + (ro ? " readonly" : "") + '>';
+    return '<input class="vpo-cel vpo-ro" readonly data-iso="' + iso + '" data-vid="' + esc(v.id) + '" data-vf="' + f + '" value="' + esc(v[f] || "") + '" placeholder="—" title="Clique para copiar">';
   }
   // listas para escolher motorista / carreta que já estão em outra placa (mostra onde estão hoje)
   function vpoListasFrota(){
@@ -5134,6 +5136,14 @@
     if (!a || !a.closest || !a.closest("#vpoBlocks")) return null;
     var b = a.closest(".prog-block"), d = a.dataset, sel = d.vid ? '[data-vid="' + d.vid + '"][data-vf="' + d.vf + '"]' : (d.key ? '[data-key="' + d.key + '"][data-field="' + d.field + '"]' : null);
     return sel && b ? '.prog-block[data-iso="' + b.dataset.iso + '"] ' + sel : null;
+  }
+  // copia o conteúdo da célula (para colar na Repom) e mostra "copiado"
+  function vpoCopiar(t){
+    var ok = function(){ var td = t.closest("td"); if (!td) return; td.classList.remove("copiado"); void td.offsetWidth; td.classList.add("copiado"); clearTimeout(td._tc); td._tc = setTimeout(function(){ td.classList.remove("copiado"); }, 1200); };
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t.value).then(ok, function(){ try { if (document.execCommand("copy")) ok(); } catch (e) { } });
+      else if (document.execCommand("copy")) ok();
+    } catch (e) { }
   }
   function vpoRepintar(){
     var d = vpoFocoDesc(document.activeElement); paintVpoBlocks();
@@ -5184,7 +5194,7 @@
         var placa, motorista, carretas, fabrica;
         if (v){
           // a placa é um campo só de leitura: dá para clicar / chegar com Tab e copiar (Ctrl+C), como na planilha
-          placa = '<td class="cell-strong '+statusClass+'" style="white-space:nowrap;padding:4px 6px;"><input class="vpo-cel vpo-placa" readonly data-iso="'+iso+'" data-vid="'+esc(v.id)+'" data-vf="cavalo" value="'+esc(v.cavalo)+'" title="Clique e Ctrl+C para copiar">'+(v.obs ? '<div class="faint" style="font-weight:400;font-size:11px;padding-left:8px">'+esc(v.obs)+'</div>' : "")+'</td>';
+          placa = '<td class="cell-strong '+statusClass+'" style="white-space:nowrap;padding:4px 6px;"><input class="vpo-cel vpo-ro vpo-placa" readonly data-iso="'+iso+'" data-vid="'+esc(v.id)+'" data-vf="cavalo" value="'+esc(v.cavalo)+'" title="Clique para copiar">'+(v.obs ? '<div class="faint" style="font-weight:400;font-size:11px;padding-left:8px">'+esc(v.obs)+'</div>' : "")+'</td>';
           motorista = '<td style="padding:4px 6px;">'+vpoVeicCel(v, "motorista", "Motorista", iso)+'</td>';
           carretas = '<td style="padding:4px 6px;">'+vpoVeicCel(v, "carreta", "Carreta(s)", iso)+'</td>';
           fabrica = '<td style="padding:4px 6px;">'+vpoVeicCel(v, "fabrica", "Fábrica", iso)+'</td>';
@@ -5224,15 +5234,8 @@
 
     var bar = "";
     if (T){
-      bar = '<div class="vpo-tbar"><b>🚛 ' + esc(T.nome) + '</b><span class="faint">' + frota.length + ' veículo(s) ativo(s) — na ordem da lista da transportadora</span><span class="grow"></span>' +
+      bar = '<div class="vpo-tbar"><b>🚛 ' + esc(T.nome) + '</b><span class="faint">' + frota.length + ' veículo(s) ativo(s) · clique numa célula para copiar · motorista, carreta e fábrica mudam na Frota completa</span><span class="grow"></span>' +
         (modPodeEditar() ? '<button class="btn-ghost" data-vpo="novo-v">＋ Adicionar veículo</button>' : "") + '<button class="btn-ghost" data-vpo="frota" title="Abrir a frota (eixos, tipo, ordem, ativo)">Frota completa ›</button></div>';
-      if (VPO_CONF){
-        var cB = (FRT.d.veiculos || []).find(function(x){ return x.id === VPO_CONF.outro; }), cA = (FRT.d.veiculos || []).find(function(x){ return x.id === VPO_CONF.veic; });
-        if (cB && cA) bar += '<div class="vpo-conf" role="alert">⚠️ ' + (VPO_CONF.campo === "motorista" ? "O motorista" : "A carreta") + ' <b>' + esc(VPO_CONF.valor) + '</b> foi para a placa <b>' + esc(cA.cavalo) + '</b>, mas também está na placa <b>' + esc(cB.cavalo) + '</b>' + (cB.transportadora_id !== cA.transportadora_id ? " (" + esc(frtTranspNome(cB.transportadora_id)) + ")" : "") + '.' +
-          '<span class="grow"></span><button class="btn-primary btn-inline" data-vpo="conf-tirar">Tirar da ' + esc(cB.cavalo) + '</button>' +
-          (VPO_CONF.antigo ? '<button class="btn-ghost" data-vpo="conf-trocar" title="As duas placas trocam">Trocar: ' + esc(cB.cavalo) + ' fica com ' + esc(VPO_CONF.antigo) + '</button>' : "") +
-          '<button class="btn-ghost" data-vpo="conf-x">Deixar nas duas</button></div>';
-      }
       if (VPO_NOVO && modPodeEditar()) bar += '<div class="vpo-novo"><b>Novo veículo — ' + esc(T.nome) + '</b><input id="vpoNvCavalo" placeholder="Placa do cavalo"><input id="vpoNvCarreta" placeholder="Carreta(s), separadas por /"><input id="vpoNvMot" placeholder="Motorista"><input id="vpoNvFab" placeholder="Fábrica (ex.: Nassau)">' +
         '<input id="vpoNvEi" type="number" min="0" max="20" placeholder="Eixos ida" style="width:90px"><input id="vpoNvEv" type="number" min="0" max="20" placeholder="Eixos volta" style="width:96px">' +
         '<button class="btn-primary btn-inline" data-vpo="novo-salvar">Adicionar</button><button class="btn-ghost" data-vpo="novo-x">Cancelar</button>' + (VPO_NOVO.erro ? '<span class="vpo-erro">' + esc(VPO_NOVO.erro) + '</span>' : "") + '</div>';
@@ -5253,27 +5256,13 @@
     if (mudou && typeof scheduleSync === "function") scheduleSync();
     if (typeof agendaFit === "function") agendaFit();
   }
-  var VPO_NOVO = null, VPO_CONF = null;
+  var VPO_NOVO = null;
   // eventos da tabela do VPO (uma vez só; a tabela é redesenhada a cada mudança)
   (function(){
     var box = el("view-vpo"); if (!box) return;
     box.addEventListener("change", async function(ev){
       var t = ev.target; if (!t.closest || !t.closest("#vpoBlocks")) return;
-      if (t.dataset.vid){   // dado do veículo (motorista, carreta, fábrica) → salva na frota
-        var v = (FRT.d.veiculos || []).find(function(x){ return x.id === t.dataset.vid; }); if (!v || !modPodeEditar() || t.readOnly) return;
-        var campo = t.dataset.vf, antigo = v[campo] || "", novo = t.value.trim();
-        if (novo === antigo) return;
-        v[campo] = novo;
-        var erro = await vpoSalvarVeic(v);
-        if (erro){ v[campo] = antigo; t.classList.add("erro"); t.title = erro; return; }
-        t.classList.remove("erro"); t.title = "Salvo na frota";
-        // trocou motorista/carreta de placa: o mesmo motorista/carreta não fica em duas placas sem você decidir
-        var dono = (campo === "motorista" || campo === "carreta") && novo ? vpoDonoDe(campo, novo, v.id) : null;
-        if (dono){ VPO_CONF = { campo: campo, valor: novo, veic: v.id, outro: dono.id, antigo: antigo }; vpoRepintar(); }
-        else if (VPO_CONF) { VPO_CONF = null; vpoRepintar(); }
-        else document.querySelectorAll('#vpoBlocks [data-vid="' + v.id + '"][data-vf="' + campo + '"]').forEach(function(x){ if (x !== t) x.value = novo; });   // mesmo veículo nos outros dias
-        return;
-      }
+      if (t.dataset.vid) return;   // dados do veículo mudam em Transportadoras e frota
       if (!t.dataset.iso || ME.papel === "leitura") return;
       var entry = vpoGetOrCreateEntry(t.dataset.iso, t.dataset.key), f = t.dataset.field;
       if (f === "usina1" || f === "usina2"){
@@ -5290,7 +5279,16 @@
     });
     // jeito planilha: clicar ou chegar com Tab seleciona o campo inteiro (Ctrl+C copia); Tab vai para a direita,
     // Enter / ↓ descem para a linha de baixo, Shift+Enter / ↑ sobem.
-    box.addEventListener("focusin", function(ev){ var t = ev.target; if (t.matches && t.matches("#vpoBlocks input.vpo-cel, #vpoBlocks input.vpo-rota-in")){ t._recem = true; try { t.select(); } catch (e) { } } });
+    box.addEventListener("focusin", function(ev){
+      var t = ev.target; if (!t.matches || !t.matches("#vpoBlocks input.vpo-cel, #vpoBlocks input.vpo-rota-in")) return;
+      t._recem = true; try { t.select(); } catch (e) { }
+      if (t.classList.contains("vpo-ro") && t.value) vpoCopiar(t);
+    });
+    // clicar em qualquer ponto da célula também seleciona o campo dela
+    box.addEventListener("mousedown", function(ev){
+      var td = ev.target.closest && ev.target.closest("#vpoBlocks td"); if (!td || ev.target.matches("input, select, button, option")) return;
+      var i = td.querySelector("input.vpo-cel, input.vpo-rota-in"); if (i){ ev.preventDefault(); i.focus(); }
+    });
     box.addEventListener("mouseup", function(ev){ var t = ev.target; if (t._recem){ t._recem = false; ev.preventDefault(); } });
     box.addEventListener("keydown", function(ev){
       var t = ev.target; if (!t.matches || !t.matches("#vpoBlocks input.vpo-cel, #vpoBlocks input.vpo-rota-in")) return;
@@ -5317,14 +5315,6 @@
       if (acao === "frota"){ showView("dados"); FRT.aberto = VPO_TRANSP; paintFrota(); return; }
       if (acao === "novo-v"){ VPO_NOVO = {}; paintVpoBlocks(); var c = el("vpoNvCavalo"); if (c) c.focus(); return; }
       if (acao === "novo-x"){ VPO_NOVO = null; paintVpoBlocks(); return; }
-      if (acao === "conf-x"){ VPO_CONF = null; paintVpoBlocks(); return; }
-      if (acao === "conf-tirar" || acao === "conf-trocar"){
-        var c = VPO_CONF, b = c && (FRT.d.veiculos || []).find(function(x){ return x.id === c.outro; }); if (!b) return;
-        var antes = b[c.campo]; b[c.campo] = acao === "conf-trocar" ? c.antigo : "";
-        var er = await vpoSalvarVeic(b);
-        if (er){ b[c.campo] = antes; alert(er); return; }
-        VPO_CONF = null; paintVpoBlocks(); return;
-      }
       if (acao === "novo-salvar"){
         var n = function(id){ var x = el(id).value; return x === "" ? null : parseInt(x, 10); };
         var r; try { r = await sb.rpc("veiculo_salvar_v2", { p_id: null, p_transportadora: VPO_TRANSP, p_cavalo: el("vpoNvCavalo").value, p_carreta: el("vpoNvCarreta").value, p_tipo: null,
@@ -7978,7 +7968,7 @@
   function frtNorm(s){ return String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); }
   function frtVeicPorPlaca(placa){ var p = frtNorm(placa); if (!p || !FRT.d) return null; return (FRT.d.veiculos || []).find(function(x){ return frtNorm(x.cavalo) === p; }) || null; }
   function frtTranspNome(id){ var t = FRT.d && (FRT.d.transportadoras || []).find(function(x){ return x.id === id; }); return t ? t.nome : ""; }
-  function frtInp(f, val, ph, w, tipo){ var ro = !modPodeEditar(); return '<input class="frt-in" data-frv="' + f + '" value="' + esc(val == null ? "" : val) + '" placeholder="' + esc(ph || "") + '"' + (tipo ? ' type="' + tipo + '" min="0" max="20"' : "") + (w ? ' style="width:' + w + '"' : "") + (ro ? " readonly" : "") + '>'; }
+  function frtInp(f, val, ph, w, tipo){ var ro = !modPodeEditar(); return '<input class="frt-in" data-frv="' + f + '"' + (f === "motorista" ? ' list="dlVpoMot" autocomplete="off"' : (f === "carreta" ? ' list="dlVpoCar" autocomplete="off"' : "")) + ' value="' + esc(val == null ? "" : val) + '" placeholder="' + esc(ph || "") + '"' + (tipo ? ' type="' + tipo + '" min="0" max="20"' : "") + (w ? ' style="width:' + w + '"' : "") + (ro ? " readonly" : "") + '>'; }
   function frtLinhaV(x){
     var ed = modPodeEditar();
     return '<tr data-vid="' + esc(x.id || "novo") + '"' + (x.ativo === false ? ' class="frt-inativo"' : "") + '><td>' + frtInp("cavalo", x.cavalo, "Placa do cavalo", "110px") + '</td><td>' + frtInp("carreta", x.carreta, "Placa(s) da carreta", "150px") + '</td>' +
@@ -8000,7 +7990,8 @@
     var ed = modPodeEditar(), D = FRT.d;
     var h = '<div class="card" style="margin-bottom:16px"><div class="card-head"><div><h2>🚛 Transportadoras e frota</h2><p>Cada transportadora com os veículos dela: cavalo, carreta(s), eixos (ida e volta, para o VPO) e motorista. A placa do cavalo liga a frota à Programação, à Operação e aos Relatórios.' + (ed ? " Tudo editável: alterou, salvou." : "") + '</p></div>' +
       '<div class="adm-acoes">' + (ed ? '<button class="btn-ghost" data-frt="nova-t">＋ Transportadora</button><label class="btn-ghost frt-imp" title="Planilha com blocos por transportadora: CAVALO · CARRETA · tipo · EIXOS IDA · EIXOS VOLTA · Motorista">📥 Importar planilha de placas<input type="file" accept=".xlsx,.xls" data-frt="importar" hidden></label>' : "") + '</div></div>' +
-      '<div class="mod-periodo"><input type="search" data-frt="q" placeholder="Buscar placa ou motorista em todas as transportadoras" value="' + esc(FRT.q) + '" style="flex:1 1 280px"></div>' + modMsgHtml(FRT) + '</div>';
+      '<div class="mod-periodo"><input type="search" data-frt="q" placeholder="Buscar placa ou motorista em todas as transportadoras" value="' + esc(FRT.q) + '" style="flex:1 1 280px"></div>' + modMsgHtml(FRT) + '</div>' + frtConfHtml();
+    vpoListasFrota();
     if (FRT.novaT && ed) h += '<div class="card" style="margin-bottom:16px"><div class="adm-pad frt-nova"><b>Nova transportadora</b><input id="frtNovaNome" placeholder="Nome" maxlength="80"><input id="frtNovaContato" placeholder="Contato (telefone/WhatsApp)" maxlength="80"><button class="btn-primary btn-inline" data-frt="salvar-t">Salvar</button><button class="btn-ghost" data-frt="cancelar-t">Cancelar</button></div></div>';
     if (!D){ v.innerHTML = h + '<div class="adm-pad faint">' + (FRT.carregando ? "Carregando…" : "Sem dados ainda.") + '</div>'; return; }
     var q = frtNorm(FRT.q);
@@ -8041,11 +8032,26 @@
     FRT.msg = erro || okMsg || ""; FRT.ruim = !!erro;
     return !erro ? (r.data || {}) : null;
   }
-  async function frtSalvarV(tr){
+  async function frtSalvarV(tr, campo){
     var a = frtDadosLinha(tr);
     if (!a.p_id) return;   // linha nova só salva no botão Adicionar
+    var atual = (FRT.d.veiculos || []).find(function(x){ return x.id === a.p_id; }), antigo = atual && campo ? (atual[campo] || "") : "";
     var ok = await frtRpc("veiculo_salvar_v2", a, "Salvo.");
-    if (ok) await frtCarregar(); else paintFrota();
+    if (ok){
+      await frtCarregar();
+      // mudou motorista/carreta: se já está em outra placa, pergunta o que fazer com a outra
+      var novo = campo ? String(a["p_" + campo] || "").trim() : "", dono = (campo === "motorista" || campo === "carreta") && novo ? vpoDonoDe(campo, novo, a.p_id) : null;
+      FRT.conf = dono ? { campo: campo, valor: novo, veic: a.p_id, outro: dono.id, antigo: antigo } : null;
+      paintFrota();
+    } else paintFrota();
+  }
+  function frtConfHtml(){
+    var c = FRT.conf; if (!c || !FRT.d) return "";
+    var B = (FRT.d.veiculos || []).find(function(x){ return x.id === c.outro; }), A = (FRT.d.veiculos || []).find(function(x){ return x.id === c.veic; }); if (!A || !B) return "";
+    return '<div class="vpo-conf" role="alert">⚠️ ' + (c.campo === "motorista" ? "O motorista" : "A carreta") + ' <b>' + esc(c.valor) + '</b> foi para a placa <b>' + esc(A.cavalo) + '</b>, mas também está na placa <b>' + esc(B.cavalo) + '</b> (' + esc(frtTranspNome(B.transportadora_id)) + ').' +
+      '<span class="grow"></span><button class="btn-primary btn-inline" data-frt="conf-tirar">Tirar da ' + esc(B.cavalo) + '</button>' +
+      (c.antigo ? '<button class="btn-ghost" data-frt="conf-trocar" title="As duas placas trocam">Trocar: ' + esc(B.cavalo) + ' fica com ' + esc(c.antigo) + '</button>' : "") +
+      '<button class="btn-ghost" data-frt="conf-x">Deixar nas duas</button></div>';
   }
   async function frtSalvarT(tid){
     var box = el("view-dados").querySelector('.fab-box[data-tid="' + tid + '"]'); if (!box) return;
@@ -8092,6 +8098,14 @@
       var a = b.dataset.frt, box = b.closest(".fab-box"), tid = box ? box.dataset.tid : null;
       if (a === "abrir"){ FRT.aberto = FRT.aberto === tid ? null : tid; FRT.novoV = false; FRT.sureDel = null; paintFrota(); return; }
       if (!modPodeEditar()) return;
+      if (a === "conf-x"){ FRT.conf = null; paintFrota(); return; }
+      if (a === "conf-tirar" || a === "conf-trocar"){
+        var c = FRT.conf, B = c && (FRT.d.veiculos || []).find(function(x){ return x.id === c.outro; }); if (!B) return;
+        B[c.campo] = a === "conf-trocar" ? c.antigo : "";
+        var er = await vpoSalvarVeic(B);
+        FRT.msg = er || (a === "conf-trocar" ? "Trocado: " + B.cavalo + " ficou com " + c.antigo + "." : "Tirado da placa " + B.cavalo + "."); FRT.ruim = !!er;
+        FRT.conf = null; await frtCarregar(); return;
+      }
       if (a === "nova-t"){ FRT.novaT = true; paintFrota(); var i = el("frtNovaNome"); if (i) i.focus(); }
       else if (a === "cancelar-t"){ FRT.novaT = false; paintFrota(); }
       else if (a === "salvar-t"){ var ok = await frtRpc("transportadora_salvar", { p_id: null, p_nome: el("frtNovaNome").value, p_contato: el("frtNovaContato").value, p_obs: null, p_ativo: true }, "Transportadora criada.");
@@ -8106,7 +8120,7 @@
       var t = ev.target;
       if (t.dataset.frt === "importar" && t.files && t.files[0]){ frtImportar(t.files[0]); t.value = ""; return; }
       if (!modPodeEditar()) return;
-      if (t.dataset.frv){ var tr = t.closest("tr"); if (tr && tr.dataset.vid !== "novo") frtSalvarV(tr); }
+      if (t.dataset.frv){ var tr = t.closest("tr"); if (tr && tr.dataset.vid !== "novo") frtSalvarV(tr, t.dataset.frv); }
       else if (t.dataset.frtt){ var box = t.closest(".fab-box"); if (box) frtSalvarT(box.dataset.tid); }
     });
     v.addEventListener("input", function(ev){ var t = ev.target; if (t.dataset.frt === "q"){ FRT.q = t.value; var pos = t.selectionStart; paintFrota(); var n = v.querySelector('[data-frt="q"]'); if (n){ n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) { } } } });
