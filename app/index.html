@@ -6420,7 +6420,7 @@
       if (!td.querySelector(".prog-tag.agora")) tr.classList.remove("prog-peer");
       var sl = SOL_PROG[iso + "|" + solNorm(key)];
       if (sl && sl.length){ var s3 = document.createElement("span"); s3.className = "prog-tag sol"; s3.textContent = "📥 " + sl.map(function(x){ return x.material + " ×" + x.carretas; }).join(", ");
-        var sugs = sl.map(function(x){ var f = ccFabricaPara(key, x.material, iso); return x.material + " → " + (f || "sem cimento definido no Controle de cimento (escolha a fábrica)"); });
+        var sugs = sl.map(function(x){ var f = x.fabrica || ccFabricaPara(key, x.material, iso); return x.material + " → " + (f || "sem cimento definido no Controle de cimento (escolha a fábrica)"); });
         s3.title = "Solicitado pela usina para este dia" + (sl.some(function(x){ return x.fora; }) ? " (inclui pedido fora do prazo — autorizado)" : "") + ".\nFábrica preenchida pelo Controle de cimento:\n" + sugs.join("\n"); td.appendChild(s3); }
       (SOL_ALT_PROG[iso + "|" + solNorm(key)] || []).forEach(function(a){
         var s4 = document.createElement("span"), ok = a.status === "aprovada";
@@ -6516,7 +6516,7 @@
   function solHoraC(x){ var d = new Date(x); return isNaN(d) ? "" : d.toLocaleTimeString("pt-BR", { timeZone: SOL_TZ, hour: "2-digit", minute: "2-digit" }); }
   function solDiaBR(iso){ var p = String(iso || "").slice(0, 10).split("-"); return p.length < 3 ? "" : p[2] + "/" + p[1] + "/" + p[0]; }
   function solDiaCurto(iso){ var p = String(iso || "").slice(0, 10).split("-"); return p.length < 3 ? "" : p[2] + "/" + p[1]; }
-  function solLinhasTxt(ls){ return (ls || []).map(function(l){ return esc(l.material) + " ×" + esc(l.carretas) + " → " + esc(solDiaCurto(l.data_desejada)) + (l.periodo ? " (" + ({ CEDO: "cedo", TARDE: "tarde", QUALQUER: "qualquer horário" }[l.periodo] || String(l.periodo).toLowerCase()) + ")" : ""); }).join("<br>"); }
+  function solLinhasTxt(ls){ return (ls || []).map(function(l){ return esc(l.material) + " ×" + esc(l.carretas) + " → " + esc(solDiaCurto(l.data_desejada)) + (l.periodo ? " (" + ({ CEDO: "cedo", TARDE: "tarde", QUALQUER: "qualquer horário" }[l.periodo] || String(l.periodo).toLowerCase()) + ")" : "") + (l.fabrica ? ' <span class="faint">· ' + esc(l.fabrica) + '</span>' : ""); }).join("<br>"); }
   function solSelo(env){ return env && env.fora_do_prazo ? '<span class="badge warning">⏱ Fora do prazo — autorizado</span>' : ""; }
   function solMais(dia, n){ var p = String(dia).split("-"); var d = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2] + n)); return d.toISOString().slice(0, 10); }
   function solPodeDecidir(){ return !!ME && (ME.papel === "admin" || ME.papel === "operador"); }
@@ -6645,11 +6645,11 @@
     el("solCorpo").innerHTML = h;
   }
   var SOL_PER = { CEDO: "cedo", TARDE: "tarde", QUALQUER: "qualquer horário" };
-  function solTxtLinha(m, c, per){ return esc(m) + " ×" + esc(c) + (per ? " (" + esc(SOL_PER[per] || String(per).toLowerCase()) + ")" : ""); }
+  function solTxtLinha(m, c, per, f){ return esc(m) + " ×" + esc(c) + (per ? " (" + esc(SOL_PER[per] || String(per).toLowerCase()) + ")" : "") + (f ? ' <span class="faint">· ' + esc(f) + '</span>' : ""); }
   function solTxtAlt(a){
     var an = a.antes || {}, dp = a.depois || {};
-    if (a.tipo === "cancelar") return "Cancelar " + solTxtLinha(an.material, an.carretas, an.periodo);
-    return solTxtLinha(an.material, an.carretas, an.periodo) + " → " + solTxtLinha(dp.material, dp.carretas, dp.periodo);
+    if (a.tipo === "cancelar") return "Cancelar " + solTxtLinha(an.material, an.carretas, an.periodo, an.fabrica);
+    return solTxtLinha(an.material, an.carretas, an.periodo, an.fabrica) + " → " + solTxtLinha(dp.material, dp.carretas, dp.periodo, dp.fabrica);
   }
   var SOL_ALT_TIPO = { cancelar: "Cancelamento", alterar: "Alteração", substituir: "Troca de material" };
   // Pedidos de alteração de linhas JÁ PROGRAMADAS: só a Logística decide
@@ -6686,7 +6686,7 @@
             '<div class="sol-cargas">' + (l.prog.cargas || []).map(function(c){ return '<b>' + esc(c.placa) + '</b> · ' + esc(c.fabrica || "fábrica a definir") + (c.nf_status === "descarregada" ? " · descarregada" : (c.nf_status === "emitida" ? " · NF " + esc(c.nf || "") : "")); }).join("<br>") + '</div>';
         }
         h += '<tr>' + (d.multi ? '<td class="muted">' + esc(solDiaBR(x.u.dia)) + '</td>' : "") + '<td class="cell-strong" style="white-space:nowrap">' + esc(solDiaBR(l.data_desejada)) + '</td><td class="cell-strong">' + esc(x.u.usina) + '</td>' +
-          '<td>' + solTxtLinha(l.material, l.carretas, l.periodo) + marcas + '</td>' + (programado ? '<td>' + pc + '</td>' : "") +
+          '<td>' + solTxtLinha(l.material, l.carretas, l.periodo, l.fabrica) + marcas + '</td>' + (programado ? '<td>' + pc + '</td>' : "") +
           '<td class="muted" style="white-space:nowrap">' + esc(solQuando(x.env.enviado_em)) + '<br><span class="faint">' + esc(x.env.por || x.env.origem || "") + '</span></td></tr>';
       });
       return h + '</tbody></table></div>';
@@ -6753,13 +6753,14 @@
   async function solProgCarregar(){
     if (!ME || !sb) return;
     var hoje = new Date(); var de = new Date(hoje.getTime() - 10 * 86400000).toISOString().slice(0, 10), ate = new Date(hoje.getTime() + 70 * 86400000).toISOString().slice(0, 10);
-    var r; try { r = await sb.rpc("solic_para_programacao_v2", { p_de: de, p_ate: ate }); } catch (e) { r = { error: e }; }
+    var r; try { r = await sb.rpc("solic_para_programacao_v3", { p_de: de, p_ate: ate }); } catch (e) { r = { error: e }; }
+    if (r.error){ try { r = await sb.rpc("solic_para_programacao_v2", { p_de: de, p_ate: ate }); } catch (e) { r = { error: e }; } }
     if (r.error){ try { r = await sb.rpc("solic_para_programacao", { p_de: de, p_ate: ate }); } catch (e) { return; } }
     if (r.error || !Array.isArray(r.data)) return;
     var m = {};
     r.data.forEach(function(x){
       var k = String(x.data_desejada).slice(0, 10) + "|" + solNorm(x.usina);
-      (m[k] = m[k] || []).push({ material: x.material, carretas: x.carretas, periodo: x.periodo || null, fora: !!x.fora_do_prazo });
+      (m[k] = m[k] || []).push({ material: x.material, fabrica: x.fabrica || null, carretas: x.carretas, periodo: x.periodo || null, fora: !!x.fora_do_prazo });
     });
     SOL_PROG = m;
     var aplicar = function(){ progAutoPreencher(); if (typeof progPintarSeguro === "function") progPintarSeguro(); };   // repinta: fábrica e período
@@ -6790,7 +6791,8 @@
   }
   function progFabricasSugeridas(iso, usina){
     var sl = SOL_PROG[iso + "|" + solNorm(usina)] || [], out = [];
-    sl.forEach(function(x){ var f = ccFabricaPara(usina, x.material, iso); for (var i = 0; i < (x.carretas || 1); i++) out.push(f); });
+    // a usina escolheu o cimento específico (fábrica) no pedido: vale esse; senão, o do Controle de cimento pelo tipo
+    sl.forEach(function(x){ var f = x.fabrica || ccFabricaPara(usina, x.material, iso); for (var i = 0; i < (x.carretas || 1); i++) out.push(f); });
     return out;
   }
   // Assim que a usina pede, a fábrica da linha dela já aparece preenchida na Programação (dias de hoje em diante).

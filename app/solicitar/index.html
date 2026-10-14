@@ -92,7 +92,7 @@
   .aviso input[type=text]{flex:1; min-width:180px; background:var(--surface); color:var(--text); border:1px solid var(--border-strong); border-radius:6px; padding:8px 10px; font-size:13px; font-family:inherit;}
 
   /* ---------- Editor de linhas ---------- */
-  .linhas-cab, .linha{display:grid; grid-template-columns:minmax(130px,1.2fr) minmax(90px,.6fr) minmax(150px,1fr) minmax(110px,.7fr) 40px; gap:10px; align-items:center;}
+  .linhas-cab, .linha{display:grid; grid-template-columns:minmax(200px,1.8fr) minmax(90px,.6fr) minmax(150px,1fr) minmax(110px,.7fr) 40px; gap:10px; align-items:center;}
   .linhas-cab{padding:0 0 6px; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--text-faint);}
   .linha{margin-bottom:10px;}
   .linha select, .linha input{width:100%; height:40px; background:var(--surface-2); color:var(--text); border:1px solid var(--border-strong); border-radius:6px; padding:0 10px; font-size:14px; font-family:inherit;}
@@ -223,6 +223,36 @@
   var CFG = window.CONFIG;
   var sb = window.supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
   var MATERIAIS = ["CP2", "CP3", "CP5", "POZOLANA"];
+  var CAT_NOME = { CP2: "CP II", CP3: "CP III", CP5: "CP V", POZOLANA: "Pozolana" };
+  /* Materiais da usina: os cimentos dela no Controle de cimento (fábrica específica, ex. "Cimento Tupi — CP II E 40 RS").
+     Usina sem cimento cadastrado: os tipos genéricos (CP II, CP III, CP V, Pozolana). Valor do select: "f:<fábrica>" ou "m:<tipo>". */
+  function opcoesUsina(){ return (S.estado && Array.isArray(S.estado.opcoes)) ? S.estado.opcoes : []; }
+  function rotuloMat(m, f){ return f ? f : (CAT_NOME[m] || m || ""); }
+  function valMat(l){ return l.fabrica ? "f:" + l.fabrica : (l.material ? "m:" + l.material : ""); }
+  function aplicarMat(l, v){
+    v = String(v || "");
+    if (v.indexOf("f:") === 0){ var f = v.slice(2), o = opcoesUsina().find(function(x){ return x.f === f; }); l.fabrica = f; if (o) l.material = o.m; }
+    else if (v.indexOf("m:") === 0){ l.fabrica = ""; l.material = v.slice(2); }
+    else { l.fabrica = ""; l.material = ""; }
+  }
+  function fmtCurta(iso){ var p = String(iso || "").split("-"); return p.length === 3 ? p[2] + "/" + p[1] : ""; }
+  function opcoesMatHtml(atual, excluir){
+    var op = opcoesUsina(), h = '<option value="">Material…</option>';
+    if (op.length){
+      MATERIAIS.forEach(function(m){
+        var g = op.filter(function(o){ return o.m === m && "f:" + o.f !== excluir; }); if (!g.length) return;
+        h += '<optgroup label="' + CAT_NOME[m] + '">' + g.map(function(o){
+          return '<option value="f:' + esc(o.f) + '"' + (atual === "f:" + o.f ? " selected" : "") + '>' + esc(o.f) + (o.troca ? " (troca" + (o.data ? " a partir de " + fmtCurta(o.data) : " marcada") + ")" : "") + '</option>'; }).join("") + '</optgroup>';
+      });
+      if (atual && atual !== excluir && !op.some(function(o){ return "f:" + o.f === atual; })){   // pedido antigo (só o tipo) ou cimento que saiu da usina
+        var leg = atual.indexOf("f:") === 0 ? atual.slice(2) : (CAT_NOME[atual.slice(2)] || atual.slice(2));
+        h += '<option value="' + esc(atual) + '" selected>' + esc(leg) + '</option>';
+      }
+    } else {
+      h += MATERIAIS.filter(function(m){ return "m:" + m !== excluir; }).map(function(m){ return '<option value="m:' + m + '"' + (atual === "m:" + m ? " selected" : "") + '>' + CAT_NOME[m] + '</option>'; }).join("");
+    }
+    return h;
+  }
   var SP = "America/Sao_Paulo";
   var S = { chave: "", tipo: "", nome: "", d: null, estado: null, usinaSel: null, linhas: [], sem: false, sujo: false, msg: "", msgTipo: "", enviando: false, offset: 0, filtro: "todas", motivo: "", confirmaNegar: null, abertoHist: false };
   var $ = function(id){ return document.getElementById(id); };
@@ -330,14 +360,14 @@
     var env = est.envio;
     if (env && !env.sem_necessidade && env.linhas.length) S.linhas = env.linhas.map(function(l){
       var q = (l.prog && l.prog.qtd) || 0;
-      return { id: l.id, material: l.material, carretas: String(l.carretas), data: String(l.data_desejada).slice(0, 10), periodo: l.periodo || "",
+      return { id: l.id, material: l.material, fabrica: l.fabrica || "", carretas: String(l.carretas), data: String(l.data_desejada).slice(0, 10), periodo: l.periodo || "",
                travada: q > 0, progQtd: q, adicional: !!l.adicional, alterada: !!l.alterada };
     });
     else S.linhas = [novaLinha()];
     S.sem = !!(env && env.sem_necessidade);
     S.sujo = false;
   }
-  function novaLinha(){ return { material: "", carretas: "", data: amanha(), periodo: "" }; }
+  function novaLinha(){ return { material: "", fabrica: "", carretas: "", data: amanha(), periodo: "" }; }
   async function recarregar(manual){
     if (!S.chave) return;
     try {
@@ -391,7 +421,7 @@
   }
   function resumoLinhas(ls){
     if (!ls || !ls.length) return "—";
-    return ls.map(function(l){ return l.carretas + "× " + l.material + " → " + fmtData(String(l.data_desejada).slice(0, 10)) + (l.periodo ? " (" + ({ CEDO: "cedo", TARDE: "tarde", QUALQUER: "qualquer horário" }[l.periodo] || l.periodo.toLowerCase()) + ")" : ""); }).join("<br>");
+    return ls.map(function(l){ return l.carretas + "× " + esc(rotuloMat(l.material, l.fabrica)) + " → " + fmtData(String(l.data_desejada).slice(0, 10)) + (l.periodo ? " (" + ({ CEDO: "cedo", TARDE: "tarde", QUALQUER: "qualquer horário" }[l.periodo] || l.periodo.toLowerCase()) + ")" : ""); }).join("<br>");
   }
   function seloFora(env){ return env && env.fora_do_prazo ? '<span class="badge warning">⏱ Fora do prazo — autorizado</span>' : ""; }
   function rotuloVersao(v, ativa){
@@ -440,12 +470,12 @@
     h += '<div class="linhas-box' + (S.sem ? " off" : "") + '" id="linhasBox"><div class="linhas-cab"><span>Material</span><span>Carretas</span><span>Data desejada</span><span>Período</span><span></span></div>';
     S.linhas.forEach(function(l, i){
       if (l.travada){
-        h += '<div class="linha travada" data-row="' + i + '">🔒 <b>' + esc(l.material) + ' × ' + esc(l.carretas) + '</b> → ' + esc(fmtData(l.data)) + (l.periodo ? " (" + esc(PER_TXT[l.periodo] || l.periodo) + ")" : "") +
+        h += '<div class="linha travada" data-row="' + i + '">🔒 <b>' + esc(rotuloMat(l.material, l.fabrica)) + ' × ' + esc(l.carretas) + '</b> → ' + esc(fmtData(l.data)) + (l.periodo ? " (" + esc(PER_TXT[l.periodo] || l.periodo) + ")" : "") +
           ' — <b>Programado' + (l.progQtd < Number(l.carretas) ? " (" + l.progQtd + " de " + esc(l.carretas) + ")" : "") + '</b>. Para mudar, use <b>Meus pedidos</b>, abaixo.</div>';
         return;
       }
-      h += '<div class="linha" data-row="' + i + '"><div class="m"><select data-i="' + i + '" data-f="material" aria-label="Material" ' + (pode ? "" : "disabled") + '><option value="">Material…</option>' +
-        MATERIAIS.map(function(m){ return '<option value="' + m + '"' + (l.material === m ? " selected" : "") + '>' + m + '</option>'; }).join("") + '</select></div>' +
+      h += '<div class="linha" data-row="' + i + '"><div class="m"><select data-i="' + i + '" data-f="material" aria-label="Material" ' + (pode ? "" : "disabled") + '>' +
+        opcoesMatHtml(valMat(l)) + '</select></div>' +
         '<div class="c"><input type="number" inputmode="numeric" min="1" max="99" step="1" placeholder="Carretas" data-i="' + i + '" data-f="carretas" aria-label="Quantidade de carretas" value="' + esc(l.carretas) + '" ' + (pode ? "" : "disabled") + '></div>' +
         '<div class="d"><input type="date" min="' + esc(hojeCivil()) + '" data-i="' + i + '" data-f="data" aria-label="Data desejada" value="' + esc(l.data) + '" ' + (pode ? "" : "disabled") + '></div>' +
         '<div class="p"><select data-i="' + i + '" data-f="periodo" aria-label="Período: cedo, tarde ou qualquer horário" ' + (pode ? "" : "disabled") + '><option value="">Período…</option>' +
@@ -471,11 +501,11 @@
   /* ---------- Meus pedidos ---------- */
   var PER_TXT = { CEDO: "cedo", TARDE: "tarde", QUALQUER: "qualquer horário" };
   var AVISO_ALT = "⚠️ Este pedido já foi programado pela Logística. Alterar agora pode causar problemas sérios: carreta chegando com o cimento errado ou no dia errado, e carreta parada com custo alto. Só peça a alteração se for realmente necessário — a Logística vai analisar.";
-  function txtLinha(m, c, per){ return esc(m) + " × " + esc(c) + (per ? " (" + esc(PER_TXT[per] || per) + ")" : ""); }
+  function txtLinha(m, c, per, f){ return esc(rotuloMat(m, f)) + " × " + esc(c) + (per ? " (" + esc(PER_TXT[per] || per) + ")" : ""); }
   function txtAlt(a){
     var an = a.antes || {}, dp = a.depois || {};
-    if (a.tipo === "cancelar") return "Cancelar " + txtLinha(an.material, an.carretas, an.periodo);
-    return txtLinha(an.material, an.carretas, an.periodo) + " → " + txtLinha(dp.material, dp.carretas, dp.periodo);
+    if (a.tipo === "cancelar") return "Cancelar " + txtLinha(an.material, an.carretas, an.periodo, an.fabrica);
+    return txtLinha(an.material, an.carretas, an.periodo, an.fabrica) + " → " + txtLinha(dp.material, dp.carretas, dp.periodo, dp.fabrica);
   }
   var ALT_ST = { pendente: ["warning", "⏳ Aguardando a Logística"], aprovada: ["success", "✔ Aprovada"], negada: ["danger", "✖ Negada"], sem_efeito: ["neutral", "Sem efeito"] };
   function htmlMeus(est, o){
@@ -498,7 +528,7 @@
         var l = it.l, p = it.p, q = (l.prog && l.prog.qtd) || 0, car = l.carretas, pend = pendPorLinha[l.id];
         var st = q === 0 ? (futuro ? '<span class="badge neutral">⏳ Aguardando programação</span>' : '<span class="badge danger">Não programado</span>')
                : (q >= car ? '<span class="badge success">🔒 Programado</span>' : '<span class="badge warning">🔒 Programado parcial (' + q + ' de ' + car + ')</span>');
-        h += '<div class="mp-linha"><div class="mp-topo"><b>' + txtLinha(l.material, car, l.periodo) + '</b>' + st +
+        h += '<div class="mp-linha"><div class="mp-topo"><b>' + txtLinha(l.material, car, l.periodo, l.fabrica) + '</b>' + st +
           (l.adicional ? '<span class="badge info">pedido adicional</span>' : "") + (l.alterada ? '<span class="badge warning">alterado após programar</span>' : "") +
           '<span class="faint" style="font-size:11.5px">pedido de ' + esc(fmtData(String(p.dia).slice(0, 10))) + '</span></div>';
         if (q){
@@ -538,11 +568,11 @@
   function htmlMpForm(l, programado){
     var f = S.mpForm, t = f.tipo;
     var tit = t === "cancelar" ? "Cancelar este pedido" : (t === "substituir" ? "Substituir o material" : "Alterar quantidade ou período");
-    var h = '<div class="mp-form"><b>' + tit + ' — ' + txtLinha(l.material, l.carretas, l.periodo) + '</b>' +
+    var h = '<div class="mp-form"><b>' + tit + ' — ' + txtLinha(l.material, l.carretas, l.periodo, l.fabrica) + '</b>' +
       (programado ? '<div class="aviso bad" style="margin:0">' + AVISO_ALT + '</div>' : '<div class="aviso info" style="margin:0">Este pedido ainda não foi programado. A Logística vai analisar a alteração.</div>');
     if (t !== "cancelar"){
       h += '<div class="campos">';
-      if (t === "substituir") h += '<label>Novo material<select id="mpMat"><option value="">Material…</option>' + MATERIAIS.filter(function(m){ return m !== l.material; }).map(function(m){ return '<option value="' + m + '"' + (f.material === m ? " selected" : "") + '>' + m + '</option>'; }).join("") + '</select></label>';
+      if (t === "substituir") h += '<label>Novo material<select id="mpMat">' + opcoesMatHtml(f.material, valMat(l)) + '</select></label>';
       h += '<label>Carretas' + (t === "alterar" ? " (só para menos)" : "") + '<input type="number" id="mpCar" min="1" max="' + (t === "alterar" ? l.carretas : 99) + '" inputmode="numeric" value="' + esc(f.carretas) + '"></label>' +
         '<label>Período<select id="mpPer"><option value="">—</option>' + [["CEDO", "Cedo"], ["TARDE", "Tarde"], ["QUALQUER", "Qualquer horário"]].map(function(o){ return '<option value="' + o[0] + '"' + (f.periodo === o[0] ? " selected" : "") + '>' + o[1] + '</option>'; }).join("") + '</select></label>';
       h += '</div>';
@@ -573,7 +603,7 @@
     f.enviando = true; f.erro = ""; desenhar();
     try {
       var d = await chamar("solic_k_pedir_alteracao", { p_chave: S.chave, p_usina: S.tipo === "encarregado" ? S.usinaSel : null, p_linha: f.linha, p_tipo: f.tipo,
-        p_material: f.tipo === "substituir" ? f.material : l.material, p_carretas: f.tipo === "cancelar" ? null : Number(f.carretas), p_periodo: f.periodo || "", p_motivo: f.motivo });
+        p_material: f.tipo === "substituir" ? String(f.material).slice(2) : l.material, p_carretas: f.tipo === "cancelar" ? null : Number(f.carretas), p_periodo: f.periodo || "", p_motivo: f.motivo });
       if (d.erro){ sair(); msgLogin(ERROS[d.erro] || "Sessão encerrada.", true); return; }
       S.mp = d; S.mpForm = null; S.msg = "Pedido de alteração enviado. A Logística vai analisar; acompanhe em Meus pedidos."; S.msgTipo = "ok"; desenhar();
       var c = $("meusPedidos"); if (c) c.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -652,7 +682,7 @@
       var q = Number(l.carretas); if (!l.carretas || !isFinite(q) || q < 1 || q > 99 || Math.floor(q) !== q) return { i: i, t: "Informe a quantidade de carretas (1 a 99) na linha " + n + "." };
       if (!l.data) return { i: i, t: "Informe a data desejada na linha " + n + "." };
       if (l.data < hoje) return { i: i, t: "A data da linha " + n + " já passou." };
-      var k = l.material + "|" + l.data + "|" + (l.periodo || ""); if (vistos[k]) return { i: i, t: "Material, data e período repetidos na linha " + n + ". Some as carretas numa linha só." }; vistos[k] = 1;
+      var k = l.material + "|" + (l.fabrica || "") + "|" + l.data + "|" + (l.periodo || ""); if (vistos[k]) return { i: i, t: "Material, data e período repetidos na linha " + n + ". Some as carretas numa linha só." }; vistos[k] = 1;
     }
     return null;
   }
@@ -667,7 +697,7 @@
     marcarErro(null);
     S.enviando = true; S.msg = ""; desenhar();
     try {
-      var args = { p_chave: S.chave, p_sem_necessidade: S.sem, p_linhas: S.sem ? [] : S.linhas.map(function(l){ return { id: l.id || null, material: l.material, carretas: Number(l.carretas), data_desejada: l.data, periodo: l.periodo || "" }; }) };
+      var args = { p_chave: S.chave, p_sem_necessidade: S.sem, p_linhas: S.sem ? [] : S.linhas.map(function(l){ return { id: l.id || null, material: l.material, fabrica: l.fabrica || null, carretas: Number(l.carretas), data_desejada: l.data, periodo: l.periodo || "" }; }) };
       if (S.tipo === "encarregado") args.p_usina = S.usinaSel;
       var d = await chamar("solic_k_enviar", args);
       if (d.erro){ S.enviando = false; sair(); msgLogin(ERROS[d.erro] || "Sessão encerrada.", true); return; }
@@ -708,14 +738,16 @@
     var t = ev.target; if (t.id === "motivo"){ S.motivo = t.value; return; }
     if (S.mpForm && /^mp(Mat|Car|Per|Mot)$/.test(t.id)){ S.mpForm[{ mpMat: "material", mpCar: "carretas", mpPer: "periodo", mpMot: "motivo" }[t.id]] = t.value; S.mpForm.erro = ""; return; }
     if (t.dataset.i === undefined) return;
-    S.linhas[+t.dataset.i][t.dataset.f] = t.value; S.sujo = true; marcarErro(null);
+    if (t.dataset.f === "material") aplicarMat(S.linhas[+t.dataset.i], t.value); else S.linhas[+t.dataset.i][t.dataset.f] = t.value;
+    S.sujo = true; marcarErro(null);
   });
   $("conteudo").addEventListener("change", function(ev){
     var t = ev.target;
     if (S.mpForm && /^mp(Mat|Car|Per|Mot)$/.test(t.id)){ S.mpForm[{ mpMat: "material", mpCar: "carretas", mpPer: "periodo", mpMot: "motivo" }[t.id]] = t.value; return; }
     if (t.id === "selUsina"){ S.selUsina = t.value; var bt = document.querySelector('[data-act="abrir-sel"]'); if (bt) bt.disabled = !t.value; return; }
     if (t.dataset.i === undefined) return;
-    S.linhas[+t.dataset.i][t.dataset.f] = t.value; S.sujo = true;
+    if (t.dataset.f === "material") aplicarMat(S.linhas[+t.dataset.i], t.value); else S.linhas[+t.dataset.i][t.dataset.f] = t.value;
+    S.sujo = true;
   });
   $("conteudo").addEventListener("toggle", function(ev){ if (ev.target.classList && ev.target.classList.contains("hist")) S.abertoHist = ev.target.open; }, true);
   $("conteudo").addEventListener("click", function(ev){
