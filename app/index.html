@@ -356,7 +356,9 @@
   .vpo-aba{flex:0 0 auto; background:none; border:0; border-bottom:2px solid transparent; color:var(--text-muted); font:inherit; font-size:13.5px; font-weight:600; padding:10px 16px; cursor:pointer; white-space:nowrap; margin-bottom:-1px;}
   .vpo-rotas-wrap{max-height:none !important; overflow:visible !important;} .vpo-rotas-card{overflow:visible !important;}
   .table-wrap.vpo-rotas-wrap thead th{top:var(--vpo-abas-h, 46px);}
-  .vpo-aba:hover{color:var(--text);} .vpo-aba.on{color:var(--text); border-bottom-color:var(--accent);}
+  .vpo-aba:hover{color:var(--text);}
+  #pedagioBody tr.rota-grupo td{border-top:2px solid var(--border-strong);}
+  select.auto-fab{border-color:var(--success) !important; box-shadow:0 0 0 1px var(--success) inset;} .vpo-aba.on{color:var(--text); border-bottom-color:var(--accent);}
   .bd-lead{margin:0 0 14px; font-size:13px; color:var(--text-muted); max-width:900px;}
   .silo-filtros{display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
   .silo-filtros input, .silo-filtros select{background:var(--surface-2); color:var(--text); border:1px solid var(--border-strong); border-radius:6px; padding:7px 10px; font-size:12.5px; font-family:inherit;}
@@ -2273,6 +2275,7 @@
     var entry = getOrCreateEntry(container.dataset.iso, container.dataset.key);
     var vals = Array.prototype.map.call(container.querySelectorAll("input, select"), function(el){ return el.value; });
     entry[container.dataset.field] = multiJoin(vals);
+    if (container.dataset.field === "carretas" && container.closest("#progBlocks") && typeof progAutoFabrica === "function") progAutoFabrica(container);
   }
 
   /* ---------------- Base de Dados — importação por módulo ---------------- */
@@ -4920,21 +4923,24 @@
   // Uma linha por combinação usina+fábrica (rota), igual à aba "fabricas"
   // do Piso mínimo — cada usina pode ter mais de uma fábrica de origem.
   function renderPedagioConfigHtml(){
+    // uma linha por rota, com a usina repetida em toda linha — assim os filtros de coluna funcionam
+    var partes = function(fab){ var i = String(fab).indexOf(" - "); return i < 0 ? [fab, ""] : [fab.slice(0, i), fab.slice(i + 3)]; };
     var rows = MASTER_USINAS.map(function(u){
       var rotas = ROTAS_POR_USINA[u];
       if (!rotas || !rotas.length){
-        return '<tr><td class="cell-strong" style="white-space:nowrap;">'+esc(u)+'</td><td class="faint" style="font-style:italic;" colspan="2">sem rota cadastrada — sem dado na planilha original</td></tr>';
+        return '<tr class="rota-grupo"><td class="cell-strong" style="white-space:nowrap;">'+esc(u)+'</td><td class="faint">—</td><td class="faint">—</td><td class="faint" style="font-style:italic;">sem rota cadastrada</td></tr>';
       }
       return rotas.map(function(r, i){
-        return '<tr><td class="cell-strong" style="white-space:nowrap;">'+(i===0?esc(u):'')+'</td>' +
-          '<td class="muted">'+esc(r.fabrica)+' <span class="faint">x</span> '+esc(u)+'</td>' +
+        var pt = partes(r.fabrica);
+        return '<tr'+(i===0?' class="rota-grupo"':'')+'><td class="'+(i===0?'cell-strong':'muted')+'" style="white-space:nowrap;">'+esc(u)+'</td>' +
+          '<td>'+esc(pt[0])+'</td><td class="muted">'+esc(pt[1] || "—")+'</td>' +
           '<td style="padding:4px 6px;"><select data-usina="'+esc(u)+'" data-idx="'+i+'" class="status-select">' +
           PEDAGIO_OPTS.map(function(o){ return '<option value="'+o.value+'"'+(o.value===r.pedagio?" selected":"")+'>'+esc(o.label)+'</option>'; }).join("") +
           '</select></td></tr>';
       }).join("");
     }).join("");
     return '<details open style="margin-bottom:16px;"><summary style="cursor:pointer;padding:12px 18px;font-size:12.5px;font-weight:600;color:var(--accent-strong);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">⚙️ Configurar rotas e pedágio (base extraída do "Piso mínimo" — conferir/ajustar com a operação)</summary>' +
-      '<div class="card vpo-rotas-card" style="margin-top:8px;"><div class="table-wrap vpo-rotas-wrap"><table><thead><tr><th>Usina</th><th>Rota (fábrica x usina)</th><th>Pedágio</th></tr></thead><tbody id="pedagioBody">'+rows+'</tbody></table></div></div></details>';
+      '<div class="card vpo-rotas-card" style="margin-top:8px;"><div class="table-wrap vpo-rotas-wrap"><table><thead><tr><th>Usina</th><th>Fornecedor</th><th>Local da fábrica</th><th>Pedágio</th></tr></thead><tbody id="pedagioBody">'+rows+'</tbody></table></div></div></details>';
   }
 
   /* Abas no topo do VPO (ficam presas no alto da tela ao rolar). Cada aba é um painel;
@@ -4995,6 +5001,7 @@
       });
     });
 
+    xlEnhance(el("view-vpo").querySelector(".vpo-rotas-card"), "vpo-rotas");
     vpoPicker = makeRangePicker({btn:"vpoDrBtn", panel:"vpoDrPanel", label:"vpoDrLabel"}, paintVpoBlocks);
     paintVpoBlocks();
   }
@@ -6398,7 +6405,8 @@
       if (!td.querySelector(".prog-tag.agora")) tr.classList.remove("prog-peer");
       var sl = SOL_PROG[iso + "|" + solNorm(key)];
       if (sl && sl.length){ var s3 = document.createElement("span"); s3.className = "prog-tag sol"; s3.textContent = "📥 " + sl.map(function(x){ return x.material + " ×" + x.carretas; }).join(", ");
-        s3.title = "Solicitado pela usina para este dia" + (sl.some(function(x){ return x.fora; }) ? " (inclui pedido fora do prazo — autorizado)" : "") + ". É só informação: a programação continua sendo preenchida por você."; td.appendChild(s3); }
+        var sugs = sl.map(function(x){ var f = ccFabricaPara(key, x.material, iso); return x.material + " → " + (f || "sem cimento definido no Controle de cimento (escolha a fábrica)"); });
+        s3.title = "Solicitado pela usina para este dia" + (sl.some(function(x){ return x.fora; }) ? " (inclui pedido fora do prazo — autorizado)" : "") + ".\nAo colocar a placa, a fábrica é preenchida pelo Controle de cimento:\n" + sugs.join("\n"); td.appendChild(s3); }
       (SOL_ALT_PROG[iso + "|" + solNorm(key)] || []).forEach(function(a){
         var s4 = document.createElement("span"), ok = a.status === "aprovada";
         s4.className = "prog-tag " + (ok ? "alt" : "altp");
@@ -6738,6 +6746,7 @@
       (m[k] = m[k] || []).push({ material: x.material, carretas: x.carretas, fora: !!x.fora_do_prazo });
     });
     SOL_PROG = m;
+    if (!SILO.d && typeof siloCarregar === "function") siloCarregar().then(function(){ if (typeof progDecorar === "function") progDecorar(); });
     var ra; try { ra = await sb.rpc("solic_alteracoes_listar", { p_de: de, p_ate: ate }); } catch (e) { return; }
     if (ra.error || !Array.isArray(ra.data)) return;
     var ma = {};
@@ -6745,6 +6754,46 @@
     SOL_ALT_PROG = ma;
   }
   var SOL_ALT_PROG = {};
+
+  /* Programação ← Controle de cimento: a fábrica de cada carga sai sozinha do que a usina pediu
+     (material da Solicitação) + o cimento daquele material na usina (Controle de cimento).
+     Ex.: OLHOS D'AGUA pediu CP2 e o silo de CP II dela está com "Cimento Tupi — CP II E 40 RS".
+     Só preenche quando você coloca a placa e a fábrica daquela carga está vazia — nunca troca o que já foi escolhido.
+     Se a troca de cimento estiver marcada com data até o dia da entrega, vale o cimento novo. */
+  function ccFabricaPara(usina, mat, iso){
+    if (!SILO.d || !mat) return null;
+    var k = solNorm(usina), u = SILO.d.usinas.find(function(x){ return solNorm(x.usina) === k; }); if (!u) return null;
+    var achados = [];
+    Object.keys(u.slots || {}).forEach(function(n){
+      var sl = u.slots[n], usaTroca = sl.troca && sl.data && iso && sl.data <= iso;
+      var rot = usaTroca ? sl.troca : sl.cimento, cat = usaTroca ? sl.troca_mat : sl.mat;
+      if (rot && cat === mat && achados.indexOf(rot) < 0) achados.push(rot);
+    });
+    return achados.length === 1 ? achados[0] : null;   // dois cimentos diferentes do mesmo tipo: você escolhe
+  }
+  function progFabricasSugeridas(iso, usina){
+    var sl = SOL_PROG[iso + "|" + solNorm(usina)] || [], out = [];
+    sl.forEach(function(x){ var f = ccFabricaPara(usina, x.material, iso); for (var i = 0; i < (x.carretas || 1); i++) out.push(f); });
+    return out;
+  }
+  function progAutoFabrica(carrContainer){
+    var tr = carrContainer.closest("tr"); if (!tr) return;
+    var fab = tr.querySelector('.multi-field[data-field="fabrica"]'); if (!fab) return;
+    var iso = carrContainer.dataset.iso, key = carrContainer.dataset.key;
+    var placas = Array.prototype.map.call(carrContainer.querySelectorAll("input"), function(i){ return i.value.trim(); });
+    var sug = progFabricasSugeridas(iso, key); if (!sug.some(Boolean)) return;
+    var mudou = false;
+    placas.forEach(function(pl, i){
+      if (!pl || !sug[i]) return;
+      var sels = fab.querySelectorAll("select");
+      while (sels.length <= i){ var add = fab.querySelector(".multi-add-btn"); if (!add) return; add.click(); sels = fab.querySelectorAll("select"); }
+      var sel = sels[i]; if (sel.value) return;
+      if (!Array.prototype.some.call(sel.options, function(o){ return o.value === sug[i]; })) return;
+      sel.value = sug[i]; sel.classList.add("auto-fab"); sel.title = "Preenchido pelo Controle de cimento (pedido da usina: " + (SOL_PROG[iso + "|" + solNorm(key)] || []).map(function(x){ return x.material; }).join(", ") + "). Pode trocar.";
+      mudou = true;
+    });
+    if (mudou) syncMultiField(fab);
+  }
 
   /* ======================================================================
      BASE DE DADOS › ENCARREGADOS E USINAS
