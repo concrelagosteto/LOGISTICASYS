@@ -258,6 +258,9 @@
   .sidebar-head span{display:block; font-size:10.5px; color:var(--text-faint); margin-top:1px;}
   .nav{flex:1; overflow-y:auto; padding:14px 10px;}
   .nav-group{margin-bottom:18px;}
+  .nav-sub{padding:10px 12px 4px; font-size:10.5px; font-weight:700; letter-spacing:.05em; color:var(--text-muted); opacity:.85; border-top:1px dashed var(--border); margin-top:4px;}
+  .nav-group-label + .nav-sub{border-top:0; margin-top:0; padding-top:2px;}
+  .nav-group.collapsed .nav-sub{display:none;}
   .nav-group-label{padding:0 10px 8px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text-faint); cursor:pointer; user-select:none; display:flex; align-items:center; gap:5px;}
   .nav-group-label:hover{color:var(--text-muted);}
   .nav-group-chevron{display:inline-block; font-size:8px; transition:transform .15s; flex:none;}
@@ -1253,7 +1256,29 @@
   // fábrica da Programação (continua uma string, então tudo que já lê esse
   // campo — filtros, exportação — segue funcionando sem mudança).
   function fabricaRotulo(fornecedor, material){ return fornecedor + " — " + material; }
-  function fabricaSelectOptionsHtml(selecionado){
+  // Cimentos que o Controle de cimento destina à usina (atual de cada silo + troca marcada, com a data).
+  // null = usina fora do Controle de cimento (ou ainda carregando): aí vale a Base de Fábricas inteira.
+  function fabricasDaUsina(usina, iso){
+    if (typeof SILO === "undefined" || !SILO.d || !usina) return null;
+    var k = solNorm(usina), u = (SILO.d.usinas || []).find(function(x){ return solNorm(x.usina) === k; }); if (!u) return null;
+    var out = [], vistos = {};
+    Object.keys(u.slots || {}).sort().forEach(function(n){
+      var sl = u.slots[n] || {}, trocou = sl.troca && sl.data && iso && sl.data <= iso;
+      if (sl.cimento && !vistos[sl.cimento]){ vistos[sl.cimento] = 1; out.push({ rot: sl.cimento, nota: trocou ? "antes da troca de " + brDate(sl.data).slice(0, 5) : "" }); }
+      if (sl.troca && !vistos[sl.troca]){ vistos[sl.troca] = 1; out.push({ rot: sl.troca, nota: sl.data ? (trocou ? "troca desde " : "troca a partir de ") + brDate(sl.data).slice(0, 5) : "troca sem data" }); }
+    });
+    return out.length ? out : null;
+  }
+  function fabricaSelectOptionsHtml(selecionado, usina, iso){
+    var daUsina = fabricasDaUsina(usina, iso);
+    if (daUsina){
+      var rotM = function(r){ var i = r.indexOf(" — "); return i < 0 ? r : r.slice(i + 3) + " — " + r.slice(0, i); };
+      var o2 = '<option value="">—</option><optgroup label="Cimentos da usina (Controle de cimento)">' + daUsina.map(function(x){
+        return '<option value="' + esc(x.rot) + '"' + (x.rot === selecionado ? " selected" : "") + '>' + esc(rotM(x.rot)) + (x.nota ? " (" + esc(x.nota) + ")" : "") + '</option>'; }).join("") + '</optgroup>';
+      if (selecionado && !daUsina.some(function(x){ return x.rot === selecionado; }))
+        o2 = '<option value="' + esc(selecionado) + '" selected>⚠️ ' + esc(selecionado) + ' (fora do Controle de cimento desta usina)</option>' + o2;
+      return o2;
+    }
     var opts = '<option value="">—</option>' + FABRICAS_CATALOGO.map(function(f){
       return '<optgroup label="'+esc(f.fornecedor)+'">' + f.materiais.map(function(mat){
         var rotulo = fabricaRotulo(f.fornecedor, mat);
@@ -1381,11 +1406,16 @@
     return {situacao:"nao_realizado", entry:null, dataProgramada:null};
   }
 
+  // Cimento em foco: Programação (pedido das usinas → programação) · Controle (acompanhamento) · VPO
   var NAV_CIMENTO = [
+    {sub:"Programação"},
     {id:"solicitacoes", label:"Solicitações", icon:"📥"},
     {id:"programacao-cimento", label:"Programação de Cimento", icon:"📋"},
+    {sub:"Controle"},
     {id:"controle-pedidos-cimento", label:"Controle de Pedidos", icon:"🚚"},
+    {id:"silos", label:"Controle de cimento", icon:"🛢️"},
     {id:"operacoes", label:"Operação do dia", icon:"🚦"},
+    {sub:"VPO"},
     {id:"vpo", label:"VPO", icon:"🧾"}
   ];
   var NAV_DADOS = [
@@ -1399,7 +1429,6 @@
   var NAV = [
     {id:"consultas", label:"Consultas", icon:"🔎"},
     {id:"dashboard", label:"Dashboard", icon:"📊"},
-    {id:"silos", label:"Controle de cimento", icon:"🛢️"},
     {id:"relatorios", label:"Relatórios", icon:"📈"},
     {id:"auditoria", label:"Auditoria", icon:"🔍"},
     {id:"configuracoes", label:"Configurações", icon:"⚙️"}
@@ -1416,19 +1445,19 @@
     dados:"Transportadoras e frota", relatorios:"Relatórios", auditoria:"Auditoria", configuracoes:"Configurações", adm:"Administração"
   };
   var CRUMBS = {
-    "solicitacoes":"Cimento <b>›</b> Solicitações — o que cada usina precisa",
-    "programacao-cimento":"Cimento <b>›</b> Programação — envio diário por usina",
+    "solicitacoes":"Cimento <b>›</b> Programação <b>›</b> Solicitações — o que cada usina precisa",
+    "programacao-cimento":"Cimento <b>›</b> Programação <b>›</b> Programação de Cimento — envio diário por usina",
     "base-dados-cimento":"Base de Dados <b>›</b> Importar arquivos — SEFAZ, PUZL, Inbound e Programação antiga, com o histórico",
     "bd-usinas":"Base de Dados <b>›</b> Usinas e encarregados — cada usina e quem responde por ela",
     "bd-fabricas":"Base de Dados <b>›</b> Fábricas e cimentos — fornecedores, materiais, catálogo e códigos",
     "notas-sefaz":"Base de Dados <b>›</b> Notas Fiscais (SEFAZ) — todas as notas importadas",
     "lancamentos-puzl":"Base de Dados <b>›</b> Lançamentos (PUZL) — todos os lançamentos importados",
-    "silos":"Outros <b>›</b> Controle de cimento — cimento atual e trocas de cada usina",
-    "controle-pedidos-cimento":"Cimento <b>›</b> Controle de Pedidos — conferência automática",
+    "silos":"Cimento <b>›</b> Controle <b>›</b> Controle de cimento — cimento atual e trocas de cada usina",
+    "controle-pedidos-cimento":"Cimento <b>›</b> Controle <b>›</b> Controle de Pedidos — conferência automática",
     "vpo":"Cimento <b>›</b> VPO — pedágio por roteiro",
     "consultas":"Outros <b>›</b> Consulta geral e consulta de pedágio",
     dashboard:"Outros <b>›</b> Dashboard — programado × emitido × descarregado",
-    operacoes:"Cimento <b>›</b> Operação do dia — pedido, programação, nota e descarga de cada carga",
+    operacoes:"Cimento <b>›</b> Controle <b>›</b> Operação do dia — pedido, programação, nota e descarga de cada carga",
     exececoes:"Em breve <b>›</b> Itens que exigem intervenção humana (exemplo)",
     dados:"Base de Dados <b>›</b> Transportadoras e frota — veículos, eixos e motoristas",
     relatorios:"Outros <b>›</b> Relatórios — pedido × programado × entregue",
@@ -1710,6 +1739,7 @@
   /* ---------------- Nav ---------------- */
   var navCimentoEl = el("navCimento");
   NAV_CIMENTO.forEach(function(item){
+    if (item.sub){ var d = document.createElement("div"); d.className = "nav-sub"; d.textContent = item.sub; navCimentoEl.appendChild(d); return; }
     var b = document.createElement("button");
     b.className = "nav-item" + (item.id === "programacao-cimento" ? " active" : "");
     b.dataset.view = item.id;
@@ -2118,7 +2148,7 @@
         var rowCls = e.status === "ok" ? "prog-row-ok" : (e.status === "conferir" ? "prog-row-conferir" : (e.status === "adiado" ? "prog-row-adiado" : ""));
         return '<tr class="'+rowCls+'" data-pk="'+esc(iso+"|"+key)+'">' + usinaCell +
           progMultiInput(iso, key, "carretas", e.carretas) +
-          progMultiFabricaSelect(iso, key, e.fabrica) +
+          progMultiFabricaSelect(iso, key, e.fabrica, 3, e.usina) +
           progMultiInput(iso, key, "pedido", e.pedido) +
           progPeriodoCell(iso, key) +
           progInput(iso, key, "obs", e.obs, "ex: OK, CEDO, TARDE") +
@@ -2252,7 +2282,7 @@
   // "CP3", "CSN") por uma escolha controlada, igual ao espírito do Usina
   // 1/Usina 2 do VPO (escolhe da lista, agrupado por fornecedor), só que sem
   // usina/localização aqui, porque a usina já é a linha da tabela.
-  function progMultiFabricaSelect(iso, key, value, max){
+  function progMultiFabricaSelect(iso, key, value, max, usina){
     max = max || 3;
     var vals = multiListFrom(value);
     if (!vals.length) vals = [""];
@@ -2261,7 +2291,7 @@
       var isLast = idx === vals.length - 1;
       var addBtn = (isLast && vals.length < max) ? '<button type="button" class="multi-add-btn" title="Adicionar mais um">+</button>' : "";
       var removeBtn = '<button type="button" class="multi-remove-btn" title="Apagar">×</button>';
-      return '<div class="multi-row"><select class="multi-select-control" style="'+MULTI_SELECT_STYLE+'">' + fabricaSelectOptionsHtml(v) + '</select>' + addBtn + removeBtn + '</div>';
+      return '<div class="multi-row"><select class="multi-select-control" style="'+MULTI_SELECT_STYLE+'" title="Só os cimentos que o Controle de cimento destina a esta usina">' + fabricaSelectOptionsHtml(v, usina, iso) + '</select>' + addBtn + removeBtn + '</div>';
     }).join("");
     return '<td style="padding:4px 6px;"><div class="multi-field" data-iso="'+iso+'" data-key="'+esc(key)+'" data-field="fabrica" data-max="'+max+'">' + rows + '</div></td>';
   }
