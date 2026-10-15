@@ -4,6 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
+<meta name="app-versao" content="2026-10-15-1">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -175,6 +176,8 @@
   .vpo-tbl td{padding-top:2px !important; padding-bottom:2px !important;} .vpo-tbl .vpo-cel{padding:4px 8px;} .vpo-tbl .vpo-rota-in{padding:4px 8px;}
   .vpo-tbl td > div{line-height:1.25;} .vpo-tbl td > div + div{margin-top:1px !important;} .vpo-tbl .badge{padding:1px 7px; font-size:10.5px;} .vpo-tbl .status-select{height:28px;}
   #vpoBlocks .prog-block-head{padding-top:6px; padding-bottom:6px;}
+  .aviso-versao{position:fixed; left:50%; bottom:18px; transform:translateX(-50%); z-index:9999; display:flex; gap:10px; align-items:center; padding:10px 14px; background:var(--surface); color:var(--text); border:1px solid var(--accent); border-radius:10px; box-shadow:0 8px 30px rgba(0,0,0,.35); font-size:13.5px;}
+  .aviso-versao button{font:inherit; font-weight:700; padding:6px 12px; border-radius:7px; border:0; background:var(--accent); color:#fff; cursor:pointer;} .aviso-versao button.x{background:none; color:var(--text-muted); padding:4px 6px;}
   .badge.nfe{background:var(--accent-soft); color:var(--accent-strong, var(--accent));}
   .mod-periodo{display:flex; gap:8px; flex-wrap:wrap; align-items:center; padding:0 18px 14px;}
   .mod-periodo label{display:flex; gap:6px; align-items:center; font-size:12.5px; color:var(--text-muted);}
@@ -1603,7 +1606,7 @@
         '<button type="button" data-sort="desc">⬇ Classificar Z→A</button>' +
       '</div>' +
       '<input type="text" class="xl-pop-search" placeholder="Buscar e marcar (Enter marca se achar um só)"/>' +
-      '<label class="xl-pop-all"><input type="checkbox" class="xl-pop-all-cb" '+(!allowed?"checked":"")+'/> (Selecionar tudo)</label>' +
+      '<label class="xl-pop-all"><input type="checkbox" class="xl-pop-all-cb"/> (Selecionar tudo)</label>' +
       '<div class="xl-pop-list"></div>' +
       '<div class="xl-pop-foot">' +
         '<button type="button" class="btn-ghost xl-pop-clear" style="padding:5px 8px;">Limpar filtro</button>' +
@@ -1613,7 +1616,7 @@
     // Seleção de trabalho do filtro: fica guardada enquanto você busca — dá para buscar a placa 1, marcar,
     // buscar a placa 2, marcar… e no OK filtra pelas marcadas. Sem filtro ainda, a 1ª busca começa do zero
     // (só o que você marcar); com filtro já aplicado, o que marcar na busca é somado a ele.
-    var sel = allowed ? new Set(allowed) : new Set(values), tudoInicial = !allowed, txtAtual = "";
+    var sel = allowed ? new Set(allowed) : new Set(), tudoInicial = false, txtAtual = "";   // sem filtro: começa tudo desmarcado
     var listEl = pop.querySelector(".xl-pop-list"), allCb = pop.querySelector(".xl-pop-all-cb"), allLbl = pop.querySelector(".xl-pop-all");
     var chips = document.createElement("div"); chips.className = "xl-pop-chips"; listEl.parentNode.insertBefore(chips, listEl);
     var okBtn = pop.querySelector(".xl-pop-ok");
@@ -1667,7 +1670,7 @@
       xlCloseAllPopovers();
     });
     okBtn.addEventListener("click", function(){
-      if (!sel.size) return;
+      if (!sel.size){ xlCloseAllPopovers(); return; }
       if (sel.size === values.length) delete state.filters[colIdx];
       else state.filters[colIdx] = new Set(sel);
       xlApplyState(table, key);
@@ -3513,7 +3516,8 @@
       var r = importProgramacaoFromText(txt);
       var msg = r.dias + " dia(s), " + r.atualizadas + " usina(s) preenchida(s)" +
         (r.novasNaoReconhecidas ? ", " + r.novasNaoReconhecidas + " usina(s) não reconhecida(s) (entraram como linha extra)" : "") +
-        (r.linhasIgnoradas ? ", " + r.linhasIgnoradas + " linha(s) ignorada(s)" : "") + ".";
+        (r.linhasIgnoradas ? ", " + r.linhasIgnoradas + " linha(s) ignorada(s)" : "") + "." +
+        (r.mantidos ? " " + r.mantidos + " campo(s) que já estavam preenchidos no sistema foram mantidos (o arquivo só completa o que está vazio)." : "");
       if (r.dias) logImport(arquivo, "Programação de Cimento", r.atualizadas + r.novasNaoReconhecidas, r.atualizadas + r.novasNaoReconhecidas + r.linhasIgnoradas);
       el("importProgramacaoResult").textContent = msg;
       el("importProgramacaoText").value = "";
@@ -3898,7 +3902,7 @@
   function importProgramacaoFromText(text){
     var byNorm = {};
     MASTER_USINAS.forEach(function(u){ byNorm[normalizeMaterial(u)] = u; });
-    var diasSet = {}, atualizadas = 0, novasNaoReconhecidas = 0, linhasIgnoradas = 0;
+    var diasSet = {}, atualizadas = 0, novasNaoReconhecidas = 0, linhasIgnoradas = 0, mantidos = 0;
     var currentISO = null;
     // Colar direto da planilha antiga sempre trazia a Usina na 1ª coluna
     // (índice 0), mas um arquivo .xlsx lido inteiro (via arrastar o arquivo)
@@ -3937,12 +3941,17 @@
         if (!reconhecida){ entry.__key = "extra-import-" + Date.now() + "-" + Math.random().toString(36).slice(2,7); novasNaoReconhecidas++; }
         day.entries.push(entry);
       }
-      if (placa || fabrica || pedido) atualizadas++;
-      if (placa) entry.carretas = placa;
-      if (fabrica) entry.fabrica = fabrica;
-      if (pedido) entry.pedido = pedido;
+      // o arquivo só PREENCHE o que está vazio: placa, fábrica e pedido que já estão no sistema
+      // (escolhidos à mão ou preenchidos sozinhos) nunca são trocados pelo arquivo
+      var mexeu = false;
+      [["carretas", placa], ["fabrica", fabrica], ["pedido", pedido]].forEach(function(p){
+        if (!p[1]) return;
+        if (String(entry[p[0]] || "").trim()){ if (String(entry[p[0]]).trim() !== p[1]) mantidos++; return; }
+        entry[p[0]] = p[1]; mexeu = true;
+      });
+      if (mexeu) atualizadas++;
     });
-    return {dias: Object.keys(diasSet).length, atualizadas: atualizadas, novasNaoReconhecidas: novasNaoReconhecidas, linhasIgnoradas: linhasIgnoradas};
+    return {dias: Object.keys(diasSet).length, atualizadas: atualizadas, novasNaoReconhecidas: novasNaoReconhecidas, linhasIgnoradas: linhasIgnoradas, mantidos: mantidos};
   }
 
   var usinasRepintar = null;
@@ -8496,6 +8505,27 @@
     else if (id === "relatorios"){ if (!FRT.d) frtCarregar(); relCarregar(); }
     else if (id === "vpo"){ if (!FRT.d) frtCarregar(); else if (VPO_ABA === "semcad") vptCarregar(); else if (VPO_ABA.indexOf("t:") === 0) paintVpoBlocks(); }
   }
+
+  /* Aviso de versão nova: o navegador às vezes continua com o site antigo guardado (cache).
+     A cada 5 minutos confere a versão publicada; se mudou, mostra um aviso para atualizar. */
+  (function(){
+    var meta = document.querySelector('meta[name="app-versao"]'), minha = meta ? meta.content : ""; if (!minha || !window.fetch) return;
+    var avisado = false;
+    function conferir(){
+      if (avisado || document.visibilityState !== "visible") return;
+      fetch(location.pathname + "?v=" + Date.now(), { cache: "no-store" }).then(function(r){ return r.ok ? r.text() : ""; }).then(function(t){
+        var m = /<meta name="app-versao" content="([^"]+)"/.exec(t || ""); if (!m || m[1] === minha) return;
+        avisado = true;
+        var b = document.createElement("div"); b.className = "aviso-versao"; b.setAttribute("role", "alert");
+        b.innerHTML = '🔄 Há uma versão nova do site. <button type="button">Atualizar agora</button><button type="button" class="x" title="Depois">✕</button>';
+        b.querySelector("button").addEventListener("click", function(){ if (typeof syncNow === "function"){ Promise.resolve(syncNow()).catch(function(){}).then(function(){ location.reload(); }); } else location.reload(); });
+        b.querySelector(".x").addEventListener("click", function(){ b.remove(); });
+        document.body.appendChild(b);
+      }).catch(function(){});
+    }
+    setTimeout(conferir, 20000); setInterval(conferir, 300000);
+    document.addEventListener("visibilitychange", function(){ if (document.visibilityState === "visible") conferir(); });
+  })();
 
   window.__app = { syncNow: syncNow, takeSnap: takeSnap, progRefresh: progRefresh, presPeers: function(){ return PRES.peers; }, presStatus: function(){ return PRES.status; } };
 

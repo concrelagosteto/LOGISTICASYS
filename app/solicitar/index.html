@@ -5,6 +5,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'none'">
 <script>if (window.top !== window.self) { try { window.top.location = window.self.location; } catch (e) { document.documentElement.style.display = "none"; } }</script>
 <meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="app-versao" content="2026-10-15-1">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#070a10">
@@ -825,6 +826,24 @@
     carregando(true);
     try { await entrar(c); } catch (e) { guardar(""); }
     carregando(false);
+  })();
+  (function(){   // aviso de versão nova (navegador com a página antiga guardada)
+    var meta = document.querySelector('meta[name="app-versao"]'), minha = meta ? meta.content : ""; if (!minha || !window.fetch) return;
+    var avisado = false;
+    function conferir(){
+      if (avisado || document.visibilityState !== "visible") return;
+      fetch(location.pathname + "?v=" + Date.now(), { cache: "no-store" }).then(function(r){ return r.ok ? r.text() : ""; }).then(function(t){
+        var m = /<meta name="app-versao" content="([^"]+)"/.exec(t || ""); if (!m || m[1] === minha) return;
+        avisado = true;
+        var b = document.createElement("div"); b.setAttribute("role", "alert");
+        b.style.cssText = "position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:9999;display:flex;gap:10px;align-items:center;padding:10px 14px;background:#151a23;color:#fff;border:1px solid #e11d48;border-radius:10px;font-size:14px;box-shadow:0 8px 30px rgba(0,0,0,.35)";
+        b.innerHTML = '🔄 Há uma versão nova desta página. <button type="button" style="font:inherit;font-weight:700;padding:6px 12px;border-radius:7px;border:0;background:#e11d48;color:#fff;cursor:pointer">Atualizar</button>';
+        b.querySelector("button").addEventListener("click", function(){ location.reload(); });
+        document.body.appendChild(b);
+      }).catch(function(){});
+    }
+    setTimeout(conferir, 20000); setInterval(conferir, 300000);
+    document.addEventListener("visibilitychange", function(){ if (document.visibilityState === "visible") conferir(); });
   })();
   window.__sol = { estado: function(){ return S; } };
 })();
