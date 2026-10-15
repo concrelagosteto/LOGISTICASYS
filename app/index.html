@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-15-3">
+<meta name="app-versao" content="2026-10-15-4">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -156,7 +156,7 @@
   .vpo-tbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:0 0 12px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);} .vpo-tbar .grow{flex:1;}
   .vpo-novo{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:-4px 0 14px; padding:10px 14px; background:var(--surface-2); border:1px solid var(--accent); border-radius:var(--radius);}
   .vpo-novo input{padding:7px 9px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text); font:inherit; font-size:13px;}
-  .vpo-ro[data-vf=motorista]{min-width:220px;} .vpo-ro[data-vf=carreta]{min-width:160px;} .vpo-ro[data-vf=fabrica]{min-width:110px;}
+  .vpo-ro[data-vf=motorista]{min-width:220px;} .vpo-eixo{min-width:52px !important; width:60px; text-align:center;} .vpo-ro[data-vf=carreta]{min-width:160px;} .vpo-ro[data-vf=fabrica]{min-width:110px;}
   .vpo-ro{cursor:pointer; text-overflow:ellipsis;} .vpo-ro:focus{outline:2px solid var(--success); outline-offset:-2px; border-color:transparent !important; background:var(--success-soft) !important;}
   #vpoBlocks td{position:relative;} #vpoBlocks td.copiado::after{content:"📋 copiado"; position:absolute; right:6px; top:2px; font-size:10.5px; font-weight:700; color:var(--success); background:var(--surface); padding:0 4px; border-radius:4px; pointer-events:none;}
   .vpo-placa{font-weight:700; letter-spacing:.02em; cursor:copy; min-width:96px;} td.usina-ok .vpo-placa, td.usina-conferir .vpo-placa{background:transparent;}
@@ -5293,18 +5293,23 @@
         else if (e.status === "nao_precisa") vagg.feito++;
         else if (e.status === "conferir") vagg.conferir++;
         else if (e.status === "pendente") vagg.pendente++;
-        var placa, motorista, carretas, fabrica;
+        var placa, motorista, carretas, fabrica, eixos;
         if (v){
           // a placa é um campo só de leitura: dá para clicar / chegar com Tab e copiar (Ctrl+C), como na planilha
           placa = '<td class="cell-strong '+statusClass+'" style="white-space:nowrap;padding:4px 6px;"><input class="vpo-cel vpo-ro vpo-placa" readonly data-iso="'+iso+'" data-vid="'+esc(v.id)+'" data-vf="cavalo" value="'+esc(v.cavalo)+'" title="Clique para copiar">'+vemBadgePlaca(v)+(v.obs ? '<div class="faint" style="font-weight:400;font-size:11px;padding-left:8px">'+esc(v.obs)+'</div>' : "")+'</td>';
           motorista = '<td style="padding:4px 6px;">'+vpoVeicCel(v, "motorista", "Motorista", iso)+'</td>';
           carretas = '<td style="padding:4px 6px;">'+vpoVeicCel(v, "carreta", "Carreta(s)", iso)+'</td>';
           fabrica = '<td style="padding:4px 6px;">'+vpoVeicCel(v, "fabrica", "Fábrica", iso)+'</td>';
+          // eixos para o VPO: ida (carregado), volta (vazio) e suspensos (levantados na volta = ida − volta)
+          var ei = v.eixos_ida, ev = v.eixos_volta, su = (ei != null && ev != null) ? ei - ev : null;
+          var eixoCel = function(f, val, tit){ return '<td style="padding:4px 6px;"><input class="vpo-cel vpo-ro vpo-eixo" readonly data-iso="' + iso + '" data-vid="' + esc(v.id) + '" data-vf="' + f + '" value="' + esc(val == null ? "" : val) + '" placeholder="—" title="' + tit + ' — clique para copiar"></td>'; };
+          eixos = eixoCel("eixos_ida", ei, "Eixos na ida (carregado)") + eixoCel("eixos_volta", ev, "Eixos na volta (vazio)") + eixoCel("suspensos", su, "Eixos suspensos (levantados) na volta");
         } else {
           placa = vpoInput(iso, key, "placaLivre", e.placaLivre||"", "Placa (avulsa)", statusClass);
           motorista = vpoInput(iso, key, "motoristaLivre", e.motoristaLivre||"", "Nome do motorista");
           carretas = vpoInput(iso, key, "carretasLivre", e.carretasLivre||"", "Carreta(s), separadas por /");
           fabrica = vpoInput(iso, key, "fabricaLivre", e.fabricaLivre||"", "Fábrica");
+          eixos = vpoInput(iso, key, "eixosIdaLivre", e.eixosIdaLivre||"", "Ida") + vpoInput(iso, key, "eixosVoltaLivre", e.eixosVoltaLivre||"", "Volta") + vpoInput(iso, key, "suspensosLivre", e.suspensosLivre||"", "Susp.");
         }
         var statusSelect = '<td style="padding:4px 6px;"><select data-iso="'+iso+'" data-key="'+esc(key)+'" data-field="status" class="status-select"'+(ME && ME.papel === "leitura" ? " disabled" : "")+'>' +
           VPO_STATUS_OPTS.map(function(o){ return '<option value="'+o.value+'"'+(o.value===(e.status||"")?" selected":"")+'>'+esc(o.label)+'</option>'; }).join("") +
@@ -5318,7 +5323,7 @@
         }
         var rotaCell = '<td style="white-space:nowrap;"><div>U1: '+pedagioBadge(e.usina1, "—")+'</div>' +
           '<div style="margin-top:4px;">U2: '+pedagioBadge(e.usina2, "—")+'</div></td>';
-        return '<tr>' + placa + motorista + carretas + fabrica +
+        return '<tr>' + placa + motorista + carretas + eixos + fabrica +
           vpoUsinaSelect(iso, key, "usina1", e.usina1, dicas[0], vemCelula(iso, key, 1, e, v)) +
           vpoUsinaSelect(iso, key, "usina2", e.usina2, dicas[1], vemCelula(iso, key, 2, e, v)) +
           rotaCell + statusSelect +
@@ -5328,7 +5333,7 @@
       return '<div class="prog-block'+(data.isException?" exception":"")+'" data-iso="'+iso+'">' +
         '<div class="prog-block-head"><div class="ref">'+esc(refText)+'</div><div class="title">'+esc(T.nome.toUpperCase())+' — VPO DA PROGRAMAÇÃO DO DIA '+esc(fmtBR(day).toUpperCase())+' ('+esc(weekdayLong(day).toUpperCase())+')'+(data.isException?' · EXCEÇÃO':'')+'</div></div>' +
         (linhas.length
-          ? '<div class="table-wrap"><table class="vpo-tbl"><thead><tr><th>Placa</th><th>Motorista</th><th>Carreta(s)</th><th>Fábrica</th><th>Usina 1 (roteiro)</th><th>Usina 2 (roteiro)</th><th>Pedágio</th><th>Status VPO</th><th>Observação</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+          ? '<div class="table-wrap"><table class="vpo-tbl"><thead><tr><th>Placa</th><th>Motorista</th><th>Carreta(s)</th><th title="Eixos na ida (carregado)">Eixos ida</th><th title="Eixos na volta (vazio)">Eixos volta</th><th title="Eixos suspensos (levantados) na volta">Suspensos</th><th>Fábrica</th><th>Usina 1 (roteiro)</th><th>Usina 2 (roteiro)</th><th>Pedágio</th><th>Status VPO</th><th>Observação</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
           : '<p class="prog-empty">Nenhum veículo ativo nesta transportadora. Adicione acima.</p>') +
         (ME && ME.papel !== "leitura" ? '<div class="prog-add" data-iso="'+iso+'">+ linha avulsa (só neste dia)</div>' : "") +
         '</div>';
@@ -5687,7 +5692,7 @@
       (d.entries || []).forEach(function(e){
         var extra = null;
         var temLivre = false;
-        ["motoristaLivre", "placaLivre", "carretasLivre", "fabricaLivre", "veiculoId", "transportadoraId", "semAuto1", "semAuto2", "vpo1", "vpo2"].forEach(function(k){ if (e[k]) { extra = extra || {}; extra[k] = e[k]; if (/Livre$/.test(k)) temLivre = true; } });
+        ["motoristaLivre", "placaLivre", "carretasLivre", "fabricaLivre", "eixosIdaLivre", "eixosVoltaLivre", "suspensosLivre", "veiculoId", "transportadoraId", "semAuto1", "semAuto2", "vpo1", "vpo2"].forEach(function(k){ if (e[k]) { extra = extra || {}; extra[k] = e[k]; if (/Livre$/.test(k)) temLivre = true; } });
         var item = { fleetId: e.fleetId || "", usina1: e.usina1 || "", usina2: e.usina2 || "", status: e.status || "", obs: e.obs || "", extra: extra };
         if (!item.usina1 && !item.usina2 && !item.obs && !temLivre && !item.status && !e.vpo1 && !e.vpo2) return;
         entradas.push(item);
@@ -8082,16 +8087,17 @@
     var ed = modPodeEditar();
     return '<tr data-vid="' + esc(x.id || "novo") + '"' + (x.ativo === false ? ' class="frt-inativo"' : "") + '><td>' + frtInp("cavalo", x.cavalo, "Placa do cavalo", "110px") + '</td><td>' + frtInp("carreta", x.carreta, "Placa(s) da carreta", "150px") + '</td>' +
       '<td>' + frtInp("tipo", x.tipo, "LS 30, BT…", "72px") + '</td><td>' + frtInp("eixos_ida", x.eixos_ida, "", "54px", "number") + '</td><td>' + frtInp("eixos_volta", x.eixos_volta, "", "54px", "number") + '</td>' +
+      '<td class="num" title="ida − volta">' + (x.eixos_ida != null && x.eixos_volta != null ? (x.eixos_ida - x.eixos_volta) : '<span class="faint">—</span>') + '</td>' +
       '<td>' + frtInp("motorista", x.motorista, "Nome do motorista", "190px") + '</td><td>' + frtInp("fabrica", x.fabrica, "Nassau, CSN…", "110px") + '</td>' +
       (x.id && FRT.d && (FRT.d.transportadoras || []).length > 1 && ed ? '<td><select class="frt-in" data-frv="transportadora_id">' + FRT.d.transportadoras.map(function(t){ return '<option value="' + esc(t.id) + '"' + (t.id === x.transportadora_id ? " selected" : "") + '>' + esc(t.nome) + '</option>'; }).join("") + '</select></td>' : '<td class="muted">' + esc(frtTranspNome(x.transportadora_id)) + '</td>') +
       '<td style="white-space:nowrap">' + (ed ? (x.id ? '<label class="frt-chk"><input type="checkbox" data-frv="ativo"' + (x.ativo !== false ? " checked" : "") + '> ativo</label> <button class="btn-ghost" style="color:var(--danger)" data-frt="del-v" data-id="' + esc(x.id) + '">' + (FRT.sureDel === x.id ? "Confirmar excluir" : "🗑") + '</button>'
                                          : '<button class="btn-primary btn-inline" data-frt="salvar-novo">Adicionar</button> <button class="btn-ghost" data-frt="cancelar-novo">Cancelar</button>') : (x.ativo === false ? '<span class="badge neutral">inativo</span>' : "")) + '</td></tr>';
   }
   function frtTabelaV(lista, novoTid){
-    var h = '<div class="table-wrap frt-wrap"><table class="adm-tbl frt-tbl"><thead><tr><th>Cavalo</th><th>Carreta(s)</th><th>Tipo</th><th title="Eixos na ida">Eixos ida</th><th title="Eixos na volta">Eixos volta</th><th>Motorista</th><th title="Fábrica habitual — coluna Fábrica do VPO">Fábrica</th><th>Transportadora</th><th></th></tr></thead><tbody>';
+    var h = '<div class="table-wrap frt-wrap"><table class="adm-tbl frt-tbl"><thead><tr><th>Cavalo</th><th>Carreta(s)</th><th>Tipo</th><th title="Eixos na ida">Eixos ida</th><th title="Eixos na volta">Eixos volta</th><th title="Eixos suspensos (levantados) na volta = ida − volta">Susp.</th><th>Motorista</th><th title="Fábrica habitual — coluna Fábrica do VPO">Fábrica</th><th>Transportadora</th><th></th></tr></thead><tbody>';
     lista.forEach(function(x){ h += frtLinhaV(x); });
     if (novoTid) h += frtLinhaV({ id: null, transportadora_id: novoTid, ativo: true });
-    if (!lista.length && !novoTid) h += '<tr><td colspan="9" class="faint" style="text-align:center;padding:18px">Nenhum veículo.</td></tr>';
+    if (!lista.length && !novoTid) h += '<tr><td colspan="10" class="faint" style="text-align:center;padding:18px">Nenhum veículo.</td></tr>';
     return h + '</tbody></table></div>';
   }
   function paintFrota(){
