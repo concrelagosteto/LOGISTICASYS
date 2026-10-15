@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-15-7">
+<meta name="app-versao" content="2026-10-15-8">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -164,7 +164,7 @@
   .vpo-erro{color:var(--danger); font-size:12.5px; font-weight:600;}
   .xl-pop-chips{display:flex; flex-wrap:wrap; gap:4px; margin:2px 0 6px;} .xl-pop-chips:empty{display:none;}
   .xl-chips-tit{font-size:11px; color:var(--text-muted); align-self:center;}
-  .xl-chip{font:inherit; font-size:11px; padding:2px 7px; border-radius:10px; border:1px solid var(--accent); background:var(--accent-soft); color:var(--text); cursor:pointer;}
+  .xl-chip{font:inherit; font-size:11px; padding:2px 7px; border-radius:10px; border:1px solid var(--danger); background:var(--danger-soft, #fde8e8); color:var(--danger); cursor:pointer; white-space:nowrap;}
   .xl-pop-ok:disabled{opacity:.5; cursor:not-allowed;}
   .vpo-ajuda{margin:0 0 8px; font-size:12.5px;} .vpo-ajuda summary{cursor:pointer; color:var(--text-muted); font-size:12px; padding:2px 4px; display:inline-block;}
   .vpo-ajuda-txt{margin-top:6px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); line-height:1.6;}
@@ -178,7 +178,7 @@
   #vpoBlocks .prog-block-head{padding-top:6px; padding-bottom:6px;}
   .aviso-versao{position:fixed; left:50%; bottom:18px; transform:translateX(-50%); z-index:9999; display:flex; gap:10px; align-items:center; padding:10px 14px; background:var(--surface); color:var(--text); border:1px solid var(--accent); border-radius:10px; box-shadow:0 8px 30px rgba(0,0,0,.35); font-size:13.5px;}
   .aviso-versao button{font:inherit; font-weight:700; padding:6px 12px; border-radius:7px; border:0; background:var(--accent); color:#fff; cursor:pointer;} .aviso-versao button.x{background:none; color:var(--text-muted); padding:4px 6px;}
-  .vem-tem{margin-top:3px; font-size:11.5px; color:var(--accent-strong, var(--accent)); display:flex; gap:6px; align-items:center; flex-wrap:wrap;} .vem-tem b{font-family:ui-monospace,Menlo,Consolas,monospace; letter-spacing:.02em;}
+  .vem-tem{margin-top:3px; font-size:11.5px; color:var(--danger); font-weight:600; display:flex; gap:6px; align-items:center; flex-wrap:wrap;} .vem-tem b{font-family:ui-monospace,Menlo,Consolas,monospace; letter-spacing:.02em;}
   .vem-usar{padding:2px 10px !important; font-size:11.5px !important;}
   .vem-uso{margin-top:3px; display:flex; gap:4px; align-items:center; font-size:11.5px;} .vem-uso .vem-id{min-width:190px; font-family:ui-monospace,Menlo,Consolas,monospace; color:var(--success); font-weight:700; padding:2px 6px;}
   .vem-x{background:none; border:1px solid var(--border); border-radius:6px; color:var(--text-muted); cursor:pointer; padding:1px 6px;}
@@ -5260,7 +5260,7 @@
     var T = vpoTranspAtual(), ehPrimeira = T && VPO_ABAS.length && VPO_ABAS[0][0] === "t:" + T.id;
     var days = rangeDays(vpoPicker.state);
     var shown = 0, mudou = false, podeAuto = ME && ME.papel !== "leitura";
-    var vagg = { emitido:0, pendente:0, conferir:0, feito:0 };
+    var vagg = { emitido:0, pendente:0, conferir:0, feito:0, dup:0 };
     var frota = T ? frtVeiculosDe(T.id).filter(function(x){ return x.ativo !== false; }) : [];
 
     var html = !T ? '<div class="adm-pad faint">' + (FRT.carregando || !FRT.d ? "Carregando a frota…" : "Escolha uma transportadora nas abas acima.") + '</div>' : days.map(function(day){
@@ -5295,9 +5295,10 @@
         else if (e.status === "conferir") vagg.conferir++;
         else if (e.status === "pendente") vagg.pendente++;
         var placa, motorista, carretas, fabrica, eixos;
+        if (v && vemDuplicadosLinha(v, e).length) vagg.dup++;
         if (v){
           // a placa é um campo só de leitura: dá para clicar / chegar com Tab e copiar (Ctrl+C), como na planilha
-          placa = '<td class="cell-strong '+statusClass+'" style="white-space:nowrap;padding:4px 6px;"><div class="vpo-placa-box"><input class="vpo-cel vpo-ro vpo-placa" readonly data-iso="'+iso+'" data-vid="'+esc(v.id)+'" data-vf="cavalo" value="'+esc(v.cavalo)+'" title="Clique para copiar">'+vemBadgePlaca(v)+'</div>'+(v.obs ? '<div class="faint" style="font-weight:400;font-size:11px;padding-left:8px">'+esc(v.obs)+'</div>' : "")+'</td>';
+          placa = '<td class="cell-strong '+statusClass+'" style="white-space:nowrap;padding:4px 6px;"><div class="vpo-placa-box"><input class="vpo-cel vpo-ro vpo-placa" readonly data-iso="'+iso+'" data-vid="'+esc(v.id)+'" data-vf="cavalo" value="'+esc(v.cavalo)+'" title="Clique para copiar">'+vemBadgePlaca(v, e)+'</div>'+(v.obs ? '<div class="faint" style="font-weight:400;font-size:11px;padding-left:8px">'+esc(v.obs)+'</div>' : "")+'</td>';
           motorista = '<td style="padding:4px 6px;">'+vpoVeicCel(v, "motorista", "Motorista", iso)+'</td>';
           carretas = '<td style="padding:4px 6px;">'+vpoVeicCel(v, "carreta", "Carreta(s)", iso)+'</td>';
           fabrica = '<td style="padding:4px 6px;">'+vpoVeicCel(v, "fabrica", "Fábrica", iso)+'</td>';
@@ -5357,7 +5358,7 @@
     var chip = function(n, rot, cor, ic){ return '<span class="vpo-st" style="--c:' + cor + '" title="' + rot + '">' + ic + ' <b>' + n + '</b> ' + rot + '</span>'; };
     el("vpoStats").innerHTML = chip(vagg.emitido, "emitido", "var(--success)", "✅") + chip(vagg.feito, "feito (sem pedágio)", "var(--success)", "🟢") +
       chip(vagg.conferir, "incerto", "var(--warning)", "🕒") + chip(vagg.pendente, "pendente", "var(--danger)", "⚠️") +
-      (function(){ var n = frota.reduce(function(s2, x){ return s2 + vemDisponiveis(x.cavalo).length; }, 0); return n ? '<button type="button" class="vpo-st vem-st" style="--c:var(--accent)" data-vem="ver-placa" data-placa="" title="VPOs já emitidos e não usados desta transportadora — use primeiro">🎟️ <b>' + n + '</b> emitidos a usar</button>' : ""; })();
+      (vagg.dup ? '<span class="vpo-st" style="--c:var(--danger)" title="Viagens que já têm VPO emitido (mesma placa, usina, fábrica e origem) — não emitir de novo">⚠️ <b>' + vagg.dup + '</b> já emitido' + (vagg.dup > 1 ? "s" : "") + '</span>' : "");
 
     el("vpoBlocks").querySelectorAll(".prog-block[data-iso]").forEach(function(block){
       xlEnhance(block, "vpo-" + (T ? T.id.slice(0, 8) : "") + "-" + block.dataset.iso);
@@ -8612,12 +8613,22 @@
       (modPodeEditar() ? '<button type="button" tabindex="-1" class="vem-x" data-vem="desfazer" data-iso="' + iso + '" data-key="' + esc(key) + '" data-n="' + n + '" title="Não usar este VPO (volta para disponível)">↺</button>' : "") + '</div>';
     var rk = e["usina" + n]; if (!v || !rk) return "";
     var ds = vemDisponiveis(v.cavalo, rk); if (!ds.length) return "";
-    return '<div class="vem-tem">🎟️ VPO já emitido' + (ds.length > 1 ? " (" + ds.length + ")" : "") + ': <b>' + esc(ds[0].id_vpo) + '</b>' +
+    return '<div class="vem-tem" title="Já existe VPO emitido para esta placa, usina, fábrica e origem — não emita de novo">⚠️ Já emitido, não emitir de novo' + (ds.length > 1 ? " (" + ds.length + ")" : "") + ': <b>' + esc(ds[0].id_vpo) + '</b>' +
       (modPodeEditar() ? ' <button type="button" tabindex="-1" class="btn-primary btn-inline vem-usar" data-vem="usar" data-iso="' + iso + '" data-key="' + esc(key) + '" data-n="' + n + '" data-id="' + esc(ds[0].id) + '">Usar</button>' : "") + '</div>';
   }
-  function vemBadgePlaca(v){
-    var ds = vemDisponiveis(v.cavalo); if (!ds.length) return "";
-    return '<button type="button" tabindex="-1" class="vem-badge" data-vem="ver-placa" data-placa="' + esc(v.cavalo) + '" title="VPOs já emitidos e ainda não usados desta placa — use primeiro:\n' + esc(ds.map(function(x){ return x.usina + " · " + vemRotaFab(x); }).join("\n")) + '">🎟️ ' + ds.length + '</button>';
+  // VPOs já emitidos (e não usados) que batem com os roteiros desta linha: mesma placa + usina + fábrica/origem → não emitir de novo
+  function vemDuplicadosLinha(v, e){
+    if (!v || !e) return [];
+    var vistos = {}, out = [];
+    [1, 2, 3, 4].forEach(function(n){
+      var rk = e["usina" + n]; if (!rk || e["vpo" + n]) return;
+      vemDisponiveis(v.cavalo, rk).forEach(function(x){ if (!vistos[x.id]){ vistos[x.id] = 1; out.push(x); } });
+    });
+    return out;
+  }
+  function vemBadgePlaca(v, e){
+    var ds = vemDuplicadosLinha(v, e); if (!ds.length) return "";
+    return '<button type="button" tabindex="-1" class="vem-badge" data-vem="ver-placa" data-placa="' + esc(v.cavalo) + '" title="Já existe VPO emitido (e não usado) para esta viagem — NÃO emita de novo, use o que já existe:\n' + esc(ds.map(function(x){ return x.id_vpo + " · " + x.usina + " · " + vemRotaFab(x); }).join("\n")) + '">⚠️ já emitido' + (ds.length > 1 ? " (" + ds.length + ")" : "") + '</button>';
   }
   function vemPintar(){
     var p = document.querySelector('#view-vpo .vpo-painel[data-vpop="emitidos"]'); if (!p) return;
