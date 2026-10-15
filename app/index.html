@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-15-4">
+<meta name="app-versao" content="2026-10-15-5">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -150,7 +150,7 @@
   .vpo-cel{width:100%; min-width:90px; border:1px solid transparent; border-radius:5px; padding:6px 8px; font:inherit; font-size:12.5px; background:transparent; color:var(--text);}
   .vpo-cel:focus, .vpo-rota-in:focus{border-color:var(--accent); outline:none; background:var(--surface);}
   .vpo-cel.erro, .vpo-rota-in.erro{border-color:var(--danger) !important; box-shadow:0 0 0 1px var(--danger) inset;}
-  .vpo-rota-in{width:100%; min-width:250px; border:1px solid var(--border); border-radius:6px; padding:7px 9px; font:inherit; font-size:12.5px; background:var(--surface-2); color:var(--text);}
+  .vpo-rota-in{width:100%; min-width:210px; border:1px solid var(--border); border-radius:6px; padding:7px 9px; font:inherit; font-size:12.5px; background:var(--surface-2); color:var(--text);}
   input.vpo-rota-in.auto-fab{border-color:var(--success);}
   .vpo-prog{font-size:11px; color:var(--text-muted); margin-top:3px; white-space:normal;}
   .vpo-tbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:0 0 12px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);} .vpo-tbar .grow{flex:1;}
@@ -5280,8 +5280,8 @@
       var rows = linhas.map(function(x){
         var e = x.e, v = x.v, key = vpoEntryKey(e);
         // sugestão pela Programação (placa do cavalo): Usina 1 = 1ª carga, Usina 2 = 2ª
-        var cargas = v ? (prog[frtNorm(v.cavalo)] || []) : [], dicas = [vpoSugestao(cargas[0]), vpoSugestao(cargas[1])];
-        if (podeAuto) [1, 2].forEach(function(n){
+        var cargas = v ? (prog[frtNorm(v.cavalo)] || []) : [], dicas = [0, 1, 2, 3].map(function(i){ return vpoSugestao(cargas[i]); });   // até 4 usinas por placa
+        if (podeAuto) [1, 2, 3, 4].forEach(function(n){
           var d = dicas[n - 1];
           if (d && d.auto && d.key && !e["usina" + n] && !e["semAuto" + n]){
             var en = vpoGetOrCreateEntry(iso, key); en["usina" + n] = d.key; if (n === 1 && !en.status) applyAutoVpoStatus(en); e = en; mudou = true;
@@ -5321,11 +5321,13 @@
             ? '<span class="badge '+(PEDAGIO_TONE[r.pedagio]||"neutral")+'">'+esc(PEDAGIO_LABEL[r.pedagio]||"—")+'</span>'
             : '<span class="faint" style="font-style:italic;font-size:11px;">sem rota cadastrada</span>';
         }
-        var rotaCell = '<td style="white-space:nowrap;"><div>U1: '+pedagioBadge(e.usina1, "—")+'</div>' +
-          '<div style="margin-top:4px;">U2: '+pedagioBadge(e.usina2, "—")+'</div></td>';
+        var rotaCell = '<td style="white-space:nowrap;">' + [1, 2, 3, 4].map(function(n){
+          return (n <= 2 || e["usina" + n]) ? '<div' + (n > 1 ? ' style="margin-top:2px;"' : "") + '>U' + n + ': ' + pedagioBadge(e["usina" + n], "—") + '</div>' : ""; }).join("") + '</td>';
         return '<tr>' + placa + motorista + carretas + eixos + fabrica +
           vpoUsinaSelect(iso, key, "usina1", e.usina1, dicas[0], vemCelula(iso, key, 1, e, v)) +
           vpoUsinaSelect(iso, key, "usina2", e.usina2, dicas[1], vemCelula(iso, key, 2, e, v)) +
+          vpoUsinaSelect(iso, key, "usina3", e.usina3 || "", dicas[2], vemCelula(iso, key, 3, e, v)) +
+          vpoUsinaSelect(iso, key, "usina4", e.usina4 || "", dicas[3], vemCelula(iso, key, 4, e, v)) +
           rotaCell + statusSelect +
           vpoInput(iso, key, "obs", e.obs, "ex: pedágio confirmado por telefone") + '</tr>';
       }).join("");
@@ -5333,7 +5335,7 @@
       return '<div class="prog-block'+(data.isException?" exception":"")+'" data-iso="'+iso+'">' +
         '<div class="prog-block-head"><div class="ref">'+esc(refText)+'</div><div class="title">'+esc(T.nome.toUpperCase())+' — VPO DA PROGRAMAÇÃO DO DIA '+esc(fmtBR(day).toUpperCase())+' ('+esc(weekdayLong(day).toUpperCase())+')'+(data.isException?' · EXCEÇÃO':'')+'</div></div>' +
         (linhas.length
-          ? '<div class="table-wrap"><table class="vpo-tbl"><thead><tr><th>Placa</th><th>Motorista</th><th>Carreta(s)</th><th title="Eixos na ida (carregado)">Eixos ida</th><th title="Eixos na volta (vazio)">Eixos volta</th><th title="Eixos suspensos (levantados) na volta">Suspensos</th><th>Fábrica</th><th>Usina 1 (roteiro)</th><th>Usina 2 (roteiro)</th><th>Pedágio</th><th>Status VPO</th><th>Observação</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+          ? '<div class="table-wrap"><table class="vpo-tbl"><thead><tr><th>Placa</th><th>Motorista</th><th>Carreta(s)</th><th title="Eixos na ida (carregado)">Eixos ida</th><th title="Eixos na volta (vazio)">Eixos volta</th><th title="Eixos suspensos (levantados) na volta">Suspensos</th><th>Fábrica</th><th>Usina 1 (roteiro)</th><th>Usina 2 (roteiro)</th><th>Usina 3 (roteiro)</th><th>Usina 4 (roteiro)</th><th>Pedágio</th><th>Status VPO</th><th>Observação</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
           : '<p class="prog-empty">Nenhum veículo ativo nesta transportadora. Adicione acima.</p>') +
         (ME && ME.papel !== "leitura" ? '<div class="prog-add" data-iso="'+iso+'">+ linha avulsa (só neste dia)</div>' : "") +
         '</div>';
@@ -5371,7 +5373,7 @@
       if (t.dataset.vid) return;   // dados do veículo mudam em Transportadoras e frota
       if (!t.dataset.iso || ME.papel === "leitura") return;
       var entry = vpoGetOrCreateEntry(t.dataset.iso, t.dataset.key), f = t.dataset.field;
-      if (f === "usina1" || f === "usina2"){
+      if (/^usina[1-4]$/.test(f)){
         var k = vpoRotaResolver(t.value);
         if (k === null){ t.classList.add("erro"); t.title = "Escolha um roteiro da lista (digite parte do nome da usina ou da fábrica)"; return; }
         t.classList.remove("erro");
@@ -5692,9 +5694,9 @@
       (d.entries || []).forEach(function(e){
         var extra = null;
         var temLivre = false;
-        ["motoristaLivre", "placaLivre", "carretasLivre", "fabricaLivre", "eixosIdaLivre", "eixosVoltaLivre", "suspensosLivre", "veiculoId", "transportadoraId", "semAuto1", "semAuto2", "vpo1", "vpo2"].forEach(function(k){ if (e[k]) { extra = extra || {}; extra[k] = e[k]; if (/Livre$/.test(k)) temLivre = true; } });
+        ["motoristaLivre", "placaLivre", "carretasLivre", "fabricaLivre", "eixosIdaLivre", "eixosVoltaLivre", "suspensosLivre", "veiculoId", "transportadoraId", "semAuto1", "semAuto2", "semAuto3", "semAuto4", "vpo1", "vpo2", "vpo3", "vpo4", "usina3", "usina4"].forEach(function(k){ if (e[k]) { extra = extra || {}; extra[k] = e[k]; if (/Livre$/.test(k)) temLivre = true; } });
         var item = { fleetId: e.fleetId || "", usina1: e.usina1 || "", usina2: e.usina2 || "", status: e.status || "", obs: e.obs || "", extra: extra };
-        if (!item.usina1 && !item.usina2 && !item.obs && !temLivre && !item.status && !e.vpo1 && !e.vpo2) return;
+        if (!item.usina1 && !item.usina2 && !item.obs && !temLivre && !item.status && !e.vpo1 && !e.vpo2 && !e.usina3 && !e.usina4) return;
         entradas.push(item);
       });
       if (!entradas.length) { s.vpo[iso] = null; return; }
