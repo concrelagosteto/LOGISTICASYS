@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-15-1">
+<meta name="app-versao" content="2026-10-15-2">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -178,6 +178,19 @@
   #vpoBlocks .prog-block-head{padding-top:6px; padding-bottom:6px;}
   .aviso-versao{position:fixed; left:50%; bottom:18px; transform:translateX(-50%); z-index:9999; display:flex; gap:10px; align-items:center; padding:10px 14px; background:var(--surface); color:var(--text); border:1px solid var(--accent); border-radius:10px; box-shadow:0 8px 30px rgba(0,0,0,.35); font-size:13.5px;}
   .aviso-versao button{font:inherit; font-weight:700; padding:6px 12px; border-radius:7px; border:0; background:var(--accent); color:#fff; cursor:pointer;} .aviso-versao button.x{background:none; color:var(--text-muted); padding:4px 6px;}
+  .vem-tem{margin-top:3px; font-size:11.5px; color:var(--accent-strong, var(--accent)); display:flex; gap:6px; align-items:center; flex-wrap:wrap;} .vem-tem b{font-family:ui-monospace,Menlo,Consolas,monospace; letter-spacing:.02em;}
+  .vem-usar{padding:2px 10px !important; font-size:11.5px !important;}
+  .vem-uso{margin-top:3px; display:flex; gap:4px; align-items:center; font-size:11.5px;} .vem-uso .vem-id{min-width:190px; font-family:ui-monospace,Menlo,Consolas,monospace; color:var(--success); font-weight:700; padding:2px 6px;}
+  .vem-x{background:none; border:1px solid var(--border); border-radius:6px; color:var(--text-muted); cursor:pointer; padding:1px 6px;}
+  .vem-badge{margin-left:6px; font:inherit; font-size:11px; font-weight:700; padding:1px 6px; border-radius:10px; border:1px solid var(--accent); background:var(--accent-soft); color:var(--text); cursor:pointer;}
+  .vem-st{cursor:pointer; background:var(--accent-soft); font:inherit;}
+  .vem-q{padding:6px 10px; border:1px solid var(--border); border-radius:8px; background:var(--surface-2); color:var(--text); font:inherit; font-size:13px; min-width:220px;}
+  .vem-tbl td{padding-top:3px !important; padding-bottom:3px !important; vertical-align:middle;} .vem-tbl .btn-ghost{padding:3px 8px; font-size:11.5px; margin-left:3px;}
+  .vem-ac{display:flex; gap:4px; flex-wrap:nowrap; justify-content:flex-end;} .vem-ac .btn-ghost{margin:0; white-space:nowrap;}
+  .vem-tbl .vem-id{min-width:200px; font-family:ui-monospace,Menlo,Consolas,monospace; font-weight:700;}
+  .vem-dup{flex:1 1 100%; padding:8px 10px; border-radius:8px; background:var(--warning-soft); color:var(--text); font-size:12.5px;}
+  .rota-nova{display:flex; gap:8px; flex-wrap:wrap; align-items:center; padding:12px 14px; margin-top:12px;} .rota-nova input, .rota-nova select{padding:7px 9px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text); font:inherit; font-size:13px;}
+  #vpoBlocks td.vpo-rota-td{white-space:normal;}
   .badge.nfe{background:var(--accent-soft); color:var(--accent-strong, var(--accent));}
   .mod-periodo{display:flex; gap:8px; flex-wrap:wrap; align-items:center; padding:0 18px 14px;}
   .mod-periodo label{display:flex; gap:6px; align-items:center; font-size:12.5px; color:var(--text-muted);}
@@ -5067,6 +5080,7 @@
     v.querySelectorAll(".vpo-aba").forEach(function(b){ var on = b.dataset.vpoaba === id; b.classList.toggle("on", on); b.setAttribute("aria-selected", on); });
     if (transp && typeof paintVpoBlocks === "function") paintVpoBlocks();
     if (id === "semcad" && typeof vptAbrir === "function") vptAbrir(id);
+    if (id === "emitidos" && typeof vemPintar === "function"){ vemPintar(); if (!VEM.d) vemCarregar(); }
     if (typeof agendaFit === "function") agendaFit();
     if (window.__medirTopo) window.__medirTopo();
   }
@@ -5094,22 +5108,6 @@
       '<div id="vpoBlocks"></div></div>' +
       '<div class="vpo-painel" data-vpop="rotas" hidden>' + renderPedagioConfigHtml() + '</div>';
     vpoAbaMostrar(VPO_ABA);
-
-    el("pedagioBody").querySelectorAll("select[data-usina]").forEach(function(sel){
-      sel.addEventListener("change", function(){
-        var rotas = ROTAS_POR_USINA[sel.dataset.usina];
-        var idx = parseInt(sel.dataset.idx, 10);
-        if (rotas && rotas[idx]) rotas[idx].pedagio = sel.value;
-        // Reaplica a sugestão automática em qualquer trecho já lançado que use exatamente esse roteiro.
-        var changedKey = routeKey(sel.dataset.usina, rotas && rotas[idx] ? rotas[idx].fabrica : "");
-        Object.keys(vpoScheduleByDate).forEach(function(iso){
-          vpoScheduleByDate[iso].entries.forEach(function(e){
-            if (e.usina1 === changedKey) applyAutoVpoStatus(e);
-          });
-        });
-        paintVpoBlocks();
-      });
-    });
 
     xlEnhance(el("view-vpo").querySelector(".vpo-rotas-card"), "vpo-rotas");
     vpoPicker = makeRangePicker({btn:"vpoDrBtn", panel:"vpoDrPanel", label:"vpoDrLabel"}, paintVpoBlocks);
@@ -5164,10 +5162,10 @@
     if (exato.length === 1) return exato[0].key;
     return null;
   }
-  function vpoUsinaSelect(iso, key, field, value, dica){
+  function vpoUsinaSelect(iso, key, field, value, dica, extra){
     var ro = ME && ME.papel === "leitura";
     return '<td class="vpo-rota-td" style="padding:4px 6px;"><input class="vpo-rota-in' + (dica && dica.auto && dica.key === value ? " auto-fab" : "") + '" list="dlVpoRotas" autocomplete="off" placeholder="Digite a usina…" value="' + esc(vpoRotaRotulo(value)) + '" data-iso="' + iso + '" data-key="' + esc(key) + '" data-field="' + field + '" data-atual="' + esc(value || "") + '"' + (ro ? " readonly" : "") + '>' +
-      (dica ? '<div class="vpo-prog" title="Da Programação de Cimento deste dia">📋 ' + esc(dica.txt) + (dica.key ? "" : ' <span class="faint">— escolha o local</span>') + '</div>' : "") + '</td>';
+      (dica ? '<div class="vpo-prog" title="Da Programação de Cimento deste dia">📋 ' + esc(dica.txt) + (dica.key ? "" : ' <span class="faint">— escolha o local</span>') + '</div>' : "") + (extra || "") + '</td>';
   }
   // Programação do dia: placa → cargas (usina + fábrica), para sugerir Usina 1 / Usina 2
   function vpoProgDoDia(iso){
@@ -5279,7 +5277,7 @@
         var placa, motorista, carretas, fabrica;
         if (v){
           // a placa é um campo só de leitura: dá para clicar / chegar com Tab e copiar (Ctrl+C), como na planilha
-          placa = '<td class="cell-strong '+statusClass+'" style="white-space:nowrap;padding:4px 6px;"><input class="vpo-cel vpo-ro vpo-placa" readonly data-iso="'+iso+'" data-vid="'+esc(v.id)+'" data-vf="cavalo" value="'+esc(v.cavalo)+'" title="Clique para copiar">'+(v.obs ? '<div class="faint" style="font-weight:400;font-size:11px;padding-left:8px">'+esc(v.obs)+'</div>' : "")+'</td>';
+          placa = '<td class="cell-strong '+statusClass+'" style="white-space:nowrap;padding:4px 6px;"><input class="vpo-cel vpo-ro vpo-placa" readonly data-iso="'+iso+'" data-vid="'+esc(v.id)+'" data-vf="cavalo" value="'+esc(v.cavalo)+'" title="Clique para copiar">'+vemBadgePlaca(v)+(v.obs ? '<div class="faint" style="font-weight:400;font-size:11px;padding-left:8px">'+esc(v.obs)+'</div>' : "")+'</td>';
           motorista = '<td style="padding:4px 6px;">'+vpoVeicCel(v, "motorista", "Motorista", iso)+'</td>';
           carretas = '<td style="padding:4px 6px;">'+vpoVeicCel(v, "carreta", "Carreta(s)", iso)+'</td>';
           fabrica = '<td style="padding:4px 6px;">'+vpoVeicCel(v, "fabrica", "Fábrica", iso)+'</td>';
@@ -5302,8 +5300,8 @@
         var rotaCell = '<td style="white-space:nowrap;"><div>U1: '+pedagioBadge(e.usina1, "—")+'</div>' +
           '<div style="margin-top:4px;">U2: '+pedagioBadge(e.usina2, "—")+'</div></td>';
         return '<tr>' + placa + motorista + carretas + fabrica +
-          vpoUsinaSelect(iso, key, "usina1", e.usina1, dicas[0]) +
-          vpoUsinaSelect(iso, key, "usina2", e.usina2, dicas[1]) +
+          vpoUsinaSelect(iso, key, "usina1", e.usina1, dicas[0], vemCelula(iso, key, 1, e, v)) +
+          vpoUsinaSelect(iso, key, "usina2", e.usina2, dicas[1], vemCelula(iso, key, 2, e, v)) +
           rotaCell + statusSelect +
           vpoInput(iso, key, "obs", e.obs, "ex: pedágio confirmado por telefone") + '</tr>';
       }).join("");
@@ -5331,7 +5329,8 @@
 
     var chip = function(n, rot, cor, ic){ return '<span class="vpo-st" style="--c:' + cor + '" title="' + rot + '">' + ic + ' <b>' + n + '</b> ' + rot + '</span>'; };
     el("vpoStats").innerHTML = chip(vagg.emitido, "emitido", "var(--success)", "✅") + chip(vagg.feito, "feito (sem pedágio)", "var(--success)", "🟢") +
-      chip(vagg.conferir, "incerto", "var(--warning)", "🕒") + chip(vagg.pendente, "pendente", "var(--danger)", "⚠️");
+      chip(vagg.conferir, "incerto", "var(--warning)", "🕒") + chip(vagg.pendente, "pendente", "var(--danger)", "⚠️") +
+      (function(){ var n = frota.reduce(function(s2, x){ return s2 + vemDisponiveis(x.cavalo).length; }, 0); return n ? '<button type="button" class="vpo-st vem-st" style="--c:var(--accent)" data-vem="ver-placa" data-placa="" title="VPOs já emitidos e não usados desta transportadora — use primeiro">🎟️ <b>' + n + '</b> emitidos a usar</button>' : ""; })();
 
     el("vpoBlocks").querySelectorAll(".prog-block[data-iso]").forEach(function(block){
       xlEnhance(block, "vpo-" + (T ? T.id.slice(0, 8) : "") + "-" + block.dataset.iso);
@@ -5669,9 +5668,9 @@
       (d.entries || []).forEach(function(e){
         var extra = null;
         var temLivre = false;
-        ["motoristaLivre", "placaLivre", "carretasLivre", "fabricaLivre", "veiculoId", "transportadoraId", "semAuto1", "semAuto2"].forEach(function(k){ if (e[k]) { extra = extra || {}; extra[k] = e[k]; if (/Livre$/.test(k)) temLivre = true; } });
+        ["motoristaLivre", "placaLivre", "carretasLivre", "fabricaLivre", "veiculoId", "transportadoraId", "semAuto1", "semAuto2", "vpo1", "vpo2"].forEach(function(k){ if (e[k]) { extra = extra || {}; extra[k] = e[k]; if (/Livre$/.test(k)) temLivre = true; } });
         var item = { fleetId: e.fleetId || "", usina1: e.usina1 || "", usina2: e.usina2 || "", status: e.status || "", obs: e.obs || "", extra: extra };
-        if (!item.usina1 && !item.usina2 && !item.obs && !temLivre && !item.status) return;
+        if (!item.usina1 && !item.usina2 && !item.obs && !temLivre && !item.status && !e.vpo1 && !e.vpo2) return;
         entradas.push(item);
       });
       if (!entradas.length) { s.vpo[iso] = null; return; }
@@ -5862,6 +5861,8 @@
     renderProgramacaoCimento(); renderBaseDados(); renderNotasSefaz(); renderLancamentosPuzl(); renderControlePedidos(); renderConsultas();
     renderDashboard(); renderVpo(); renderExcecoes();
     if (typeof frtCarregar === "function") frtCarregar();   // as abas do VPO são as transportadoras
+    if (typeof rotasCarregar === "function") rotasCarregar();
+    if (typeof vemCarregar === "function") vemCarregar();
     if (!bootJa) { el("viewCrumb").innerHTML = CRUMBS["programacao-cimento"]; bootJa = true; }
   }
   async function entrar(user){
@@ -8424,10 +8425,10 @@
     var ts = ((FRT.d && FRT.d.transportadoras) || []).filter(function(t){ return t.ativo !== false; }).sort(function(a, b){
       var pa = /^PACHECO/i.test(a.nome) ? 0 : 1, pb = /^PACHECO/i.test(b.nome) ? 0 : 1;   // a Pacheco (onde sai a maioria dos VPOs) vem primeiro
       return pa - pb || nAtivos(b) - nAtivos(a) || (a.nome < b.nome ? -1 : 1); });
-    VPO_ABAS = ts.map(function(t){ return ["t:" + t.id, "🚛 " + esc(t.nome)]; }).concat(ts.length ? [["semcad", "❓ Placas sem cadastro"]] : [["dia", "📋 VPO"]], [["rotas", "🛣️ Rotas e pedágio"]]);
+    VPO_ABAS = ts.map(function(t){ return ["t:" + t.id, "🚛 " + esc(t.nome)]; }).concat(ts.length ? [["emitidos", "🎟️ VPOs emitidos"], ["semcad", "❓ Placas sem cadastro"]] : [["dia", "📋 VPO"]], [["rotas", "🛣️ Rotas e pedágio"]]);
     ab.outerHTML = vpoAbasHtml();
     var rotas = v.querySelector('.vpo-painel[data-vpop="rotas"]');
-    if (ts.length && !v.querySelector('.vpo-painel[data-vpop="semcad"]')){ var d = document.createElement("div"); d.className = "vpo-painel"; d.dataset.vpop = "semcad"; d.hidden = true; rotas.parentNode.insertBefore(d, rotas); }
+    if (ts.length) ["emitidos", "semcad"].forEach(function(id){ if (v.querySelector('.vpo-painel[data-vpop="' + id + '"]')) return; var d = document.createElement("div"); d.className = "vpo-painel"; d.dataset.vpop = id; d.hidden = true; rotas.parentNode.insertBefore(d, rotas); });
     var existe = function(id){ return VPO_ABAS.some(function(x){ return x[0] === id; }); };
     vpoAbaMostrar(existe(VPO_ABA) ? VPO_ABA : VPO_ABAS[0][0]);
   }
@@ -8496,6 +8497,207 @@
     });
     v.addEventListener("change", function(ev){ var t = ev.target; if (t.dataset && t.dataset.vpt === "dia" && t.value){ VPT.dia = t.value; vptCarregar(); } });
   })();
+
+  /* ---------------- Rotas e pedágio: vêm do banco e o que você muda é salvo ---------------- */
+  var ROTAS_DB = false;
+  async function rotasCarregar(){
+    if (!ME || !sb) return;
+    var r; try { r = await sb.rpc("rotas_listar"); } catch (e) { return; }
+    if (r.error || !Array.isArray(r.data) || !r.data.length) return;
+    Object.keys(ROTAS_POR_USINA).forEach(function(k){ delete ROTAS_POR_USINA[k]; });
+    r.data.forEach(function(x){ var u = String(x.usina || "").trim().toUpperCase(); (ROTAS_POR_USINA[u] = ROTAS_POR_USINA[u] || []).push({ fabrica: x.fabrica, pedagio: x.pedagio || "incerto" }); });
+    ROTAS_DB = true;
+    rotasRepintar();
+    if (VPO_ABA && VPO_ABA.indexOf("t:") === 0) paintVpoBlocks();
+  }
+  function rotasRepintar(){
+    var p = document.querySelector('#view-vpo .vpo-painel[data-vpop="rotas"]'); if (!p) return;
+    var aberto = !!p.querySelector("details[open]") || !p.querySelector("details");
+    p.innerHTML = renderPedagioConfigHtml() + (modPodeEditar() ? '<div class="card rota-nova"><b>＋ Nova rota</b><input id="rnUsina" list="dlRnUsinas" placeholder="Usina"><input id="rnForn" list="dlBdForn2" placeholder="Fornecedor (ex.: Nassau)"><input id="rnLocal" placeholder="Local da fábrica (ex.: Cachoeiro de Itapemirim)">' +
+      '<select id="rnPed"><option value="com">Com pedágio</option><option value="sem">Sem pedágio</option><option value="incerto">Incerto</option></select><button class="btn-primary btn-inline" data-rota="nova">Adicionar</button><span id="rnMsg" class="faint"></span>' +
+      '<datalist id="dlRnUsinas">' + MASTER_USINAS.map(function(u){ return '<option value="' + esc(u) + '">'; }).join("") + '</datalist>' +
+      '<datalist id="dlBdForn2">' + FABRICAS_CATALOGO.map(function(f){ return '<option value="' + esc(f.fornecedor) + '">'; }).join("") + '</datalist></div>' : "");
+    var d = p.querySelector("details"); if (d) d.open = aberto;
+    var card = p.querySelector(".vpo-rotas-card"); if (card) xlEnhance(card, "vpo-rotas");
+  }
+  (function(){
+    var v = el("view-vpo"); if (!v) return;
+    v.addEventListener("change", async function(ev){
+      var sel = ev.target; if (!sel.matches || !sel.matches("#pedagioBody select[data-usina]")) return;
+      var rotas = ROTAS_POR_USINA[sel.dataset.usina], idx = parseInt(sel.dataset.idx, 10), r0 = rotas && rotas[idx]; if (!r0) return;
+      r0.pedagio = sel.value;
+      var k = routeKey(sel.dataset.usina, r0.fabrica);
+      Object.keys(vpoScheduleByDate).forEach(function(iso){ vpoScheduleByDate[iso].entries.forEach(function(e){ if (e.usina1 === k) applyAutoVpoStatus(e); }); });
+      if (modPodeEditar()){
+        var r; try { r = await sb.rpc("rota_salvar", { p_usina: sel.dataset.usina, p_fabrica: r0.fabrica, p_pedagio: sel.value }); } catch (e) { r = { error: e }; }
+        var erro = r.error ? dbErr(r.error) : (r.data && r.data.erro);
+        sel.classList.toggle("erro", !!erro); sel.title = erro || "Salvo";
+      }
+      if (typeof scheduleSync === "function") scheduleSync();
+    });
+    v.addEventListener("click", async function(ev){
+      var b = ev.target.closest && ev.target.closest('[data-rota="nova"]'); if (!b) return;
+      var u = el("rnUsina").value.trim().toUpperCase(), f = el("rnForn").value.trim(), l = el("rnLocal").value.trim(), msg = el("rnMsg");
+      if (!u || !f){ msg.textContent = "Informe usina e fornecedor."; return; }
+      var r; try { r = await sb.rpc("rota_salvar", { p_usina: u, p_fabrica: f + (l ? " - " + l : ""), p_pedagio: el("rnPed").value }); } catch (e) { r = { error: e }; }
+      var erro = r.error ? dbErr(r.error) : (r.data && r.data.erro);
+      if (erro){ msg.textContent = erro; return; }
+      await rotasCarregar(); var m2 = el("rnMsg"); if (m2) m2.textContent = "Rota adicionada: " + u + " · " + f + (l ? " - " + l : "");
+    });
+  })();
+
+  /* ---------------- VPOs emitidos (controle) ----------------
+     Cada VPO emitido fica registrado com usina, placa, fábrica e origem. Duplicado = mesma usina + placa + origem + fábrica.
+     Os ainda NÃO usados aparecem nas abas das transportadoras para serem usados primeiro (🎟️ Usar). */
+  var VEM = { d: null, f: "disponivel", q: "", novo: null, sure: null, msg: "", ruim: false, carregando: false };
+  async function vemCarregar(){
+    if (!ME || !sb) return;
+    VEM.carregando = true;
+    var r; try { r = await sb.rpc("vpo_emitidos_listar"); } catch (e) { r = { error: e }; }
+    VEM.carregando = false;
+    if (r.error){ VEM.msg = dbErr(r.error); VEM.ruim = true; } else VEM.d = Array.isArray(r.data) ? r.data : [];
+    if (VPO_ABA === "emitidos") vemPintar();
+    else if (VPO_ABA && VPO_ABA.indexOf("t:") === 0) paintVpoBlocks();
+  }
+  function vemRotaFab(x){ return (x.fabrica || "") + (x.origem ? " - " + x.origem : ""); }
+  // VPOs disponíveis de uma placa (opcional: só os do roteiro usina||"Fornecedor - Local")
+  function vemDisponiveis(placa, rk){
+    var p = frtNorm(placa); if (!VEM.d || !p) return [];
+    var r = rk ? parseRouteKey(rk) : null;
+    return VEM.d.filter(function(x){
+      if (x.status !== "disponivel" || frtNorm(x.placa) !== p) return false;
+      if (!r) return true;
+      return solNorm(x.usina) === solNorm(r.usina) && (solNorm(vemRotaFab(x)) === solNorm(r.fabrica) || (!x.origem && solNorm(fornDe(r.fabrica)) === solNorm(fornDe(x.fabrica || ""))));
+    });
+  }
+  function vemPorId(idv){ return (VEM.d || []).find(function(x){ return x.id_vpo === idv; }); }
+  async function vemSituacao(id, status, dia){
+    var r; try { r = await sb.rpc("vpo_emitido_situacao", { p_id: id, p_status: status, p_dia: dia || null, p_obs: null }); } catch (e) { r = { error: e }; }
+    var erro = r.error ? dbErr(r.error) : (r.data && r.data.erro);
+    if (erro){ alert(erro); return false; }
+    return true;
+  }
+  // célula de VPO dentro da tabela da transportadora (embaixo do roteiro): emitido a usar / em uso
+  function vemCelula(iso, key, n, e, v){
+    var usado = e["vpo" + n];
+    if (usado) return '<div class="vem-uso">🎟️ <input class="vpo-cel vpo-ro vem-id" readonly value="' + esc(usado) + '" title="VPO deste trecho — clique para copiar">' +
+      (modPodeEditar() ? '<button type="button" tabindex="-1" class="vem-x" data-vem="desfazer" data-iso="' + iso + '" data-key="' + esc(key) + '" data-n="' + n + '" title="Não usar este VPO (volta para disponível)">↺</button>' : "") + '</div>';
+    var rk = e["usina" + n]; if (!v || !rk) return "";
+    var ds = vemDisponiveis(v.cavalo, rk); if (!ds.length) return "";
+    return '<div class="vem-tem">🎟️ VPO já emitido' + (ds.length > 1 ? " (" + ds.length + ")" : "") + ': <b>' + esc(ds[0].id_vpo) + '</b>' +
+      (modPodeEditar() ? ' <button type="button" tabindex="-1" class="btn-primary btn-inline vem-usar" data-vem="usar" data-iso="' + iso + '" data-key="' + esc(key) + '" data-n="' + n + '" data-id="' + esc(ds[0].id) + '">Usar</button>' : "") + '</div>';
+  }
+  function vemBadgePlaca(v){
+    var ds = vemDisponiveis(v.cavalo); if (!ds.length) return "";
+    return '<button type="button" tabindex="-1" class="vem-badge" data-vem="ver-placa" data-placa="' + esc(v.cavalo) + '" title="VPOs já emitidos e ainda não usados desta placa — use primeiro:\n' + esc(ds.map(function(x){ return x.usina + " · " + vemRotaFab(x); }).join("\n")) + '">🎟️ ' + ds.length + '</button>';
+  }
+  function vemPintar(){
+    var p = document.querySelector('#view-vpo .vpo-painel[data-vpop="emitidos"]'); if (!p) return;
+    var ed = modPodeEditar(), D = VEM.d;
+    var h = '<div class="vpo-topo"><b>🎟️ VPOs emitidos</b><span class="faint">duplicado = mesma usina, placa, origem e fábrica · os disponíveis aparecem nas abas das transportadoras para usar primeiro</span><span class="grow"></span>' +
+      (ed ? '<button class="btn-primary btn-inline" data-vem="novo">＋ Registrar VPO emitido</button>' : "") + '</div>';
+    if (VEM.msg) h += '<div class="adm-msg ' + (VEM.ruim ? "bad" : "ok") + '">' + esc(VEM.msg) + '</div>';
+    if (VEM.novo && ed){
+      var N = VEM.novo;
+      h += '<div class="vpo-novo"><b>Registrar VPO emitido</b><input id="vemPlaca" list="dlVemPlacas" placeholder="Placa" value="' + esc(N.placa || "") + '"><input id="vemRota" list="dlVpoRotas" placeholder="Usina · fábrica (digite para filtrar)" style="min-width:300px" value="' + esc(N.rota || "") + '">' +
+        '<input id="vemId" placeholder="ID do VPO" style="min-width:200px" value="' + esc(N.id_vpo || "") + '"><input id="vemData" type="date" value="' + esc(N.data || modHoje()) + '" title="Emitido em">' +
+        '<input id="vemObs" placeholder="Obs. (opcional)" value="' + esc(N.obs || "") + '"><button class="btn-primary btn-inline" data-vem="salvar">Registrar</button><button class="btn-ghost" data-vem="novo-x">Cancelar</button>' +
+        (N.erro ? '<span class="vpo-erro">' + esc(N.erro) + '</span>' : "") +
+        (N.dup ? '<div class="vem-dup">⚠️ <b>Duplicado:</b> já existe VPO <b>disponível</b> para esta usina, placa, origem e fábrica (' + N.dup.map(function(x){ return esc(x.id_vpo); }).join(", ") + '). Use o que já existe.' +
+          ' <button class="btn-ghost" data-vem="salvar-forcar">Registrar mesmo assim</button></div>' : "") +
+        '<datalist id="dlVemPlacas">' + ((FRT.d && FRT.d.veiculos) || []).filter(function(x){ return x.ativo !== false; }).map(function(x){ return '<option value="' + esc(x.cavalo) + '" label="' + esc((x.motorista || "") + " · " + frtTranspNome(x.transportadora_id)) + '">'; }).join("") + '</datalist></div>';
+    }
+    if (!D){ p.innerHTML = h + '<div class="adm-pad faint">' + (VEM.carregando ? "Carregando…" : "Sem dados.") + '</div>'; return; }
+    var cont = { disponivel: 0, usado: 0, cancelado: 0, dup: 0 };
+    D.forEach(function(x){ cont[x.status]++; if (x.duplicado && x.status !== "cancelado") cont.dup++; });
+    var fb = function(k, rot, n){ return '<button class="btn-ghost' + (VEM.f === k ? " on" : "") + '" data-vem="f" data-k="' + k + '">' + rot + ' <b>' + n + '</b></button>'; };
+    h += '<div class="vpo-topo">' + fb("disponivel", "🟢 Disponíveis (não usados)", cont.disponivel) + fb("usado", "✅ Usados", cont.usado) + fb("cancelado", "✖ Cancelados", cont.cancelado) +
+      (cont.dup ? fb("dup", "⚠️ Duplicados", cont.dup) : "") + fb("todos", "Todos", D.length) + '<span class="grow"></span><input type="search" class="vem-q" data-vem="q" placeholder="Buscar placa, usina, ID…" value="' + esc(VEM.q) + '"></div>';
+    var q = solNorm(VEM.q);
+    var lista = D.filter(function(x){
+      if (VEM.f === "dup"){ if (!x.duplicado || x.status === "cancelado") return false; }
+      else if (VEM.f !== "todos" && x.status !== VEM.f) return false;
+      if (!q) return true;
+      return solNorm([x.id_vpo, x.placa, x.usina, x.fabrica, x.origem, x.motorista].join(" ")).indexOf(q) !== -1;
+    });
+    h += '<div class="card" id="vemCard">';
+    if (!lista.length) h += '<div class="adm-pad faint">Nada aqui.</div>';
+    else {
+      h += '<div class="table-wrap"><table class="adm-tbl vem-tbl"><thead><tr><th>ID do VPO</th><th>Placa</th><th>Motorista</th><th>Transportadora</th><th>Usina</th><th>Fábrica</th><th>Origem</th><th>Emitido em</th><th>Situação</th><th>Obs.</th><th></th></tr></thead><tbody>';
+      lista.forEach(function(x){
+        var vc = frtVeicPorPlaca(x.placa), sit = x.status === "disponivel" ? '<span class="badge success">disponível</span>' : (x.status === "usado" ? '<span class="badge info">usado' + (x.usado_dia ? " " + esc(brDate(x.usado_dia).slice(0, 5)) : "") + '</span>' : '<span class="badge neutral">cancelado</span>');
+        if (x.duplicado && x.status !== "cancelado") sit += ' <span class="badge danger" title="Há outro VPO com a mesma usina, placa, origem e fábrica">duplicado</span>';
+        var ac = "";
+        if (ed){
+          if (x.status === "disponivel") ac += '<button class="btn-ghost" data-vem="usado" data-id="' + esc(x.id) + '" title="Marcar como usado hoje">✔ Usado</button>';
+          else ac += '<button class="btn-ghost" data-vem="disp" data-id="' + esc(x.id) + '">↺ Disponível</button>';
+          if (x.status !== "cancelado") ac += '<button class="btn-ghost" data-vem="cancelar" data-id="' + esc(x.id) + '">Cancelar</button>';
+          ac += '<button class="btn-ghost" style="color:var(--danger)" data-vem="excluir" data-id="' + esc(x.id) + '">' + (VEM.sure === x.id ? "Confirmar" : "🗑") + '</button>';
+        }
+        h += '<tr><td style="padding:3px 6px"><input class="vpo-cel vpo-ro vem-id" readonly value="' + esc(x.id_vpo) + '" title="Clique para copiar"></td><td class="cell-strong" style="white-space:nowrap">' + esc(x.placa) + '</td>' +
+          '<td>' + esc((vc && vc.motorista) || x.motorista || "—") + '</td><td class="muted">' + esc(vc ? frtTranspNome(vc.transportadora_id) : "—") + '</td><td class="cell-strong">' + esc(x.usina) + '</td><td>' + esc(x.fabrica || "—") + '</td><td>' + esc(x.origem || "—") + '</td>' +
+          '<td class="muted" style="white-space:nowrap">' + esc(x.emitido_em ? brDate(x.emitido_em) : "—") + '</td><td style="white-space:nowrap">' + sit + '</td><td class="muted">' + esc(x.obs || "") + '</td><td><div class="vem-ac">' + ac + '</div></td></tr>';
+      });
+      h += '</tbody></table></div>';
+    }
+    p.innerHTML = h + '</div>';
+    var c = el("vemCard"); if (c && c.querySelector("table")) xlEnhance(c, "vem-" + VEM.f, [10]);
+    if (typeof vpoRotasMontar === "function") vpoRotasMontar();
+    if (typeof agendaFit === "function") agendaFit();
+  }
+  async function vemSalvar(forcar){
+    var N = VEM.novo; if (!N) return;
+    ["placa", "rota", "id_vpo", "data", "obs"].forEach(function(k, i){ N[k] = el(["vemPlaca", "vemRota", "vemId", "vemData", "vemObs"][i]).value.trim(); });
+    var rk = vpoRotaResolver(N.rota);
+    if (!rk){ N.erro = "Escolha a usina · fábrica na lista (digite parte do nome)."; N.dup = null; vemPintar(); return; }
+    var pr = parseRouteKey(rk), fab = pr.fabrica, i = fab.indexOf(" - ");
+    var vc = frtVeicPorPlaca(N.placa);
+    var r; try { r = await sb.rpc("vpo_emitido_salvar", { p_id: null, p_id_vpo: N.id_vpo, p_placa: N.placa, p_usina: pr.usina, p_fabrica: i < 0 ? fab : fab.slice(0, i), p_origem: i < 0 ? null : fab.slice(i + 3),
+      p_emitido_em: N.data || null, p_motorista: vc ? vc.motorista : null, p_obs: N.obs || null, p_forcar: !!forcar }); } catch (e) { r = { error: e }; }
+    var erro = r.error ? dbErr(r.error) : (r.data && r.data.erro);
+    if (erro){ N.erro = erro; N.dup = null; vemPintar(); return; }
+    if (r.data && r.data.duplicado){ N.dup = r.data.duplicado; N.erro = ""; vemPintar(); return; }
+    VEM.novo = null; VEM.msg = "VPO " + N.id_vpo + " registrado."; VEM.ruim = false; await vemCarregar(); vemPintar();
+  }
+  (function(){
+    var v = el("view-vpo"); if (!v) return;
+    v.addEventListener("click", async function(ev){
+      var b = ev.target.closest && ev.target.closest("[data-vem]"); if (!b || b.tagName === "INPUT") return;
+      var a = b.dataset.vem;
+      if (a === "f"){ VEM.f = b.dataset.k; vemPintar(); return; }
+      if (a === "ver-placa"){ VEM.f = "disponivel"; VEM.q = b.dataset.placa; vpoAbaMostrar("emitidos"); return; }
+      if (!modPodeEditar()) return;
+      if (a === "novo"){ VEM.novo = {}; VEM.msg = ""; vemPintar(); var i = el("vemPlaca"); if (i) i.focus(); return; }
+      if (a === "novo-x"){ VEM.novo = null; vemPintar(); return; }
+      if (a === "salvar"){ vemSalvar(false); return; }
+      if (a === "salvar-forcar"){ vemSalvar(true); return; }
+      if (a === "usado" || a === "disp" || a === "cancelar"){
+        if (await vemSituacao(b.dataset.id, a === "usado" ? "usado" : (a === "disp" ? "disponivel" : "cancelado"), a === "usado" ? modHoje() : null)) await vemCarregar();
+        return;
+      }
+      if (a === "excluir"){
+        if (VEM.sure !== b.dataset.id){ VEM.sure = b.dataset.id; vemPintar(); return; }
+        VEM.sure = null; var r; try { r = await sb.rpc("vpo_emitido_excluir", { p_id: b.dataset.id }); } catch (e) { r = { error: e }; }
+        if (r.error) alert(dbErr(r.error)); await vemCarregar(); return;
+      }
+      if (a === "usar" || a === "desfazer"){   // na tabela da transportadora
+        var entry = vpoGetOrCreateEntry(b.dataset.iso, b.dataset.key), n = b.dataset.n;
+        if (a === "usar"){
+          var x = (VEM.d || []).find(function(y){ return y.id === b.dataset.id; }); if (!x) return;
+          if (!(await vemSituacao(x.id, "usado", b.dataset.iso))) return;
+          entry["vpo" + n] = x.id_vpo; if (n === "1") entry.status = "emitido";
+        } else {
+          var y = vemPorId(entry["vpo" + n]); if (y && !(await vemSituacao(y.id, "disponivel"))) return;
+          entry["vpo" + n] = ""; if (n === "1" && entry.status === "emitido") applyAutoVpoStatus(entry);
+        }
+        if (typeof scheduleSync === "function") scheduleSync();
+        await vemCarregar(); vpoRepintar();
+      }
+    });
+    v.addEventListener("input", function(ev){ var t = ev.target; if (t.dataset && t.dataset.vem === "q"){ VEM.q = t.value; var pos = t.selectionStart; vemPintar(); var n = v.querySelector('[data-vem="q"]'); if (n){ n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) { } } } });
+    // copiar o ID na tabela de emitidos (mesmo jeito das células do VPO)
+    v.addEventListener("focusin", function(ev){ var t = ev.target; if (t.matches && t.matches('.vpo-painel[data-vpop="emitidos"] input.vpo-ro')){ try { t.select(); } catch (e) { } if (t.value) vpoCopiar(t); } });
+  })();
   // a frota é usada também na Operação/Relatórios (transportadora pela placa) e nas abas do VPO
   function modAoAbrir(id){
     if ((id === "auditoria" || id === "relatorios") && !modPodeEditar()) return;
@@ -8503,7 +8705,7 @@
     else if (id === "dados") frtCarregar();
     else if (id === "operacoes"){ if (!FRT.d) frtCarregar(); oprCarregar(); }
     else if (id === "relatorios"){ if (!FRT.d) frtCarregar(); relCarregar(); }
-    else if (id === "vpo"){ if (!FRT.d) frtCarregar(); else if (VPO_ABA === "semcad") vptCarregar(); else if (VPO_ABA.indexOf("t:") === 0) paintVpoBlocks(); }
+    else if (id === "vpo"){ vemCarregar(); if (!FRT.d) frtCarregar(); else if (VPO_ABA === "semcad") vptCarregar(); else if (VPO_ABA.indexOf("t:") === 0) paintVpoBlocks(); }
   }
 
   /* Aviso de versão nova: o navegador às vezes continua com o site antigo guardado (cache).
