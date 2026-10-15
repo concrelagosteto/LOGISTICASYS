@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-15-5">
+<meta name="app-versao" content="2026-10-15-6">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -156,7 +156,7 @@
   .vpo-tbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:0 0 12px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);} .vpo-tbar .grow{flex:1;}
   .vpo-novo{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:-4px 0 14px; padding:10px 14px; background:var(--surface-2); border:1px solid var(--accent); border-radius:var(--radius);}
   .vpo-novo input{padding:7px 9px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text); font:inherit; font-size:13px;}
-  .vpo-ro[data-vf=motorista]{min-width:220px;} .vpo-eixo{min-width:52px !important; width:60px; text-align:center;} .vpo-ro[data-vf=carreta]{min-width:160px;} .vpo-ro[data-vf=fabrica]{min-width:110px;}
+  .vpo-ro[data-vf=motorista]{min-width:220px;} .vpo-eixo{min-width:40px !important; width:44px; text-align:center; padding-left:2px !important; padding-right:2px !important;} .vpo-ro[data-vf=carreta]{min-width:160px;} .vpo-ro[data-vf=fabrica]{min-width:110px;}
   .vpo-ro{cursor:pointer; text-overflow:ellipsis;} .vpo-ro:focus{outline:2px solid var(--success); outline-offset:-2px; border-color:transparent !important; background:var(--success-soft) !important;}
   #vpoBlocks td{position:relative;} #vpoBlocks td.copiado::after{content:"📋 copiado"; position:absolute; right:6px; top:2px; font-size:10.5px; font-weight:700; color:var(--success); background:var(--surface); padding:0 4px; border-radius:4px; pointer-events:none;}
   .vpo-placa{font-weight:700; letter-spacing:.02em; cursor:copy; min-width:96px;} td.usina-ok .vpo-placa, td.usina-conferir .vpo-placa{background:transparent;}
@@ -5335,7 +5335,7 @@
       return '<div class="prog-block'+(data.isException?" exception":"")+'" data-iso="'+iso+'">' +
         '<div class="prog-block-head"><div class="ref">'+esc(refText)+'</div><div class="title">'+esc(T.nome.toUpperCase())+' — VPO DA PROGRAMAÇÃO DO DIA '+esc(fmtBR(day).toUpperCase())+' ('+esc(weekdayLong(day).toUpperCase())+')'+(data.isException?' · EXCEÇÃO':'')+'</div></div>' +
         (linhas.length
-          ? '<div class="table-wrap"><table class="vpo-tbl"><thead><tr><th>Placa</th><th>Motorista</th><th>Carreta(s)</th><th title="Eixos na ida (carregado)">Eixos ida</th><th title="Eixos na volta (vazio)">Eixos volta</th><th title="Eixos suspensos (levantados) na volta">Suspensos</th><th>Fábrica</th><th>Usina 1 (roteiro)</th><th>Usina 2 (roteiro)</th><th>Usina 3 (roteiro)</th><th>Usina 4 (roteiro)</th><th>Pedágio</th><th>Status VPO</th><th>Observação</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+          ? '<div class="table-wrap"><table class="vpo-tbl"><thead><tr><th>Placa</th><th>Motorista</th><th>Carreta(s)</th><th title="Eixos na ida (carregado)">Eixos ida</th><th title="Eixos na volta (vazio)">Eixos volta</th><th title="Eixos suspensos (levantados) na volta">Susp.</th><th>Fábrica</th><th>Usina 1 (roteiro)</th><th>Usina 2 (roteiro)</th><th>Usina 3 (roteiro)</th><th>Usina 4 (roteiro)</th><th>Pedágio</th><th>Status VPO</th><th>Observação</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
           : '<p class="prog-empty">Nenhum veículo ativo nesta transportadora. Adicione acima.</p>') +
         (ME && ME.papel !== "leitura" ? '<div class="prog-add" data-iso="'+iso+'">+ linha avulsa (só neste dia)</div>' : "") +
         '</div>';
