@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-16-1">
+<meta name="app-versao" content="2026-10-16-3">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -1531,7 +1531,11 @@
     if (inputs.length === 1) return inputs[0].value || "";
     var sel = td.querySelector("select");
     if (sel) return sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : "";
-    return (td.textContent || "").trim();
+    // selos que aparecem e somem sozinhos (📥 pedido da usina, "✎ alterou", "● editando"…) não fazem parte do valor:
+    // senão o filtro marcado deixa de bater quando a tela é redesenhada sem eles e a linha some
+    var t = td.textContent || "";
+    td.querySelectorAll(".prog-tag, .xl-ignore").forEach(function(x){ var k = t.indexOf(x.textContent); if (k !== -1) t = t.slice(0, k) + t.slice(k + x.textContent.length); });
+    return t.trim();
   }
 
   function xlCloseAllPopovers(){
@@ -2231,7 +2235,7 @@
         var rowCls = e.status === "ok" ? "prog-row-ok" : (e.status === "conferir" ? "prog-row-conferir" : (e.status === "adiado" ? "prog-row-adiado" : ""));
         return '<tr class="'+rowCls+'" data-pk="'+esc(iso+"|"+key)+'">' + usinaCell +
           progMultiInput(iso, key, "carretas", e.carretas) +
-          progMultiFabricaSelect(iso, key, e.fabrica, 3, e.usina) +
+          progMultiFabricaSelect(iso, key, e.fabrica, 99, e.usina) +
           progMultiInput(iso, key, "pedido", e.pedido) +
           progPeriodoCell(iso, key) +
           progInput(iso, key, "obs", e.obs, "ex: OK, CEDO, TARDE") +
@@ -2346,7 +2350,7 @@
   }
   var MULTI_INPUT_STYLE = 'flex:1;min-width:0;border:1px solid transparent;border-radius:5px;padding:6px 8px;font-size:12.5px;background:transparent;color:var(--text);';
   function progMultiInput(iso, key, field, value, placeholder, tdClass, max){
-    max = max || 3;
+    max = max || 99;   // sem limite prático de cargas por usina
     var vals = multiListFrom(value);
     if (!vals.length) vals = [""];
     if (vals.length > max) vals = vals.slice(0, max);
@@ -2366,7 +2370,7 @@
   // 1/Usina 2 do VPO (escolhe da lista, agrupado por fornecedor), só que sem
   // usina/localização aqui, porque a usina já é a linha da tabela.
   function progMultiFabricaSelect(iso, key, value, max, usina){
-    max = max || 3;
+    max = max || 99;   // sem limite prático de cargas por usina
     var vals = multiListFrom(value);
     if (!vals.length) vals = [""];
     if (vals.length > max) vals = vals.slice(0, max);
@@ -2393,7 +2397,7 @@
       var addBtn = e.target.closest(".multi-add-btn");
       if (addBtn){
         e.preventDefault();
-        var max = parseInt(container.dataset.max, 10) || 3;
+        var max = parseInt(container.dataset.max, 10) || 99;
         var rows = container.querySelectorAll(".multi-row");
         if (rows.length >= max) return;
         var lastControl = rows[rows.length - 1].querySelector("input, select");
@@ -2426,7 +2430,7 @@
         var remaining = container.querySelectorAll(".multi-row");
         var last = remaining[remaining.length - 1];
         if (last && !last.querySelector(".multi-add-btn")){
-          var max2 = parseInt(container.dataset.max, 10) || 3;
+          var max2 = parseInt(container.dataset.max, 10) || 99;
           if (remaining.length < max2){
             var newAddBtn = document.createElement("button");
             newAddBtn.type = "button"; newAddBtn.className = "multi-add-btn"; newAddBtn.title = "Adicionar mais um"; newAddBtn.textContent = "+";
@@ -7087,12 +7091,21 @@
     if (!SILO.d || !ME || ME.papel === "leitura" || !SNAP) return false;   // só depois de carregar tudo (senão não salva)
     var hoje = toISO(TODAY), mudou = false;
     Object.keys(SOL_PROG).forEach(function(k){
-      var iso = k.slice(0, 10); if (iso < hoje || PROG_AUTO_FEITO[k]) return;
+      var iso = k.slice(0, 10); if (iso < hoje) return;
       var nu = k.slice(11), usina = MASTER_USINAS.find(function(u){ return solNorm(u) === nu; }); if (!usina) return;
+      var sug = progFabricasSugeridas(iso, usina).filter(Boolean); if (!sug.length) return;
+      var assin = multiJoin(sug); if (PROG_AUTO_FEITO[k] === assin) return;   // já aplicado para ESTE pedido (versão nova da usina = assinatura nova)
       var day = cementScheduleByDate[iso], e = day && day.entries.find(function(x){ return entryKey(x) === usina; });
-      if (e && (String(e.fabrica || "").trim() || e.status === "adiado")){ PROG_AUTO_FEITO[k] = true; return; }
-      var sug = progFabricasSugeridas(iso, usina).filter(Boolean).slice(0, 3); if (!sug.length) return;
-      e = getOrCreateEntry(iso, usina); e.fabrica = multiJoin(sug); PROG_AUTO_FEITO[k] = true; mudou = true;
+      if (e && e.status === "adiado"){ PROG_AUTO_FEITO[k] = assin; return; }
+      var atual = e ? multiListFrom(e.fabrica) : [];
+      if (atual.length){
+        // a usina mandou nova solicitação (ex.: de CP2 ×1 + POZ ×2 para CP2 ×2 + POZ ×1): refaz as fábricas pré-preenchidas,
+        // mas só enquanto a Logística ainda não pôs carreta e não escolheu à mão um cimento fora do pedido
+        var semCarreta = !multiListFrom(e.carretas).length, soDoPedido = atual.every(function(f){ return sug.indexOf(f) !== -1; });
+        if (semCarreta && soDoPedido && multiJoin(atual) !== assin){ e.fabrica = assin; mudou = true; }
+        PROG_AUTO_FEITO[k] = assin; return;
+      }
+      e = getOrCreateEntry(iso, usina); e.fabrica = assin; PROG_AUTO_FEITO[k] = assin; mudou = true;
     });
     if (mudou) setTimeout(function(){ scheduleSync(); }, 0);
     return mudou;
@@ -8745,7 +8758,14 @@
     else if (id === "operacoes"){ if (!FRT.d) frtCarregar(); oprCarregar(); }
     else if (id === "relatorios"){ if (!FRT.d) frtCarregar(); relCarregar(); }
     else if (id === "vpo"){ vemCarregar(); if (!FRT.d) frtCarregar(); else if (VPO_ABA === "semcad") vptCarregar(); else if (VPO_ABA.indexOf("t:") === 0) paintVpoBlocks(); }
+    // Programação: busca de novo os pedidos das usinas (uma nova solicitação muda o selo 📥 e as fábricas pré-preenchidas)
+    else if (id === "programacao-cimento"){ try { solProgCarregar().then(progDecorar); } catch (e) { } }
   }
+  // enquanto a Programação estiver aberta, confere os pedidos das usinas a cada minuto
+  setInterval(function(){
+    var v = document.getElementById("view-programacao-cimento");
+    if (ME && v && v.classList.contains("active") && document.visibilityState === "visible"){ try { solProgCarregar().then(progDecorar); } catch (e) { } }
+  }, 60000);
 
   /* Aviso de versão nova: o navegador às vezes continua com o site antigo guardado (cache).
      A cada 5 minutos confere a versão publicada; se mudou, mostra um aviso para atualizar. */
