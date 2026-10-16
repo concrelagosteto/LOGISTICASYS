@@ -5,13 +5,18 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'none'">
 <script>if (window.top !== window.self) { try { window.top.location = window.self.location; } catch (e) { document.documentElement.style.display = "none"; } }</script>
 <meta name="robots" content="noindex, nofollow, noarchive">
-<meta name="app-versao" content="2026-10-16-6">
+<meta name="app-versao" content="2026-10-16-7">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#070a10">
 <title>Solicitação de Cimento — Concrelagos</title>
 <link rel="icon" href="../favicon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cimento CL">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
   :root{
     --bg:#070a10; --surface:#0f141c; --surface-2:#151b24; --surface-3:#1b222c;
@@ -115,6 +120,9 @@
   details.hist summary::before{content:"▸"; color:var(--text-faint); transition:transform .12s;}
   details.hist[open] summary::before{transform:rotate(90deg);}
   .v{padding:12px 18px; border-top:1px solid var(--border);}
+  .manter{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-muted); margin:2px 0 12px; cursor:pointer;}
+  .manter input{width:18px; height:18px; accent-color:var(--accent);}
+  .btn.instalar{width:100%; margin-top:14px; min-height:44px;}
   .v-top{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:4px; font-size:12.5px;}
   .v-linhas{font-size:12.5px; color:var(--text-muted);}
   .hz-dia{border-top:1px solid var(--border);}
@@ -210,9 +218,12 @@
           <button type="button" class="eye" id="olho" aria-label="Mostrar chave" aria-pressed="false" title="Mostrar/ocultar a chave"><svg id="olhoIc" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
         </div>
       </div>
+      <label class="manter"><input type="checkbox" id="manter"> Manter conectado neste aparelho</label>
       <button class="btn-primary" type="submit" id="entrar">Entrar</button>
       <p class="login-note" id="loginMsg" role="alert"></p>
       <p class="login-note" style="margin-top:4px">A chave foi entregue pela Logística. Cada usina tem a sua.</p>
+      <button type="button" class="btn instalar" id="btnInstalar" hidden>📲 Instalar no celular (ícone na tela inicial)</button>
+      <p class="login-note instalar-ios" id="dicaIos" hidden>📲 Para ter o ícone no iPhone: toque em <b>Compartilhar</b> (o quadrado com a seta) e depois em <b>Adicionar à Tela de Início</b>.</p>
     </form>
   </div>
 </div>
@@ -273,8 +284,26 @@
   function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
 
   /* ---------- Armazenamento (só durante a aba aberta) ---------- */
-  function guardar(c){ try { if (c) sessionStorage.setItem("sol_chave", c); else sessionStorage.removeItem("sol_chave"); } catch (e) { } }
-  function lembrada(){ try { return sessionStorage.getItem("sol_chave") || ""; } catch (e) { return ""; } }
+  // "Manter conectado neste aparelho": guarda a chave no aparelho (some ao tocar em Sair). Sem marcar, só vale até fechar o navegador.
+  function manterMarcado(){ var m = document.getElementById("manter"); return !!(m && m.checked); }
+  function guardar(c){
+    try { if (c) sessionStorage.setItem("sol_chave", c); else sessionStorage.removeItem("sol_chave"); } catch (e) { }
+    try { if (c && manterMarcado()) localStorage.setItem("sol_chave_m", c); else if (!c) localStorage.removeItem("sol_chave_m"); } catch (e) { }
+  }
+  function lembrada(){ try { return sessionStorage.getItem("sol_chave") || localStorage.getItem("sol_chave_m") || ""; } catch (e) { return ""; } }
+  // instalar como app (ícone na tela inicial)
+  (function(){
+    var app = window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
+    var celular = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+    var m = document.getElementById("manter"); if (m) m.checked = !!(app || celular);
+    if ("serviceWorker" in navigator) { try { navigator.serviceWorker.register("sw.js"); } catch (e) { } }
+    if (app) return;
+    var ev = null, b = document.getElementById("btnInstalar");
+    window.addEventListener("beforeinstallprompt", function(e){ e.preventDefault(); ev = e; if (b) b.hidden = false; });
+    if (b) b.addEventListener("click", function(){ if (!ev) return; ev.prompt(); ev.userChoice.then(function(){ ev = null; b.hidden = true; }); });
+    var ios = /iphone|ipad|ipod/i.test(navigator.userAgent || "");
+    if (ios){ var d = document.getElementById("dicaIos"); if (d) d.hidden = false; }
+  })();
 
   /* ---------- Relógio de Brasília (do servidor) ---------- */
   function agoraMs(){ return Date.now() + S.offset; }

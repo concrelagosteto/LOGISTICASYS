@@ -4,12 +4,17 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-16-6">
+<meta name="app-versao" content="2026-10-16-7">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#070a10">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Logística CL">
 <meta name="theme-color" content="#070a10">
 <style>
   :root{
@@ -869,6 +874,34 @@
   body.somente-leitura .content input, body.somente-leitura .content select, body.somente-leitura .content textarea{pointer-events:none; opacity:.75;}
   @media (max-width:700px){ .user-chip{flex-wrap:wrap; justify-content:flex-end;} }
 
+  /* ===== Celular: tabelas viram cartões (uma linha = um cartão) ===== */
+  .xl-busca{display:none;}
+  @media (max-width:760px){
+    .xl-clear-bar{flex-wrap:wrap;}
+    .xl-busca{display:block; flex:1 1 100%; order:-1; height:40px; padding:0 12px; font-size:15px; border-radius:10px; border:1px solid var(--border-strong); background:var(--surface); color:var(--text);}
+    .content .table-wrap{max-height:none !important; height:auto !important; min-height:0 !important; overflow:visible !important; border:none !important; background:transparent !important;}
+    table.tab-cartao{display:block; width:100% !important; min-width:0 !important; border:none !important;}
+    table.tab-cartao thead{display:none;}
+    table.tab-cartao tbody{display:block;}
+    table.tab-cartao tr{display:block; border:1px solid var(--border); border-radius:12px; margin:0 0 10px; padding:4px 12px; background:var(--surface);}
+    table.tab-cartao td{display:grid; grid-template-columns:minmax(92px, 34%) minmax(0, 1fr); gap:8px; align-items:center; width:auto !important; min-width:0 !important; max-width:none !important;
+      padding:7px 0 !important; border:none !important; border-bottom:1px dashed var(--border) !important; text-align:left !important; white-space:normal !important; position:static !important; box-shadow:none !important;}
+    table.tab-cartao td:last-child{border-bottom:none !important;}
+    table.tab-cartao td::before{content:attr(data-label); font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--text-muted);}
+    table.tab-cartao td[data-label=""], table.tab-cartao td:not([data-label]){display:block;}
+    table.tab-cartao td[data-label=""]::before, table.tab-cartao td:not([data-label])::before{display:none;}
+    table.tab-cartao tr > td:first-child{display:block; font-size:15px; font-weight:700; padding:9px 0 !important;}
+    table.tab-cartao tr > td:first-child::before{display:none;}
+    table.tab-cartao input, table.tab-cartao select{max-width:100%; min-height:38px; font-size:14px !important;}
+    /* campos de editar (vários valores, listas): nome em cima, campo na largura toda */
+    table.tab-cartao td:has(.multi-field), table.tab-cartao td:has(select), table.tab-cartao td:has(input){grid-template-columns:minmax(0, 1fr); gap:4px;}
+    table.tab-cartao td:has(.multi-field) .multi-row{display:flex; align-items:center;}
+    table.tab-cartao td:has(.multi-field) .multi-row > input, table.tab-cartao td:has(.multi-field) .multi-row > select{flex:1 1 auto; min-width:0;}
+    table.tab-cartao .multi-row{gap:6px;}
+    table.tab-cartao .multi-add-btn, table.tab-cartao .multi-remove-btn{min-width:32px; min-height:32px;}
+    tr.prog-mudou > td:first-child{box-shadow:none !important;}
+    table.tab-cartao tr.prog-mudou{border-left:5px solid var(--warning);}
+  }
   /* ===== Celular: menu vira gaveta (☰), barra de cima compacta ===== */
   .menu-fundo{display:none;}
   @media (max-width:760px){
@@ -1566,6 +1599,7 @@
     return t.trim();
   }
 
+  function solNormBusca(t){ return String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase(); }
   function xlCloseAllPopovers(){
     document.querySelectorAll(".xl-popover").forEach(function(p){ p.remove(); });
     document.querySelectorAll(".xl-filter-btn.active").forEach(function(b){ b.classList.remove("active"); });
@@ -1593,6 +1627,10 @@
         var v = xlCellValue(tds[colIdx]);
         if (!allowed.has(v)) visible = false;
       });
+      if (visible && state.busca){
+        var q = solNormBusca(state.busca);
+        visible = solNormBusca(tds.map(function(td){ return xlCellValue(td); }).join(" ")).indexOf(q) !== -1;
+      }
       tr.style.display = visible ? "" : "none";
     });
 
@@ -1625,8 +1663,9 @@
     var nf = Object.keys(state.filters).length, ord = !!state.sort;
     var partes = [];
     if (nf) partes.push(nf + (nf === 1 ? " filtro ativo" : " filtros ativos"));
+    if (state.busca) partes.push("busca");
     if (ord) partes.push("ordenada");
-    bar.classList.toggle("on", !!(nf || ord));
+    bar.classList.toggle("on", !!(nf || ord || state.busca));
     bar.querySelector(".xl-clear-info").textContent = partes.length ? partes.join(" · ") : "Sem filtros";
   }
 
@@ -1751,12 +1790,15 @@
     if (velha && velha.classList && velha.classList.contains("xl-clear-bar")) velha.remove();
     var bar = document.createElement("div");
     bar.className = "xl-clear-bar";
-    bar.innerHTML = '<span class="xl-clear-info">Sem filtros</span><button type="button" class="xl-clear-btn" title="Remove todos os filtros e a ordenação desta tabela">✕ Limpar filtros</button>';
+    bar.innerHTML = '<input type="search" class="xl-busca" placeholder="🔎 Buscar nesta tabela (usina, placa, pedido…)" aria-label="Buscar nesta tabela"><span class="xl-clear-info">Sem filtros</span><button type="button" class="xl-clear-btn" title="Remove todos os filtros e a ordenação desta tabela">✕ Limpar filtros</button>';
+    var busca = bar.querySelector(".xl-busca"); busca.value = xlGetState(key).busca || "";
+    busca.addEventListener("input", function(){ xlGetState(key).busca = busca.value; xlApplyState(table, key, skipCols); });
+    busca.addEventListener("click", function(e){ e.stopPropagation(); });
     bar.querySelector(".xl-clear-btn").addEventListener("click", function(e){
       e.stopPropagation();
       var st = xlGetState(key);
-      if (!Object.keys(st.filters).length && !st.sort) return;
-      st.filters = {}; st.sort = null;
+      if (!Object.keys(st.filters).length && !st.sort && !st.busca) return;
+      st.filters = {}; st.sort = null; st.busca = ""; var bb = bar.querySelector(".xl-busca"); if (bb) bb.value = "";
       xlCloseAllPopovers();
       xlApplyState(table, key, skipCols);
     });
@@ -1792,11 +1834,33 @@
       w.style.maxHeight = (resto >= 360 ? resto : Math.max(360, window.innerHeight - 90)) + "px";
     });
   }
+  // Celular: cada linha das tabelas vira um cartão (rótulo da coluna ao lado de cada valor).
+  // Aqui só se coloca o nome da coluna em cada célula (data-label); o visual fica no CSS (@media max-width:760px).
+  function rotularTabelas(){
+    if (!window.matchMedia || !window.matchMedia("(max-width:760px)").matches) return;
+    document.querySelectorAll(".content table").forEach(function(t){
+      if (t.classList.contains("nao-cartao") || t.closest(".xl-popover")) return;
+      var ths = t.querySelectorAll("thead th"); if (!ths.length) return;
+      t.classList.add("tab-cartao");
+      var nomes = Array.prototype.map.call(ths, function(th){ var l = th.querySelector(".xl-th-label"); return (l || th).textContent.replace(/▾/g, "").trim(); });
+      Array.prototype.forEach.call(t.tBodies, function(tb){
+        Array.prototype.forEach.call(tb.rows, function(tr){
+          var col = 0;
+          Array.prototype.forEach.call(tr.cells, function(td){
+            var n = td.colSpan > 1 ? "" : (nomes[col] || "");
+            if (td.getAttribute("data-label") !== n) td.setAttribute("data-label", n);
+            col += td.colSpan || 1;
+          });
+        });
+      });
+    });
+  }
   var __fitT = null;
-  function agendaFit(){ if (__fitT) return; __fitT = setTimeout(function(){ __fitT = null; fitTableWraps(); }, 80); }
+  function agendaFit(){ if (__fitT) return; __fitT = setTimeout(function(){ __fitT = null; fitTableWraps(); rotularTabelas(); }, 80); }
   window.addEventListener("resize", agendaFit);
   document.addEventListener("toggle", agendaFit, true);
   new MutationObserver(agendaFit).observe(document.body, {childList: true, subtree: true});
+  if ("serviceWorker" in navigator){ try { navigator.serviceWorker.register("sw.js"); } catch (e) { } }   // permite instalar como app
   // Menu lateral: botão ☰ na barra de cima (lembra a escolha neste navegador)
   (function(){
     var app = el("app"), btn = el("btnMenu");
