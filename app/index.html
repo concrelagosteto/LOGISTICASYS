@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-16-4">
+<meta name="app-versao" content="2026-10-16-5">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -6821,7 +6821,7 @@
     if (nav && !el("solBadge")){ var s = document.createElement("span"); s.id = "solBadge"; s.className = "nav-badge"; s.hidden = true; nav.appendChild(s); }
     solCarregar(true);
     clearInterval(SOL.tmr);
-    SOL.tmr = setInterval(function(){ if (document.visibilityState === "visible" && !SOL.ocupado && !SOL.rem) solCarregar(true); }, 45000);
+    SOL.tmr = setInterval(function(){ if (document.visibilityState === "visible" && !SOL.ocupado && !SOL.rem && !SOL.confirmaNegarAlt) solCarregar(true); }, 45000);
   }
   async function solCarregar(silencio){
     if (!ME || !sb || SOL.ocupado) return;
@@ -6954,7 +6954,9 @@
       var neg = SOL.confirmaNegarAlt === a.id;
       h += '<div class="sol-alt"><div class="info"><b>' + esc(a.usina) + '</b> · entrega ' + esc(solDiaBR(a.data_desejada)) + ' · <span class="badge warning">' + esc(SOL_ALT_TIPO[a.tipo] || a.tipo) + '</span><br>' +
         solTxtAlt(a) + '<br>Motivo: “' + esc(a.motivo) + '” · ' + esc(a.por || "") + ' · ' + esc(solQuando(a.pedida_em)) + '</div>' +
-        (solPodeDecidir() ? '<div class="adm-acoes"><button class="btn-primary btn-inline" data-sol="alt-aprovar" data-id="' + esc(a.id) + '">Aprovar</button><button class="btn-ghost" data-sol="alt-negar" data-id="' + esc(a.id) + '">' + (neg ? "Confirmar negar" : "Negar") + '</button></div>' : '<span class="faint">somente leitura</span>') + '</div>';
+        (solPodeDecidir() ? '<div class="adm-acoes"' + (neg ? ' style="flex-wrap:wrap;justify-content:flex-end"' : "") + '>' + (neg ? '<input type="text" id="solNegarObs" maxlength="300" placeholder="Por que não? (a usina vê esta resposta)" style="min-width:260px">' : "") +
+          (neg ? "" : '<button class="btn-primary btn-inline" data-sol="alt-aprovar" data-id="' + esc(a.id) + '">Aprovar</button>') + '<button class="btn-ghost" data-sol="alt-negar" data-id="' + esc(a.id) + '">' + (neg ? "Confirmar negar" : "Negar") + '</button>' +
+          (neg ? '<button class="btn-ghost" data-sol="alt-negar-x">Voltar</button>' : "") + '</div>' : '<span class="faint">somente leitura</span>') + '</div>';
     });
     return h + '</div>';
   }
@@ -6998,7 +7000,8 @@
   }
   async function solAltDecidir(id, aprovar){
     SOL.ocupado = true;
-    var r; try { r = await sb.rpc("solic_alteracao_decidir", { p_id: id, p_aprovar: aprovar, p_obs: null }); } catch (e) { r = { error: e }; }
+    var obs = !aprovar && el("solNegarObs") ? el("solNegarObs").value.trim() : "";
+    var r; try { r = await sb.rpc("solic_alteracao_decidir", { p_id: id, p_aprovar: aprovar, p_obs: obs || null }); } catch (e) { r = { error: e }; }
     SOL.ocupado = false; SOL.confirmaNegarAlt = null;
     if (r.error){ SOL.msg = dbErr(r.error); SOL.ruim = true; }
     else if (r.data && r.data.erro){ SOL.msg = r.data.erro; SOL.ruim = true; }
@@ -7063,6 +7066,7 @@
       else if (a === "negar"){ if (SOL.confirmaNegar !== b.dataset.id){ SOL.confirmaNegar = b.dataset.id; paintSol(); } else solDecidir(b.dataset.id, false); }
       else if (a === "alt-aprovar"){ solAltDecidir(b.dataset.id, true); }
       else if (a === "alt-negar"){ if (SOL.confirmaNegarAlt !== b.dataset.id){ SOL.confirmaNegarAlt = b.dataset.id; paintSol(); } else solAltDecidir(b.dataset.id, false); }
+      else if (a === "alt-negar-x"){ SOL.confirmaNegarAlt = null; paintSol(); }
       else if (a === "rem"){ SOL.rem = (SOL.rem && SOL.rem.linha === b.dataset.l) ? null : { linha: b.dataset.l, acao: b.dataset.acao, motivo: "" }; paintSol(); var mi = el("solRemMotivo"); if (mi) mi.focus(); }
       else if (a === "rem-x"){ SOL.rem = null; paintSol(); }
       else if (a === "rem-ok"){ solRemover(); }

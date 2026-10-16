@@ -5,7 +5,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'none'">
 <script>if (window.top !== window.self) { try { window.top.location = window.self.location; } catch (e) { document.documentElement.style.display = "none"; } }</script>
 <meta name="robots" content="noindex, nofollow, noarchive">
-<meta name="app-versao" content="2026-10-16-4">
+<meta name="app-versao" content="2026-10-16-5">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#070a10">
@@ -117,6 +117,15 @@
   .v{padding:12px 18px; border-top:1px solid var(--border);}
   .v-top{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:4px; font-size:12.5px;}
   .v-linhas{font-size:12.5px; color:var(--text-muted);}
+  .hz-dia{border-top:1px solid var(--border);}
+  .hz-lista{list-style:none; margin:0; padding:2px 18px 12px 18px;}
+  .hz-ev{display:grid; grid-template-columns:92px 22px 1fr; gap:6px; align-items:start; padding:6px 0 6px 10px; border-left:2px solid var(--border); font-size:12.5px; line-height:1.45;}
+  .hz-hora{color:var(--text-faint); font-variant-numeric:tabular-nums; white-space:nowrap;}
+  .hz-ic{text-align:center;}
+  .hz-por{color:var(--text-faint);}
+  .hz-txt s{opacity:.7;}
+  .hz-env{border-left-color:var(--info, #60a5fa);} .hz-mud, .hz-ped{border-left-color:var(--warning);} .hz-ok{border-left-color:var(--success);} .hz-ok .hz-txt b{color:var(--success);}
+  .hz-neg, .hz-canc{border-left-color:var(--danger);} .hz-neg .hz-txt b, .hz-canc .hz-txt b{color:var(--danger);}
   .v-apagada .v-linhas{text-decoration:line-through; opacity:.75;}
   .tabela{width:100%; border-collapse:collapse;}
   .tabela th{padding:9px 14px; text-align:left; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--text-faint); border-bottom:1px solid var(--border); white-space:nowrap;}
@@ -507,12 +516,8 @@
     if (S.confirmaEnvio) h += htmlConfirmaEnvio(env);
     h += '<p class="msg-erro" id="erroEditor" role="alert"></p></div></div>';
 
-    // histórico
-    var hist = est.historico || [];
-    if (hist.length){
-      h += '<div class="card"><details class="hist"' + (S.abertoHist ? " open" : "") + '><summary>Histórico de alterações <span class="badge neutral">' + hist.length + '</span></summary>' + hist.map(function(v){ return rotuloVersao(v); }).join("") + '</details></div>';
-    }
     h += htmlMeus(est, o);
+    h += htmlHistorico(est, o);
     return h;
   }
 
@@ -525,6 +530,69 @@
     if (a.tipo === "cancelar") return "Cancelar " + txtLinha(an.material, an.carretas, an.periodo, an.fabrica);
     return txtLinha(an.material, an.carretas, an.periodo, an.fabrica) + " → " + txtLinha(dp.material, dp.carretas, dp.periodo, dp.fabrica);
   }
+  /* Histórico dos pedidos: tudo o que aconteceu, separado por data de entrega e em ordem de hora.
+     Fontes: as versões da solicitação (envios da usina/encarregado), os pedidos de alteração (e a resposta da Logística)
+     e o que a Logística apagou/cancelou. */
+  function htmlHistorico(est, o){
+    var mp = S.mp || {}, ev = {}, hoje = hojeCivil();
+    var limite = (function(){ var d = new Date(hoje + "T12:00:00"); d.setDate(d.getDate() - 30); return d.toISOString().slice(0, 10); })();
+    var add = function(d, em, tipo, ic, txt, por){ d = String(d || "").slice(0, 10); if (!d || d < limite || !em) return; (ev[d] = ev[d] || []).push({ em: em, tipo: tipo, ic: ic, txt: txt, por: por || "" }); };
+    var resumo = function(ls){ return (ls || []).map(function(l){ return txtLinha(l.material, l.carretas, l.periodo, l.fabrica); }).sort().join(" + "); };
+    var porData = function(v, d){ return (v && !v.sem_necessidade ? (v.linhas || []) : []).filter(function(l){ return String(l.data_desejada).slice(0, 10) === d; }); };
+    // 1) envios: compara cada versão com a anterior do mesmo dia de pedido
+    var porDia = {};
+    (est.historico || []).forEach(function(v){ (porDia[v.dia] = porDia[v.dia] || []).push(v); });
+    Object.keys(porDia).forEach(function(dia){
+      var vs = porDia[dia].slice().sort(function(a, b){ return a.versao - b.versao; }), ant = null;
+      vs.forEach(function(v){
+        if (v.origem !== "logistica"){   // o que a Logística fez entra pelos itens 2 e 3 (com motivo)
+          var datas = {};
+          [ant, v].forEach(function(x){ (x && !x.sem_necessidade ? x.linhas || [] : []).forEach(function(l){ datas[String(l.data_desejada).slice(0, 10)] = 1; }); });
+          Object.keys(datas).forEach(function(d){
+            var a = resumo(porData(ant, d)), b = resumo(porData(v, d)); if (a === b) return;
+            var quem = v.por || (v.origem === "encarregado" ? "Encarregado" : "Usina"), fora = v.fora_do_prazo ? " · ⏱ após as 16h" : "";
+            if (!a) add(d, v.enviado_em, "env", "📤", "Pedido enviado: <b>" + b + "</b>" + fora, quem);
+            else if (!b) add(d, v.enviado_em, "tir", "↩️", "Tirou do pedido: <s>" + a + "</s>", quem);
+            else add(d, v.enviado_em, "mud", "✏️", "Mudou o pedido: <s>" + a + "</s> → <b>" + b + "</b>" + fora, quem);
+          });
+        }
+        ant = v;
+      });
+    });
+    // 2) pedidos de alteração / substituição / cancelamento e a resposta da Logística
+    var NOME = { substituir: "substituição", alterar: "alteração", cancelar: "cancelamento" };
+    (mp.alteracoes || []).forEach(function(a){
+      var n = NOME[a.tipo] || "alteração";
+      add(a.data_desejada, a.pedida_em, "ped", "🔁", "Pediu " + n + ": " + txtAlt(a) + (a.motivo ? ' · motivo: “' + esc(a.motivo) + '”' : ""), a.por);
+      if (a.status === "aprovada") add(a.data_desejada, a.decidida_em, "ok", "✔", "Logística <b>aceitou</b> a " + n + (a.obs ? ' · “' + esc(a.obs) + '”' : ""), "Logística");
+      else if (a.status === "negada") add(a.data_desejada, a.decidida_em, "neg", "✖", "Logística <b>não aceitou</b> a " + n + " — o pedido continua como estava" + (a.obs ? ' · resposta: “' + esc(a.obs) + '”' : ""), "Logística");
+      else if (a.status === "sem_efeito") add(a.data_desejada, a.decidida_em, "neu", "•", "Pedido de " + n + " ficou sem efeito" + (a.obs ? ' · ' + esc(a.obs) : ""), "Logística");
+    });
+    // 3) o que a Logística apagou ou cancelou
+    (mp.cancelados || []).forEach(function(c){
+      var l = c.linha || {};
+      add(c.data_desejada, c.em, "canc", c.programado ? "✖" : "🗑", (c.programado ? "Logística <b>cancelou o carregamento</b>: " : c.apagada ? "Logística <b>apagou a solicitação</b>: " : "Logística <b>apagou o pedido</b>: ") +
+        txtLinha(l.material, l.carretas, l.periodo, l.fabrica) + (c.motivo ? ' · motivo: “' + esc(c.motivo) + '”' : ""), "Logística");
+    });
+    var datas = Object.keys(ev).sort(function(a, b){ var fa = a >= hoje, fb = b >= hoje; if (fa !== fb) return fa ? -1 : 1; return fa ? (a < b ? -1 : 1) : (a < b ? 1 : -1); });
+    var total = datas.reduce(function(n, d){ return n + ev[d].length; }, 0);
+    var h = '<div class="card" id="historicoPedidos"><details class="hist"' + (S.abertoHist ? " open" : "") + '><summary>📜 Histórico dos pedidos <span class="badge neutral">' + total + '</span>' +
+      '<span class="faint" style="font-weight:500;font-size:12px">tudo o que aconteceu, por data de entrega</span></summary>';
+    if (!total) h += '<div class="centro">Nada nos últimos 30 dias.</div>';
+    datas.forEach(function(d){
+      var es = ev[d].slice().sort(function(a, b){ return new Date(a.em) - new Date(b.em); });
+      h += '<div class="hz-dia"><div class="mp-dia-cab">Entrega ' + esc(fmtData(d)) + (d === hoje ? ' <span class="badge info">hoje</span>' : d < hoje ? ' <span class="badge neutral">já passou</span>' : "") + '</div><ol class="hz-lista">' +
+        es.map(function(e){ return '<li class="hz-ev hz-' + e.tipo + '"><span class="hz-hora">' + esc(fmtDiaHora(e.em)) + '</span><span class="hz-ic">' + e.ic + '</span><span class="hz-txt">' + e.txt + (e.por ? ' <span class="hz-por">· ' + esc(e.por) + '</span>' : "") + '</span></li>'; }).join("") +
+        '</ol></div>';
+    });
+    return h + '</details></div>';
+  }
+  function htmlNegada(a){
+    var nome = { substituir: "Substituição", alterar: "Alteração", cancelar: "Cancelamento" }[a.tipo] || "Alteração";
+    return '<div class="aviso bad" style="margin:0">✖ <b>' + nome + ' não aceita pela Logística</b>: ' + txtAlt(a) +
+      (a.obs ? '<br>Resposta da Logística: “' + esc(a.obs) + '”' : "") +
+      '<br><span style="font-weight:500">' + (a.decidida_em ? esc(fmtDiaHora(a.decidida_em)) + " · " : "") + 'o pedido continua como estava.</span></div>';
+  }
   var ALT_ST = { pendente: ["warning", "⏳ Aguardando a Logística"], aprovada: ["success", "✔ Aprovada"], negada: ["danger", "✖ Negada"], sem_efeito: ["neutral", "Sem efeito"] };
   function htmlMeus(est, o){
     var ehEnc = o.quem === "encarregado", mp = S.mp, hoje = hojeCivil();
@@ -533,6 +601,11 @@
     if (!mp) return h + '<div class="centro">Carregando…</div></div>';
     var alts = mp.alteracoes || [], pendPorLinha = {};
     alts.forEach(function(a){ if (a.status === "pendente") pendPorLinha[a.linha_id] = a; });
+    // pedido de alteração / substituição / cancelamento que a Logística NÃO aceitou: aparece na própria linha
+    var negPorLinha = {}, ultPorLinha = {};
+    alts.forEach(function(a){ if (!ultPorLinha[a.linha_id] && a.status !== "pendente") ultPorLinha[a.linha_id] = a; });   // a lista vem da mais recente
+    Object.keys(ultPorLinha).forEach(function(k){ if (ultPorLinha[k].status === "negada") negPorLinha[k] = ultPorLinha[k]; });
+    var linhasVistas = {};
     var porData = {};
     (mp.pedidos || []).forEach(function(p){ (p.linhas || []).forEach(function(l){
       var d = String(l.data_desejada).slice(0, 10); (porData[d] = porData[d] || []).push({ l: l, p: p });
@@ -567,6 +640,8 @@
           }).join("") + '</div>';
         }
         if (pend) h += '<div class="aviso warn" style="margin:0">⏳ Alteração pedida: ' + txtAlt(pend) + ' — aguardando a Logística.</div>';
+        linhasVistas[l.id] = 1;
+        if (!pend && negPorLinha[l.id]) h += htmlNegada(negPorLinha[l.id]);
         var hojeDia = est.dia && String(p.dia).slice(0, 10) === String(est.dia).slice(0, 10);
         var podeAlt = futuro && !pend && (q > 0 || !hojeDia);
         if (S.mpForm && S.mpForm.linha === l.id) h += htmlMpForm(l, q > 0);
@@ -579,17 +654,10 @@
         }
         h += '</div>';
       });
+      // negadas de linhas que não estão mais na lista (a usina mandou outro pedido depois): mostra no dia
+      Object.keys(negPorLinha).forEach(function(k){ var a = negPorLinha[k]; if (!linhasVistas[k] && String(a.data_desejada).slice(0, 10) === d) h += '<div class="mp-linha">' + htmlNegada(a) + '</div>'; });
       h += '</div>';
     });
-    var decididas = alts.filter(function(a){ return a.status !== "pendente"; });
-    if (decididas.length){
-      h += '<details class="hist"><summary>Alterações pedidas <span class="badge neutral">' + decididas.length + '</span></summary>' + decididas.map(function(a){
-        var s2 = ALT_ST[a.status] || ["neutral", a.status];
-        return '<div class="mp-alt"><div class="mp-topo"><b>' + esc(fmtData(String(a.data_desejada).slice(0, 10))) + '</b> ' + txtAlt(a) + ' <span class="badge ' + s2[0] + '">' + s2[1] + '</span></div>' +
-          '<span class="muted">Motivo: “' + esc(a.motivo) + '”' + (a.por ? ' · ' + esc(a.por) : "") + ' · ' + esc(fmtDiaHora(a.pedida_em)) + '</span>' +
-          (a.obs ? '<span class="muted">Logística: “' + esc(a.obs) + '”</span>' : "") + '</div>';
-      }).join("") + '</details>';
-    }
     return h + '</div>';
   }
   function htmlMpForm(l, programado){
