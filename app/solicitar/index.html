@@ -5,7 +5,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'none'">
 <script>if (window.top !== window.self) { try { window.top.location = window.self.location; } catch (e) { document.documentElement.style.display = "none"; } }</script>
 <meta name="robots" content="noindex, nofollow, noarchive">
-<meta name="app-versao" content="2026-10-16-1">
+<meta name="app-versao" content="2026-10-16-4">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#070a10">
@@ -117,6 +117,7 @@
   .v{padding:12px 18px; border-top:1px solid var(--border);}
   .v-top{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:4px; font-size:12.5px;}
   .v-linhas{font-size:12.5px; color:var(--text-muted);}
+  .v-apagada .v-linhas{text-decoration:line-through; opacity:.75;}
   .tabela{width:100%; border-collapse:collapse;}
   .tabela th{padding:9px 14px; text-align:left; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--text-faint); border-bottom:1px solid var(--border); white-space:nowrap;}
   .tabela td{padding:10px 14px; border-bottom:1px solid var(--border); font-size:13px; vertical-align:middle;}
@@ -429,12 +430,22 @@
   }
   function seloFora(env){ return env && env.fora_do_prazo ? '<span class="badge warning" title="Pedido feito depois das 16h: não há certeza da entrega">⏱ Após as 16h — entrega sem garantia</span>' : ""; }
   var AVISO_16H = '<b>Atenção:</b> pedido feito depois das 16h — <b>não há certeza da entrega deste pedido</b>.';
+  // o que a Logística apagou / cancelou aparece no histórico (com o motivo)
+  function htmlRemovido(rm){
+    if (!rm) return "";
+    var canc = rm.tipo === "carregamento_cancelado";
+    return '<div class="aviso bad" style="margin:6px 0 0">' + (canc ? "✖ A Logística cancelou o carregamento" : "🗑 A Logística apagou o pedido") + ': <b>' + resumoLinhas(rm.linha ? [rm.linha] : []) + '</b>' +
+      (rm.motivo ? '<br>Motivo: “' + esc(rm.motivo) + '”' : "") + '<br><span style="font-weight:500">' + esc(rm.por || "Logística") + (rm.em ? ' · ' + esc(fmtDiaHora(rm.em)) : "") + '</span></div>';
+  }
   function rotuloVersao(v, ativa){
-    return '<div class="v"><div class="v-top"><b>' + esc(fmtDiaHora(v.enviado_em)) + '</b><span class="badge neutral">versão ' + v.versao + '</span>' +
-      (v.ativa ? '<span class="badge success">em vigor</span>' : '<span class="badge neutral">substituída</span>') + seloFora(v) +
-      (v.sem_necessidade ? '<span class="badge info">Sem necessidade</span>' : "") +
+    var est = v.apagada_em ? '<span class="badge danger">🗑 Apagada pela Logística' + ' em ' + esc(fmtDiaHora(v.apagada_em)) + '</span>'
+            : (v.ativa ? '<span class="badge success">em vigor</span>' : '<span class="badge neutral">substituída</span>');
+    var semNada = v.sem_necessidade && v.removido;   // a Logística tirou a última linha: não é "sem necessidade", é que não sobrou pedido
+    return '<div class="v' + (v.apagada_em ? " v-apagada" : "") + '"><div class="v-top"><b>' + esc(fmtDiaHora(v.enviado_em)) + '</b><span class="badge neutral">versão ' + v.versao + '</span>' +
+      est + seloFora(v) +
+      (v.sem_necessidade && !semNada ? '<span class="badge info">Sem necessidade</span>' : "") +
       (v.por ? '<span class="faint">' + esc(v.por) + '</span>' : "") + '</div>' +
-      '<div class="v-linhas">' + (v.sem_necessidade ? "Sem necessidade de cimento." : resumoLinhas(v.linhas)) + '</div></div>';
+      '<div class="v-linhas">' + (semNada ? "Não sobrou pedido para este dia." : v.sem_necessidade ? "Sem necessidade de cimento." : resumoLinhas(v.linhas)) + '</div>' + htmlRemovido(v.removido) + '</div>';
   }
 
   function htmlEditor(est, o){

@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-16-3">
+<meta name="app-versao" content="2026-10-16-4">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -238,6 +238,12 @@
   .enc-tbl td{vertical-align:top;} .enc-tbl .adm-acoes{min-width:190px;} .sol-tbl .sol-pedido{white-space:normal; min-width:200px; font-size:12.5px;}
   .sol-hist td{background:var(--surface-2); white-space:normal !important;}
   .sol-v{padding:6px 0; font-size:12.5px; border-top:1px solid var(--border);} .sol-v:first-child{border-top:none;}
+  .prog-tag.mud{background:var(--warning-soft); color:var(--warning); border:1px solid var(--warning); white-space:normal; display:block; width:fit-content; max-width:300px; margin:5px 0 0; border-radius:8px; line-height:1.35; padding:3px 8px; cursor:help; animation:mudPulsa 1.6s ease-in-out 3;}
+  .prog-block-head .title .prog-tag.mud{display:inline-block; margin:0 0 0 8px; max-width:none; border-radius:99px;}
+  .prog-tag.mudok{display:block; margin:4px 0 0; background:transparent; color:var(--text-muted, var(--muted)); border:1px solid var(--border-strong); cursor:pointer; font:inherit; font-size:10px; font-weight:700;}
+  .prog-tag.mudok:hover{color:var(--text); border-color:var(--warning);}
+  tr.prog-mudou > td:first-child{box-shadow:inset 5px 0 0 var(--warning); background:var(--warning-soft) !important;}
+  @keyframes mudPulsa{0%,100%{box-shadow:0 0 0 0 transparent;} 50%{box-shadow:0 0 0 4px var(--warning-soft);}}
   .prog-tag.sol{background:var(--success-soft); color:var(--success); border:1px solid var(--success); max-width:340px; overflow:hidden; text-overflow:ellipsis; cursor:help;}
   .adm-sub{padding:14px 18px 6px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted); border-top:1px solid var(--border);}
   .adm-novo{display:flex; gap:8px; flex-wrap:wrap;} .adm-novo input{flex:1 1 220px; min-width:0; background:var(--surface-2); color:var(--text); border:1px solid var(--border-strong); border-radius:6px; padding:8px 11px; font-size:13px; font-family:inherit;}
@@ -6679,6 +6685,18 @@
       if (sl && sl.length){ var s3 = document.createElement("span"); s3.className = "prog-tag sol"; s3.textContent = "📥 " + sl.map(function(x){ return x.material + " ×" + x.carretas + (x.fora ? " ⏱" : ""); }).join(", ");
         var sugs = sl.map(function(x){ var f = x.fabrica || ccFabricaPara(key, x.material, iso); return x.material + " → " + (f || "sem cimento definido no Controle de cimento (escolha a fábrica)"); });
         s3.title = "Solicitado pela usina para este dia" + (sl.some(function(x){ return x.fora; }) ? " (⏱ inclui pedido feito depois das 16h — entrega sem garantia)" : "") + ".\nFábrica preenchida pelo Controle de cimento:\n" + sugs.join("\n"); td.appendChild(s3); }
+      tr.classList.remove("prog-mudou");
+      var mk = iso + "|" + solNorm(key), mx = SOL_MUD[mk];
+      if (mx && !mudCienteLer()[mudChave(mk, mx)]){
+        var rs = mudResumo(mx.antes, mx.depois);
+        var s5 = document.createElement("span"); s5.className = "prog-tag mud";
+        s5.textContent = "🔄 Pedido mudou (" + hhmm(mx.enviado_em) + "): era " + rs.antes + " → agora " + rs.depois;
+        s5.title = "A usina mandou uma nova solicitação para este dia (" + (mx.por || "usina") + ", " + hhmm(mx.enviado_em) + ").\nAntes: " + rs.antes + "\nAgora: " + rs.depois + "\nConfira o material e a fábrica antes de fechar a carreta.";
+        td.appendChild(s5);
+        var b5 = document.createElement("button"); b5.type = "button"; b5.className = "prog-tag mudok"; b5.dataset.mudOk = mudChave(mk, mx); b5.textContent = "✓ Ciente"; b5.title = "Já vi a mudança (some o aviso neste computador)";
+        td.appendChild(b5);
+        tr.classList.add("prog-mudou");
+      }
       (SOL_ALT_PROG[iso + "|" + solNorm(key)] || []).forEach(function(a){
         var s4 = document.createElement("span"), ok = a.status === "aprovada";
         s4.className = "prog-tag " + (ok ? "alt" : "altp");
@@ -6688,7 +6706,22 @@
         td.appendChild(s4);
       });
     });
+    progMudCabecalho();
   }
+  function progMudCabecalho(){
+    var v = el("progBlocks"); if (!v) return;
+    v.querySelectorAll(".prog-block[data-iso]").forEach(function(bl){
+      var t = bl.querySelector(".prog-block-head .title"); if (!t) return;
+      var velho = t.querySelector(".mud-head"); if (velho) velho.remove();
+      var n = bl.querySelectorAll("tr.prog-mudou").length; if (!n) return;
+      var sp = document.createElement("span"); sp.className = "prog-tag mud mud-head"; sp.textContent = "🔄 " + n + (n > 1 ? " pedidos mudaram" : " pedido mudou");
+      sp.title = "Usinas que mandaram nova solicitação mudando material, fábrica, quantidade ou período. As linhas estão marcadas em amarelo."; t.appendChild(sp);
+    });
+  }
+  document.addEventListener("click", function(ev){
+    var b = ev.target.closest && ev.target.closest("[data-mud-ok]"); if (!b) return;
+    ev.preventDefault(); ev.stopPropagation(); mudCienteMarcar(b.dataset.mudOk); progDecorar();
+  }, true);
   async function progRefresh(){
     if (!ME || !SNAP) return;
     try {
@@ -6893,7 +6926,9 @@
             (env && ME && ME.papel === "admin" ? '<button class="btn-ghost" style="color:var(--danger)" data-sol="apagar" data-u="' + esc(u.k) + '" title="Apagar esta solicitação (todas as versões do dia). Só administrador.">' + (SOL.confirmaApagar === u.k ? "Confirmar apagar" : "🗑 Apagar") + '</button>' : "") + '</div></td></tr>';
           if (ab) h += '<tr class="sol-hist"><td colspan="' + (d.multi ? 7 : 6) + '">' + (u.historico || []).map(function(x){
             return '<div class="sol-v"><b>' + esc(solQuando(x.enviado_em)) + '</b> · versão ' + esc(x.versao) + (x.ativa ? ' <span class="badge success">em vigor</span>' : ' <span class="badge neutral">substituída</span>') + ' ' + solSelo(x) + (x.por ? ' <span class="faint">' + esc(x.por) + '</span>' : "") +
-              '<div class="muted">' + (x.sem_necessidade ? "Sem necessidade de cimento." : solLinhasTxt(x.linhas)) + '</div></div>'; }).join("") + '</td></tr>';
+              '<div class="muted">' + (x.sem_necessidade && x.removido ? "Não sobrou pedido para este dia." : x.sem_necessidade ? "Sem necessidade de cimento." : solLinhasTxt(x.linhas)) + '</div>' +
+              (x.removido ? '<div style="color:var(--danger);font-size:12.5px;margin-top:2px">' + (x.removido.tipo === "carregamento_cancelado" ? "✖ Carregamento cancelado" : "🗑 Pedido apagado") + ': ' + solLinhasTxt(x.removido.linha ? [x.removido.linha] : []) +
+                (x.removido.motivo ? ' · Motivo: “' + esc(x.removido.motivo) + '”' : "") + ' · ' + esc(x.removido.por || "Logística") + (x.removido.numero ? ' · doc. nº ' + esc(x.removido.numero) : "") + '</div>' : "") + '</div>'; }).join("") + '</td></tr>';
         });
         h += '</tbody></table></div>';
       }
@@ -7051,6 +7086,12 @@
       (m[k] = m[k] || []).push({ material: x.material, fabrica: x.fabrica || null, carretas: x.carretas, periodo: x.periodo || null, fora: !!x.fora_do_prazo });
     });
     SOL_PROG = m;
+    var rm; try { rm = await sb.rpc("solic_mudancas_programacao", { p_de: de, p_ate: ate }); } catch (e) { rm = { error: e }; }
+    if (!rm.error && Array.isArray(rm.data)){
+      var mm = {};
+      rm.data.forEach(function(x){ var k = String(x.data_desejada).slice(0, 10) + "|" + solNorm(x.usina); if (!mm[k]) mm[k] = x; });   // vem da mais recente para a mais antiga
+      SOL_MUD = mm;
+    }
     var aplicar = function(){ progAutoPreencher(); if (typeof progPintarSeguro === "function") progPintarSeguro(); };   // repinta: fábrica e período
     if (!SILO.d && typeof siloCarregar === "function") siloCarregar().then(aplicar); else aplicar();
     var ra; try { ra = await sb.rpc("solic_alteracoes_listar", { p_de: de, p_ate: ate }); } catch (e) { return; }
@@ -7060,6 +7101,26 @@
     SOL_ALT_PROG = ma;
   }
   var SOL_ALT_PROG = {};
+  /* Pedido da usina que MUDOU depois de chegar (nova solicitação com outro material, fábrica, quantidade ou período):
+     aviso na linha da Programação até alguém clicar em "Ciente" (fica guardado neste navegador). */
+  var SOL_MUD = {};
+  function mudCienteLer(){ try { return JSON.parse(localStorage.getItem("progMudCiente") || "{}") || {}; } catch (e) { return {}; } }
+  function mudCienteMarcar(k){ var o = mudCienteLer(); o[k] = Date.now(); try { localStorage.setItem("progMudCiente", JSON.stringify(o)); } catch (e) { } }
+  function mudChave(k, x){ return k + "|v" + x.versao; }
+  function mudResumo(antes, depois){
+    var f = function(arr, modo){
+      if (!arr || !arr.length) return "nada";
+      return arr.map(function(l){
+        var mat = MAT_NOME[l.material] || l.material || "";
+        var t = (modo === "fab" && l.fabrica ? l.fabrica : mat) + " ×" + l.carretas;
+        if (modo === "per") t += " " + ({ CEDO: "cedo", TARDE: "tarde", QUALQUER: "qualquer horário" }[l.periodo] || "sem período");
+        return t; }).join(" + ");
+    };
+    var fabs = function(arr){ return (arr || []).map(function(l){ return l.fabrica || ""; }).sort().join("|"); };
+    // fábrica trocada aparece com o nome da fábrica (é o que muda a carreta); senão material × quantidade; só o período mudou: com o período
+    var modo = fabs(antes) !== fabs(depois) ? "fab" : (f(antes) !== f(depois) ? "" : "per");
+    return { antes: f(antes, modo), depois: f(depois, modo) };
+  }
 
   /* Programação ← Controle de cimento: a fábrica de cada carga sai sozinha do que a usina pediu
      (material da Solicitação) + o cimento daquele material na usina (Controle de cimento).
