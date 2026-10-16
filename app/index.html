@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-16-7">
+<meta name="app-versao" content="2026-10-16-8">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -874,6 +874,11 @@
   body.somente-leitura .content input, body.somente-leitura .content select, body.somente-leitura .content textarea{pointer-events:none; opacity:.75;}
   @media (max-width:700px){ .user-chip{flex-wrap:wrap; justify-content:flex-end;} }
 
+  /* Programação: a coluna Usina não pode esticar por causa dos selos (alteração, pedido que mudou): eles quebram linha embaixo do nome */
+  #progBlocks td:first-child{min-width:170px;}
+  #progBlocks td:first-child .prog-tag.alt, #progBlocks td:first-child .prog-tag.altp{display:block; width:fit-content; max-width:280px; white-space:normal; margin:4px 0 0; border-radius:8px; line-height:1.35; padding:2px 8px;}
+  #progBlocks td:first-child .prog-tag.sol{max-width:220px;}
+  #progBlocks td:first-child .prog-tag.mud{max-width:280px;}
   /* ===== Celular: tabelas viram cartões (uma linha = um cartão) ===== */
   .xl-busca{display:none;}
   @media (max-width:760px){
