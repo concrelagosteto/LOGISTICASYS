@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-15-8">
+<meta name="app-versao" content="2026-10-16-1">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -6672,9 +6672,9 @@
       });
       if (!td.querySelector(".prog-tag.agora")) tr.classList.remove("prog-peer");
       var sl = SOL_PROG[iso + "|" + solNorm(key)];
-      if (sl && sl.length){ var s3 = document.createElement("span"); s3.className = "prog-tag sol"; s3.textContent = "📥 " + sl.map(function(x){ return x.material + " ×" + x.carretas; }).join(", ");
+      if (sl && sl.length){ var s3 = document.createElement("span"); s3.className = "prog-tag sol"; s3.textContent = "📥 " + sl.map(function(x){ return x.material + " ×" + x.carretas + (x.fora ? " ⏱" : ""); }).join(", ");
         var sugs = sl.map(function(x){ var f = x.fabrica || ccFabricaPara(key, x.material, iso); return x.material + " → " + (f || "sem cimento definido no Controle de cimento (escolha a fábrica)"); });
-        s3.title = "Solicitado pela usina para este dia" + (sl.some(function(x){ return x.fora; }) ? " (inclui pedido fora do prazo — autorizado)" : "") + ".\nFábrica preenchida pelo Controle de cimento:\n" + sugs.join("\n"); td.appendChild(s3); }
+        s3.title = "Solicitado pela usina para este dia" + (sl.some(function(x){ return x.fora; }) ? " (⏱ inclui pedido feito depois das 16h — entrega sem garantia)" : "") + ".\nFábrica preenchida pelo Controle de cimento:\n" + sugs.join("\n"); td.appendChild(s3); }
       (SOL_ALT_PROG[iso + "|" + solNorm(key)] || []).forEach(function(a){
         var s4 = document.createElement("span"), ok = a.status === "aprovada";
         s4.className = "prog-tag " + (ok ? "alt" : "altp");
@@ -6770,7 +6770,7 @@
   function solDiaBR(iso){ var p = String(iso || "").slice(0, 10).split("-"); return p.length < 3 ? "" : p[2] + "/" + p[1] + "/" + p[0]; }
   function solDiaCurto(iso){ var p = String(iso || "").slice(0, 10).split("-"); return p.length < 3 ? "" : p[2] + "/" + p[1]; }
   function solLinhasTxt(ls){ return (ls || []).map(function(l){ return esc(l.material) + " ×" + esc(l.carretas) + " → " + esc(solDiaCurto(l.data_desejada)) + (l.periodo ? " (" + ({ CEDO: "cedo", TARDE: "tarde", QUALQUER: "qualquer horário" }[l.periodo] || String(l.periodo).toLowerCase()) + ")" : "") + (l.fabrica ? ' <span class="faint">· ' + esc(l.fabrica) + '</span>' : ""); }).join("<br>"); }
-  function solSelo(env){ return env && env.fora_do_prazo ? '<span class="badge warning">⏱ Fora do prazo — autorizado</span>' : ""; }
+  function solSelo(env){ return env && env.fora_do_prazo ? '<span class="badge warning" title="Pedido feito depois das 16h: a usina foi avisada de que não há certeza da entrega">⏱ Após as 16h — sem garantia</span>' : ""; }
   function solMais(dia, n){ var p = String(dia).split("-"); var d = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2] + n)); return d.toISOString().slice(0, 10); }
   function solPodeDecidir(){ return !!ME && (ME.papel === "admin" || ME.papel === "operador"); }
   function solBadge(){
@@ -6850,7 +6850,7 @@
         (semChave ? ' · <span class="badge warning">' + semChave + ' usina(s) sem chave</span>' : "") + '</div>';
       var tile = function(k, n, rot, cor){ return '<button class="sol-tile' + (SOL.filtro === k ? " sel" : "") + '" style="--st:' + cor + '" data-sol="filtro" data-k="' + k + '"><b>' + n + '</b><span>' + rot + '</span></button>'; };
       h += '<div class="sol-tiles">' + tile("pedido", c.pedido, "Responderam com pedido", "var(--success)") + tile("sem", c.sem, "Sem necessidade", "var(--info)") + tile("nao", c.nao, "Não responderam", "var(--danger)") +
-        tile("fora", c.fora, "Fora do prazo", "var(--warning)") + tile("aguard", c.aguard, "Aguardando autorização", "var(--accent)") + '</div>';
+        tile("fora", c.fora, "Após as 16h (sem garantia)", "var(--warning)") + tile("aguard", c.aguard, "Aguardando autorização", "var(--accent)") + '</div>';
     }
     el("solCab").innerHTML = h; h = "";
     if (d){
@@ -6933,7 +6933,7 @@
       var pode = solPodeDecidir(), nc = (d.multi ? 1 : 0) + 4 + (programado ? 1 : 0) + (pode ? 1 : 0);
       var h = '<div class="table-wrap"><table class="adm-tbl"><thead><tr>' + (d.multi ? '<th>Dia do pedido</th>' : "") + '<th>Entrega</th><th>Usina</th><th>Pedido</th>' + (programado ? '<th>Programado</th>' : "") + '<th>Enviado</th>' + (pode ? '<th></th>' : "") + '</tr></thead><tbody>';
       lista.forEach(function(x){
-        var l = x.l, marcas = (l.adicional ? ' <span class="badge info">adicional</span>' : "") + (l.alterada ? ' <span class="badge danger">alterado após programar</span>' : "") + (x.env.fora_do_prazo ? ' <span class="badge warning">fora do prazo</span>' : "");
+        var l = x.l, marcas = (l.adicional ? ' <span class="badge info">adicional</span>' : "") + (l.alterada ? ' <span class="badge danger">alterado após programar</span>' : "") + (x.env.fora_do_prazo ? ' <span class="badge warning" title="Pedido feito depois das 16h: não há certeza da entrega">após 16h · sem garantia</span>' : "");
         var pc = "";
         if (programado){
           pc = (x.q >= l.carretas ? '<span class="badge success">' + x.q + ' de ' + l.carretas + '</span>' : '<span class="badge warning">parcial: ' + x.q + ' de ' + l.carretas + '</span>') +
@@ -8292,7 +8292,7 @@
     // falta programar
     if (falta.length){
       h += '<div class="card sol-grupo nprog" style="margin-bottom:16px"><div class="card-head"><div><h2>⏳ Falta programar (' + falta.length + ')</h2><p>Pedidos das usinas para este dia que ainda não têm carreta com status Tudo OK.</p></div></div><div class="table-wrap"><table class="adm-tbl"><thead><tr><th>Usina</th><th>Pedido</th><th>Pedidas</th><th>Programadas</th><th>Falta</th></tr></thead><tbody>';
-      falta.forEach(function(l){ h += '<tr><td class="cell-strong">' + esc(l.usina) + '</td><td>' + solTxtLinha(l.material, l.carretas, l.periodo, l.fabrica) + (l.fora_do_prazo ? ' <span class="badge warning">fora do prazo</span>' : "") + '</td><td class="num">' + l.carretas + '</td><td class="num">' + (l.prog_qtd || 0) + '</td><td class="num"><b>' + (l.carretas - (l.prog_qtd || 0)) + '</b></td></tr>'; });
+      falta.forEach(function(l){ h += '<tr><td class="cell-strong">' + esc(l.usina) + '</td><td>' + solTxtLinha(l.material, l.carretas, l.periodo, l.fabrica) + (l.fora_do_prazo ? ' <span class="badge warning" title="Pedido feito depois das 16h: não há certeza da entrega">após 16h · sem garantia</span>' : "") + '</td><td class="num">' + l.carretas + '</td><td class="num">' + (l.prog_qtd || 0) + '</td><td class="num"><b>' + (l.carretas - (l.prog_qtd || 0)) + '</b></td></tr>'; });
       h += '</tbody></table></div></div>';
     }
     // cargas do dia

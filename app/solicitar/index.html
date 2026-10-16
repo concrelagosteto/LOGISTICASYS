@@ -5,7 +5,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'none'">
 <script>if (window.top !== window.self) { try { window.top.location = window.self.location; } catch (e) { document.documentElement.style.display = "none"; } }</script>
 <meta name="robots" content="noindex, nofollow, noarchive">
-<meta name="app-versao" content="2026-10-15-1">
+<meta name="app-versao" content="2026-10-16-1">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#070a10">
@@ -427,7 +427,8 @@
     if (!ls || !ls.length) return "—";
     return ls.map(function(l){ return l.carretas + "× " + esc(rotuloMat(l.material, l.fabrica)) + " → " + fmtData(String(l.data_desejada).slice(0, 10)) + (l.periodo ? " (" + ({ CEDO: "cedo", TARDE: "tarde", QUALQUER: "qualquer horário" }[l.periodo] || l.periodo.toLowerCase()) + ")" : ""); }).join("<br>");
   }
-  function seloFora(env){ return env && env.fora_do_prazo ? '<span class="badge warning">⏱ Fora do prazo — autorizado</span>' : ""; }
+  function seloFora(env){ return env && env.fora_do_prazo ? '<span class="badge warning" title="Pedido feito depois das 16h: não há certeza da entrega">⏱ Após as 16h — entrega sem garantia</span>' : ""; }
+  var AVISO_16H = '<b>Atenção:</b> pedido feito depois das 16h — <b>não há certeza da entrega deste pedido</b>.';
   function rotuloVersao(v, ativa){
     return '<div class="v"><div class="v-top"><b>' + esc(fmtDiaHora(v.enviado_em)) + '</b><span class="badge neutral">versão ' + v.versao + '</span>' +
       (v.ativa ? '<span class="badge success">em vigor</span>' : '<span class="badge neutral">substituída</span>') + seloFora(v) +
@@ -448,9 +449,9 @@
     if (aberto){
       h += '<div class="aviso info">Prazo aberto até as 16:00. Você pode criar e alterar a solicitação à vontade até lá.</div>';
     } else if (ehEnc){
-      h += '<div class="aviso warn">Prazo das usinas encerrado (16:00 às 02:00). Como encarregado, você pode lançar agora: o pedido ficará marcado como <b>Fora do prazo — autorizado</b>.</div>';
+      h += '<div class="aviso warn">Prazo das usinas encerrado (16:00 às 02:00). Como encarregado, você pode lançar agora: o pedido ficará marcado como <b>fora do prazo</b>.<br>' + AVISO_16H + '</div>';
     } else if (vigente){
-      h += '<div class="aviso ok">✔ Liberado pelo encarregado até as ' + esc(fmtHora(new Date(aut.valida_ate).getTime())) + '. O que você enviar agora fica marcado como <b>Fora do prazo — autorizado</b>.</div>';
+      h += '<div class="aviso ok">✔ Liberado pelo encarregado até as ' + esc(fmtHora(new Date(aut.valida_ate).getTime())) + '. O que você enviar agora fica marcado como <b>fora do prazo</b>.<br>' + AVISO_16H + '</div>';
     } else if (aut && aut.status === "pendente"){
       h += '<div class="aviso warn">Prazo encerrado. Seu pedido de autorização foi enviado às ' + esc(fmtHora(new Date(aut.solicitada_em).getTime())) + ' e <b>aguarda o encarregado</b>. Esta tela atualiza sozinha.</div>';
     } else {
@@ -491,6 +492,7 @@
     var temTravada = S.linhas.some(function(x){ return x.travada; });
     h += '<div class="acoes-editor"><button type="button" class="btn sem-btn" data-act="sem" aria-pressed="' + (S.sem ? "true" : "false") + '" ' + (pode && !temTravada ? "" : "disabled") + (temTravada ? ' title="Parte do pedido já foi programada: para cancelar, use Meus pedidos"' : "") + '>' + (S.sem ? "✔ " : "") + 'Sem necessidade de cimento</button><span class="grow"></span>' +
       '<button type="button" class="btn-primary inline" data-act="enviar" ' + (pode && !S.enviando && !S.confirmaEnvio ? "" : "disabled") + '>' + (S.enviando ? "Enviando…" : (env ? "Nova solicitação" : "Enviar solicitação")) + '</button></div>';
+    if (!aberto && pode && !S.sem) h += '<div class="aviso warn aviso-16h" role="note">⚠️ ' + AVISO_16H + '</div>';
     if (S.confirmaEnvio) h += htmlConfirmaEnvio(env);
     h += '<p class="msg-erro" id="erroEditor" role="alert"></p></div></div>';
 
@@ -542,6 +544,7 @@
         var st = q === 0 ? (futuro ? '<span class="badge neutral">⏳ Aguardando programação</span>' : '<span class="badge danger">Não programado</span>')
                : (q >= car ? '<span class="badge success">🔒 Programado</span>' : '<span class="badge warning">🔒 Programado parcial (' + q + ' de ' + car + ')</span>');
         h += '<div class="mp-linha"><div class="mp-topo"><b>' + txtLinha(l.material, car, l.periodo, l.fabrica) + '</b>' + st +
+          (p.fora_do_prazo && q < car ? '<span class="badge warning" title="Pedido feito depois das 16h: não há certeza da entrega deste pedido">⏱ Após as 16h — entrega sem garantia</span>' : "") +
           (l.adicional ? '<span class="badge info">pedido adicional</span>' : "") + (l.alterada ? '<span class="badge warning">alterado após programar</span>' : "") +
           '<span class="faint" style="font-size:11.5px">pedido de ' + esc(fmtData(String(p.dia).slice(0, 10))) + '</span></div>';
         if (q){
@@ -746,6 +749,7 @@
       S.enviando = false; S.sujo = false;
       var env = d.estado && d.estado.envio;
       S.msg = S.sem ? "Resposta registrada: sem necessidade de cimento." : "Solicitação enviada" + (env ? " (versão " + env.versao + ")" : "") + ".";
+      if (!S.sem && env && env.fora_do_prazo){ S.msg += " Atenção: pedido feito depois das 16h — não há certeza da entrega deste pedido."; }
       S.msgTipo = "ok"; aplicar(d, true);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (e) {
