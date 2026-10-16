@@ -5,7 +5,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'none'">
 <script>if (window.top !== window.self) { try { window.top.location = window.self.location; } catch (e) { document.documentElement.style.display = "none"; } }</script>
 <meta name="robots" content="noindex, nofollow, noarchive">
-<meta name="app-versao" content="2026-10-16-5">
+<meta name="app-versao" content="2026-10-16-6">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#070a10">
@@ -718,7 +718,7 @@
     if (S.msg) h += '<div class="aviso ' + (S.msgTipo || "ok") + '" role="status">' + esc(S.msg) + '</div>';
     var tile = function(k, n, rot, cor){ return '<button class="stat' + (S.filtro === k ? " sel" : "") + '" style="--st:' + cor + '" data-act="filtro" data-k="' + k + '"><b>' + n + '</b><span>' + rot + '</span></button>'; };
     h += '<div class="stats">' + tile("pedido", c.pedido, "Responderam com pedido", "var(--success)") + tile("sem", c.sem, "Sem necessidade", "var(--info)") + tile("nao", c.nao, "Ainda não responderam", "var(--danger)") +
-      tile("fora", c.fora, "Fora do prazo", "var(--warning)") + tile("aguard", c.aguard, "Aguardando autorização", "var(--accent)") + '</div>';
+      tile("fora", c.fora, "Após as 16h (sem garantia)", "var(--warning)") + tile("aguard", c.aguard, "Aguardando autorização", "var(--accent)") + '</div>';
 
     if (pend.length){
       h += '<div class="card"><div class="card-head"><div><h2>Autorizações aguardando você</h2><p>Você pode <b>autorizar e já preencher o pedido pela usina</b> (mais rápido), ou só autorizar para a usina lançar em até 60 minutos.</p></div></div>';

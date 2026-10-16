@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-16-5">
+<meta name="app-versao" content="2026-10-16-6">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -868,6 +868,28 @@
   #loadingOverlay{position:fixed; inset:0; z-index:9999; background:var(--bg); display:none; align-items:center; justify-content:center; font-size:14px; color:var(--text-muted);}
   body.somente-leitura .content input, body.somente-leitura .content select, body.somente-leitura .content textarea{pointer-events:none; opacity:.75;}
   @media (max-width:700px){ .user-chip{flex-wrap:wrap; justify-content:flex-end;} }
+
+  /* ===== Celular: menu vira gaveta (☰), barra de cima compacta ===== */
+  .menu-fundo{display:none;}
+  @media (max-width:760px){
+    .sidebar{position:fixed; top:0; left:0; bottom:0; width:min(300px, 84vw) !important; height:100%; z-index:300; flex-direction:column; overflow-y:auto; overflow-x:hidden;
+      transform:translateX(-105%); transition:transform .2s ease; box-shadow:8px 0 30px rgba(0,0,0,.45); border-right:1px solid var(--border);}
+    #app.menu-hidden .sidebar{display:flex; width:min(300px, 84vw) !important; border-right-width:1px;}
+    #app.menu-cel .sidebar{transform:none;}
+    .sidebar > *{min-width:0;}
+    .sidebar-head{border-right:none; border-bottom:1px solid var(--border);}
+    .nav{display:block; padding:8px;}
+    .nav-item{white-space:normal;}
+    .menu-fundo{position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:299;}
+    #app.menu-cel .menu-fundo{display:block;}
+    .topbar{flex-wrap:wrap; height:auto; min-height:0; padding:8px 12px; gap:8px;}
+    .topbar-title{flex:1 1 0; min-width:0;}
+    .topbar h1{font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+    .topbar .crumb{display:none;}
+    .user-chip{flex:1 1 100%; flex-wrap:nowrap !important; justify-content:flex-start !important; overflow-x:auto; gap:6px; padding-bottom:2px;}
+    .user-chip .who, #presChip{display:none !important;}
+    .user-chip .btn-mini, #syncChip{white-space:nowrap; flex:none;}
+  }
 </style>
 
 <div id="login">
@@ -1782,7 +1804,14 @@
     function gravar(v){ try { localStorage.setItem("ls_menu_oculto", v ? "1" : "0"); } catch(e){} }
     function aplicar(oculto){ app.classList.toggle("menu-hidden", oculto); btn.setAttribute("aria-pressed", oculto ? "true" : "false"); btn.title = oculto ? "Mostrar o menu" : "Ocultar o menu"; }
     aplicar(ler());
-    btn.addEventListener("click", function(){ var novo = !app.classList.contains("menu-hidden"); aplicar(novo); gravar(novo); setTimeout(agendaFit, 220); });
+    var cel = function(){ return window.matchMedia("(max-width:760px)").matches; };
+    var fundo = document.createElement("div"); fundo.className = "menu-fundo"; app.appendChild(fundo);
+    fundo.addEventListener("click", function(){ app.classList.remove("menu-cel"); });
+    // no celular o ☰ abre/fecha a gaveta do menu; escolher uma tela fecha a gaveta
+    el("nav").addEventListener("click", function(e){ if (cel() && e.target.closest(".nav-item")) app.classList.remove("menu-cel"); });
+    btn.addEventListener("click", function(){
+      if (cel()){ app.classList.toggle("menu-cel"); return; }
+      var novo = !app.classList.contains("menu-hidden"); aplicar(novo); gravar(novo); setTimeout(agendaFit, 220); });
   })();
   // Roda do mouse mais lenta/suave: cada "clique" da roda anda ~45% do normal, com animação.
   // (touchpad/rolagem fina e Ctrl+roda ficam como estão)
