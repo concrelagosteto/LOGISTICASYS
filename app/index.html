@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-19-1">
+<meta name="app-versao" content="2026-10-19-2">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -717,6 +717,15 @@
   tr.prog-row-ok td:first-child{box-shadow:inset 4px 0 0 var(--success);}
   tr.prog-row-conferir td:first-child, tr.prog-row-adiado td:first-child{box-shadow:inset 4px 0 0 var(--warning);}
   tr.prog-row-adiado input{font-style:italic; opacity:.75;}
+  /* Sem necessidade (a usina respondeu que não precisa de cimento): linha roxa */
+  :root{--roxo:#a855f7; --roxo-soft:rgba(168,85,247,.16);}
+  tr.prog-row-semnec td{background:var(--roxo-soft) !important;}
+  tr.prog-row-semnec:hover td{background:var(--roxo-soft) !important; filter:brightness(1.12);}
+  tr.prog-row-semnec td:first-child{box-shadow:inset 4px 0 0 var(--roxo);}
+  tr.prog-row-semnec .status-select{border-color:var(--roxo); color:var(--roxo); font-weight:700;}
+  .prog-tag.semnec{background:var(--roxo-soft); color:var(--roxo); border:1px solid var(--roxo); cursor:help;}
+  .dstat.semnec{--dstat:var(--roxo);}
+  table.tab-cartao tr.prog-row-semnec{border-left:5px solid var(--roxo);}
   tr.prog-row-ok .status-select{border-color:var(--success); color:var(--success); font-weight:700;}
   tr.prog-row-conferir .status-select, tr.prog-row-adiado .status-select{border-color:var(--warning); color:var(--warning); font-weight:700;}
   .status-select{height:32px; font-weight:600;}
@@ -2250,8 +2259,9 @@
   }
   // Contagem do dia (por usina programada): descarregadas / emitidas / pendentes (nada emitido) / sem status
   function progDayCounts(iso){
-    var c = {programadas:0, descarregadas:0, emitidas:0, pendentes:0, semStatus:0, adiado:0};
+    var c = {programadas:0, descarregadas:0, emitidas:0, pendentes:0, semStatus:0, adiado:0, semNec:0};
     cementDayData(iso).entries.forEach(function(e){
+      if (e.status === "sem_necessidade"){ c.semNec++; return; }
       var adiado = e.status === "adiado";
       if (!String(e.carretas || "").trim() && !adiado) return;
       c.programadas++;
@@ -2268,7 +2278,8 @@
       '<div class="dstat emi"><b>'+c.emitidas+'</b><span>Emitidas</span></div>' +
       '<div class="dstat pend"><b>'+c.pendentes+'</b><span>Pendentes</span></div>' +
       '<div class="dstat sem"><b>'+c.semStatus+'</b><span>Sem status</span></div>' +
-      (c.adiado ? '<div class="dstat adi"><b>'+c.adiado+'</b><span>Adiado</span></div>' : '');
+      (c.adiado ? '<div class="dstat adi"><b>'+c.adiado+'</b><span>Adiado</span></div>' : '') +
+      (c.semNec ? '<div class="dstat semnec"><b>'+c.semNec+'</b><span>Sem necessidade</span></div>' : '');
   }
   function paintBlocks(){
     if (typeof progAutoPreencher === "function") progAutoPreencher();
@@ -2321,6 +2332,7 @@
           '<option value="ok"'+(e.status==="ok"?" selected":"")+'>Tudo OK</option>' +
           '<option value="conferir"'+(e.status==="conferir"?" selected":"")+'>Conferir</option>' +
           '<option value="adiado"'+(e.status==="adiado"?" selected":"")+'>Adiado</option>' +
+          '<option value="sem_necessidade"'+(e.status==="sem_necessidade"?" selected":"")+'>Sem necessidade</option>' +
           '</select></td>';
         // NF (SEFAZ): traz a conferência de Controle de Pedidos até aqui —
         // se alguma entrada que já bate com essa linha da programação tiver
@@ -2336,7 +2348,7 @@
         ) + '</td>';
         var nfCell = progNFCelulaMulti(e, nfCanc, nfSt) || nfCell0;
         if (nfSt === "none" && cargasDaLinha(e).length < 2 && linhaCompleta(e) && progLinhaSituacao(e) === "pendente") nfCell = '<td style="padding:4px 6px;">' + nfCanc + BADGE_PENDENTE + '</td>';
-        var rowCls = e.status === "ok" ? "prog-row-ok" : (e.status === "conferir" ? "prog-row-conferir" : (e.status === "adiado" ? "prog-row-adiado" : ""));
+        var rowCls = e.status === "ok" ? "prog-row-ok" : (e.status === "conferir" ? "prog-row-conferir" : (e.status === "adiado" ? "prog-row-adiado" : (e.status === "sem_necessidade" ? "prog-row-semnec" : "")));
         return '<tr class="'+rowCls+'" data-pk="'+esc(iso+"|"+key)+'">' + usinaCell +
           progMultiInput(iso, key, "carretas", e.carretas) +
           progMultiFabricaSelect(iso, key, e.fabrica, 99, e.usina) +
@@ -2375,10 +2387,11 @@
         var tr = sel.closest("tr");
         var usinaTd = tr.querySelector("td:first-child");
         usinaTd.classList.remove("usina-ok", "usina-conferir");
-        tr.classList.remove("prog-row-ok", "prog-row-conferir", "prog-row-adiado");
+        tr.classList.remove("prog-row-ok", "prog-row-conferir", "prog-row-adiado", "prog-row-semnec");
         if (sel.value === "ok"){ usinaTd.classList.add("usina-ok"); tr.classList.add("prog-row-ok"); }
         else if (sel.value === "conferir"){ usinaTd.classList.add("usina-conferir"); tr.classList.add("prog-row-conferir"); }
         else if (sel.value === "adiado"){ usinaTd.classList.add("usina-conferir"); tr.classList.add("prog-row-adiado"); }
+        else if (sel.value === "sem_necessidade"){ tr.classList.add("prog-row-semnec"); }
         // adiado muda as ligações (a linha deixa de contar) → repinta a tela inteira
         if (sel.value === "adiado" || sel.dataset.antes === "adiado"){ sel.dataset.antes = sel.value; paintBlocks(); return; }
         sel.dataset.antes = sel.value;
@@ -6790,6 +6803,9 @@
       if (sl && sl.length){ var s3 = document.createElement("span"); s3.className = "prog-tag sol"; s3.textContent = "📥 " + sl.map(function(x){ return x.material + " ×" + x.carretas + (x.fora ? " ⏱" : ""); }).join(", ");
         var sugs = sl.map(function(x){ var f = x.fabrica || ccFabricaPara(key, x.material, iso); return x.material + " → " + (f || "sem cimento definido no Controle de cimento (escolha a fábrica)"); });
         s3.title = "Solicitado pela usina para este dia" + (sl.some(function(x){ return x.fora; }) ? " (⏱ inclui pedido feito depois das 16h — entrega sem garantia)" : "") + ".\nFábrica preenchida pelo Controle de cimento:\n" + sugs.join("\n"); td.appendChild(s3); }
+      var snx = SOL_SEMNEC[iso + "|" + solNorm(key)];
+      if (snx){ var s6 = document.createElement("span"); s6.className = "prog-tag semnec"; s6.textContent = "🟣 Sem necessidade";
+        s6.title = "A usina respondeu que não precisa de cimento (" + (snx.por || "usina") + (snx.em ? ", " + hhmm(snx.em) : "") + ")."; td.appendChild(s6); }
       tr.classList.remove("prog-mudou");
       var mk = iso + "|" + solNorm(key), mx = SOL_MUD[mk];
       if (mx && !mudCienteLer()[mudChave(mk, mx)]){
@@ -7195,6 +7211,16 @@
       (m[k] = m[k] || []).push({ material: x.material, fabrica: x.fabrica || null, carretas: x.carretas, periodo: x.periodo || null, fora: !!x.fora_do_prazo });
     });
     SOL_PROG = m;
+    // usinas que responderam "Sem necessidade": vale para os dias de programação daquele pedido (próximo dia útil; na sexta, os dois próximos)
+    var rsn; try { rsn = await sb.rpc("solic_sem_necessidade", { p_de: de, p_ate: ate }); } catch (e) { rsn = { error: e }; }
+    if (!rsn.error && Array.isArray(rsn.data)){
+      var sn = {};
+      rsn.data.forEach(function(x){
+        var p = progPeriodoPadrao(fromISO(String(x.dia).slice(0, 10))), d = p.de;
+        while (d <= p.ate){ if (diaUtilProg(d)) sn[toISO(d) + "|" + solNorm(x.usina)] = { em: x.enviado_em, por: x.por, dia: String(x.dia).slice(0, 10) }; d = addDays(d, 1); }
+      });
+      SOL_SEMNEC = sn;
+    }
     var rm; try { rm = await sb.rpc("solic_mudancas_programacao", { p_de: de, p_ate: ate }); } catch (e) { rm = { error: e }; }
     if (!rm.error && Array.isArray(rm.data)){
       var mm = {};
@@ -7210,6 +7236,7 @@
     SOL_ALT_PROG = ma;
   }
   var SOL_ALT_PROG = {};
+  var SOL_SEMNEC = {};   // "AAAA-MM-DD|USINA" → {em, por}: a usina respondeu "Sem necessidade" para aquele dia de programação
   /* Pedido da usina que MUDOU depois de chegar (nova solicitação com outro material, fábrica, quantidade ou período):
      aviso na linha da Programação até alguém clicar em "Ciente" (fica guardado neste navegador). */
   var SOL_MUD = {};
@@ -7256,7 +7283,7 @@
   // Assim que a usina pede, a fábrica da linha dela já aparece preenchida na Programação (dias de hoje em diante).
   // Carreta e nº do pedido continuam com a Logística. Só preenche linha com fábrica vazia, uma vez por sessão
   // (se alguém apagar a fábrica de propósito, não volta sozinha).
-  var PROG_AUTO_FEITO = {};
+  var PROG_AUTO_FEITO = {}, PROG_SN_FEITO = {};
   function progAutoPreencher(){
     if (!SILO.d || !ME || ME.papel === "leitura" || !SNAP) return false;   // só depois de carregar tudo (senão não salva)
     var hoje = toISO(TODAY), mudou = false;
@@ -7276,6 +7303,25 @@
         PROG_AUTO_FEITO[k] = assin; return;
       }
       e = getOrCreateEntry(iso, usina); e.fabrica = assin; PROG_AUTO_FEITO[k] = assin; mudou = true;
+    });
+    // "Sem necessidade": linha sem carreta e sem status recebe o status (roxo); se a usina depois mandou pedido para o dia, tira
+    Object.keys(SOL_SEMNEC).forEach(function(k){
+      var iso = k.slice(0, 10); if (iso < hoje || PROG_SN_FEITO[k]) return;
+      var nu = k.slice(11), usina = MASTER_USINAS.find(function(u){ return solNorm(u) === nu; }); if (!usina) return;
+      PROG_SN_FEITO[k] = true;
+      if ((SOL_PROG[k] || []).length) return;   // tem pedido para o dia: vale o pedido
+      var day = cementScheduleByDate[iso], e = day && day.entries.find(function(x){ return entryKey(x) === usina; });
+      if (e && (String(e.carretas || "").trim() || e.status)) return;
+      e = getOrCreateEntry(iso, usina); e.status = "sem_necessidade"; mudou = true;
+    });
+    Object.keys(SOL_PROG).forEach(function(k){
+      var iso = k.slice(0, 10); if (iso < hoje || SOL_SEMNEC[k]) return;
+      var nu = k.slice(11), usina = MASTER_USINAS.find(function(u){ return solNorm(u) === nu; }); if (!usina) return;
+      var day = cementScheduleByDate[iso], e = day && day.entries.find(function(x){ return entryKey(x) === usina; });
+      // só quando a usina TROCOU o "sem necessidade" por um pedido (nova solicitação); escolha manual da Logística fica
+      var mx = SOL_MUD[k], ass = mx ? k + "|v" + mx.versao : ""; if (!mx || (mx.antes && mx.antes.length) || PROG_SN_FEITO[ass]) return;
+      PROG_SN_FEITO[ass] = true;
+      if (e && e.status === "sem_necessidade" && !String(e.carretas || "").trim()){ e.status = ""; mudou = true; }
     });
     if (mudou) setTimeout(function(){ scheduleSync(); }, 0);
     return mudou;
