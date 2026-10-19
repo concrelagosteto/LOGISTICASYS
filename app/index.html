@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-16-8">
+<meta name="app-versao" content="2026-10-19-1">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -5356,9 +5356,15 @@
       else if (document.execCommand("copy")) ok();
     } catch (e) { }
   }
+  var VPO_PINTANDO = false, VPO_REPINTAR_DEPOIS = false;
   function vpoRepintar(){
-    var d = vpoFocoDesc(document.activeElement); paintVpoBlocks();
-    if (d){ var n = document.querySelector("#vpoBlocks " + d); if (n) n.focus(); }
+    // redesenhar tira o campo em foco da tela; o "change" que isso dispara pede outro redesenho — que fica para logo depois
+    if (VPO_PINTANDO){ if (!VPO_REPINTAR_DEPOIS){ VPO_REPINTAR_DEPOIS = true; setTimeout(function(){ VPO_REPINTAR_DEPOIS = false; vpoRepintar(); }, 0); } return; }
+    VPO_PINTANDO = true;
+    try {
+      var d = vpoFocoDesc(document.activeElement); paintVpoBlocks();
+      if (d){ var n = document.querySelector("#vpoBlocks " + d); if (n) n.focus(); }
+    } finally { VPO_PINTANDO = false; }
   }
 
   function paintVpoBlocks(){
@@ -5745,7 +5751,7 @@
 
     Object.keys(vpoScheduleByDate).forEach(function(k){ delete vpoScheduleByDate[k]; });
     var dataVpo = {};
-    vdRows.forEach(function(d){ dataVpo[d.id] = d.data; vpoScheduleByDate[d.data] = { isException: !!d.excecao, entries: [] }; });
+    vdRows.forEach(function(d){ VPO_DIA_DATA[d.id] = d.data; dataVpo[d.id] = d.data; vpoScheduleByDate[d.data] = { isException: !!d.excecao, entries: [] }; });
     veRows.forEach(function(v){
       var dia = vpoScheduleByDate[dataVpo[v.dia_id]]; if (!dia) return;
       var rota = function(u, f){ return u == null && f == null ? "" : nz(u) + "||" + nz(f); };
@@ -5806,7 +5812,8 @@
         var temLivre = false;
         ["motoristaLivre", "placaLivre", "carretasLivre", "fabricaLivre", "eixosIdaLivre", "eixosVoltaLivre", "suspensosLivre", "veiculoId", "transportadoraId", "semAuto1", "semAuto2", "semAuto3", "semAuto4", "vpo1", "vpo2", "vpo3", "vpo4", "usina3", "usina4"].forEach(function(k){ if (e[k]) { extra = extra || {}; extra[k] = e[k]; if (/Livre$/.test(k)) temLivre = true; } });
         var item = { fleetId: e.fleetId || "", usina1: e.usina1 || "", usina2: e.usina2 || "", status: e.status || "", obs: e.obs || "", extra: extra };
-        if (!item.usina1 && !item.usina2 && !item.obs && !temLivre && !item.status && !e.vpo1 && !e.vpo2 && !e.usina3 && !e.usina4) return;
+        // usina apagada de propósito (semAutoN) também é informação: a linha fica salva, senão a sugestão da Programação volta
+        if (!item.usina1 && !item.usina2 && !item.obs && !temLivre && !item.status && !e.vpo1 && !e.vpo2 && !e.usina3 && !e.usina4 && !e.semAuto1 && !e.semAuto2 && !e.semAuto3 && !e.semAuto4) return;
         entradas.push(item);
       });
       if (!entradas.length) { s.vpo[iso] = null; return; }
@@ -8135,6 +8142,33 @@
     lancamentos_puzl: "Lançamentos PUZL", notas_sefaz: "Notas SEFAZ", programacao_cargas: "Programação — cargas", programacao_dias: "Programação — dias", programacao_itens: "Programação — usinas",
     rotas_pedagio: "Rotas e pedágio", solic_autorizacoes: "Autorizações", solic_chaves: "Chaves das usinas", solic_cimento: "Solicitações", chaves: "Chaves", usuarios: "Usuários", membros: "Membros",
     vpo_dias: "VPO — dias", vpo_entradas: "VPO — lançamentos", auditoria_documentos: "Documentos de auditoria", cimento_lista: "Controle de cimento", usina_cimento_obs: "Controle de cimento — obs", encarregados: "Encarregados" };
+  var VPO_DIA_DATA = {};   // id do dia do VPO → data (para a Auditoria mostrar a data)
+  // VPO na Auditoria: placa e data no "Registro" e nomes dos campos em português
+  var AUD_VPO_CAMPO = { rota1_usina: "Usina 1", rota1_fabrica: "Fábrica/origem 1", rota2_usina: "Usina 2", rota2_fabrica: "Fábrica/origem 2", status: "Status VPO", obs: "Observação", ordem: "Posição",
+    usina3: "Usina 3", usina4: "Usina 4", vpo1: "VPO usado (U1)", vpo2: "VPO usado (U2)", vpo3: "VPO usado (U3)", vpo4: "VPO usado (U4)",
+    semAuto1: "Usina 1 apagada de propósito", semAuto2: "Usina 2 apagada de propósito", semAuto3: "Usina 3 apagada de propósito", semAuto4: "Usina 4 apagada de propósito" };
+  var VPO_ST_TXT = { emitido: "Emitido", nao_precisa: "Feito (sem pedágio)", conferir: "Incerto", pendente: "Pendente" };
+  function audVpoRegistro(o){
+    if (!o) return "";
+    var ex = o.extra || {}, v = ex.veiculoId && FRT.d ? (FRT.d.veiculos || []).find(function(x){ return x.id === ex.veiculoId; }) : null;
+    var placa = v ? v.cavalo : (ex.placaLivre || "linha avulsa"), dia = VPO_DIA_DATA[o.dia_id];
+    return "VPO" + (dia ? " de " + solDiaBR(dia) : "") + " · " + placa;
+  }
+  function audVpoValor(k, v){
+    if (v == null || v === "" || v === false) return "∅";
+    if (v === true) return "sim";
+    if (k === "status") return VPO_ST_TXT[v] || v;
+    if (/^usina[34]$/.test(k)) return String(v).replace("||", " · ");
+    return String(v).slice(0, 80);
+  }
+  function audVpoMudancas(a, d){
+    var ext = function(o){ var r = {}; Object.keys(o || {}).forEach(function(k){ if (k !== "extra") r[k] = o[k]; }); Object.keys((o && o.extra) || {}).forEach(function(k){ if (k !== "veiculoId" && k !== "transportadoraId") r[k] = o.extra[k]; }); return r; };
+    var A = ext(a), D = ext(d), ks = {};
+    Object.keys(A).concat(Object.keys(D)).forEach(function(k){ if (AUD_VPO_CAMPO[k] && JSON.stringify(A[k] == null ? null : A[k]) !== JSON.stringify(D[k] == null ? null : D[k])) ks[k] = 1; });
+    var m = Object.keys(ks).filter(function(k){ return k !== "ordem"; });
+    if (!m.length) return '<span class="faint">sem mudança visível</span>';
+    return m.map(function(k){ return '<div><b>' + esc(AUD_VPO_CAMPO[k]) + '</b>: <span class="aud-de">' + esc(audVpoValor(k, A[k])) + '</span> → <span class="aud-para">' + esc(audVpoValor(k, D[k])) + '</span></div>'; }).join("");
+  }
   var AUD_ACAO = { INSERT: ["success", "Criou"], UPDATE: ["info", "Alterou"], DELETE: ["danger", "Apagou"] };
   var AUD_IGN = { id: 1, empresa_id: 1, created_at: 1, updated_at: 1, seq: 1, importacao_id: 1, deleted_by: 1, editado_em: 1 };
   function audResumo(o){
@@ -8146,6 +8180,8 @@
   function audValor(v){ if (v == null || v === "") return "∅"; if (typeof v === "object") return JSON.stringify(v).slice(0, 80); return String(v).slice(0, 80); }
   function audMudancas(it){
     var a = it.antes, d = it.depois;
+    if (it.tabela === "vpo_entradas" && it.acao === "UPDATE" && a && d && !(!a.deleted_at && d.deleted_at)) return audVpoMudancas(a, d);
+    if (it.tabela === "vpo_entradas" && it.acao === "INSERT" && d) return audVpoMudancas({}, d);
     if (it.acao === "UPDATE" && a && d){
       if (!a.deleted_at && d.deleted_at) return '<span class="badge danger">excluiu</span>';
       if (a.deleted_at && !d.deleted_at) return '<span class="badge success">restaurou</span>';
@@ -8205,7 +8241,7 @@
         it.forEach(function(x){
           var ac = AUD_ACAO[x.acao] || ["neutral", String(x.acao || "").replace(/_/g, " ").toLowerCase()];
           h += '<tr><td class="muted" style="white-space:nowrap">' + esc(solQuando(x.em)) + '</td><td class="cell-strong">' + esc(x.por || "") + '</td><td>' + esc(AUD_TAB[x.tabela] || x.tabela) + '</td>' +
-            '<td><span class="badge ' + ac[0] + '">' + esc(ac[1]) + '</span></td><td class="muted">' + esc(audResumo(x.depois || x.antes) || "") + '</td><td class="aud-mud">' + audMudancas(x) + '</td></tr>';
+            '<td><span class="badge ' + ac[0] + '">' + esc(ac[1]) + '</span></td><td class="muted">' + esc((x.tabela === "vpo_entradas" ? audVpoRegistro(x.depois || x.antes) : audResumo(x.depois || x.antes)) || "") + '</td><td class="aud-mud">' + audMudancas(x) + '</td></tr>';
         });
         h += '</tbody></table></div>';
       }
@@ -8916,7 +8952,7 @@
   // a frota é usada também na Operação/Relatórios (transportadora pela placa) e nas abas do VPO
   function modAoAbrir(id){
     if ((id === "auditoria" || id === "relatorios") && !modPodeEditar()) return;
-    if (id === "auditoria") audCarregar();
+    if (id === "auditoria"){ if (!FRT.d) { try { frtCarregar().then(audCarregar, audCarregar); } catch (e) { audCarregar(); } } else audCarregar(); }
     else if (id === "dados") frtCarregar();
     else if (id === "operacoes"){ if (!FRT.d) frtCarregar(); oprCarregar(); }
     else if (id === "relatorios"){ if (!FRT.d) frtCarregar(); relCarregar(); }
