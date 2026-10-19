@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-19-2">
+<meta name="app-versao" content="2026-10-19-3">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -7446,13 +7446,14 @@
 
   /* ======================================================================
      CONTROLE DE CIMENTO — mesmo formato da planilha "Controle de Cimento
-     Usinas": uma linha por usina, até 3 cimentos (silos), cada um com
+     Usinas": uma linha por usina, até 4 cimentos (silos), cada um com
      CIMENTO ATUAL, TROCA DE CIMENTO (NÃO ou o cimento novo) e DATA DA TROCA,
      mais a OBSERVAÇÃO. Situação: sem troca = normal; troca com data futura =
      programada (amarelo); troca sem data ou com data que já chegou = pendente /
      urgente (vermelho). "✔ Feita" passa a troca para o cimento atual e guarda
      no histórico. Admin e operador editam; leitura só vê.
      ====================================================================== */
+  var CC_SLOTS = [1, 2, 3, 4];
   var SILO = { d: null, carregando: false, msg: "", ruim: false, q: "", f: "", cim: "", ed: null, feita: null, hist: {} };
   var CC_EST = { ok: "Normal", prog: "Troca programada", pend: "Troca pendente / urgente", vazio: "Sem cimento informado" };
   function siloNorm(t){ return String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase(); }
@@ -7512,7 +7513,7 @@
   }
   function ccLinhaEdicao(u, D){
     var e = SILO.ed, h = '<tr class="cc-row cc-edit"><td class="cc-u">' + esc(u.usina) + '</td>';
-    [1, 2, 3].forEach(function(k){
+    CC_SLOTS.forEach(function(k){
       var s = e.slots[k];
       h += '<td class="cc-ini"><select id="ccC' + k + '" aria-label="Cimento ' + k + ' atual">' + ccOpts(s.c, "— vazio —") + '</select></td>' +
         '<td><select id="ccT' + k + '" aria-label="Troca do cimento ' + k + '">' + ccOpts(s.t, "NÃO") + '</select></td>' +
@@ -7520,14 +7521,14 @@
     });
     h += '<td class="cc-ini"><input id="ccObs" maxlength="200" placeholder="Observação" value="' + esc(e.obs || "") + '"></td>' +
       '<td><div class="adm-acoes"><button class="btn-primary btn-inline" data-cc="salvar">Salvar</button><button class="btn-ghost" data-cc="fechar">Cancelar</button></div></td></tr>';
-    h += '<tr class="cc-edit-info"><td colspan="12"><span class="faint">As opções são as fábricas de <b>Base de Dados › Fábricas e cimentos</b>. Troca planejada: escolha o cimento novo em <b>Troca de cimento</b> e a <b>Data da troca</b>; quando a troca acontecer, use <b>✔ Feita</b>. Mudar o <b>Cimento atual</b> direto também fica no histórico, com a data de hoje.</span>' +
+    h += '<tr class="cc-edit-info"><td colspan="15"><span class="faint">As opções são as fábricas de <b>Base de Dados › Fábricas e cimentos</b>. Troca planejada: escolha o cimento novo em <b>Troca de cimento</b> e a <b>Data da troca</b>; quando a troca acontecer, use <b>✔ Feita</b>. Mudar o <b>Cimento atual</b> direto também fica no histórico, com a data de hoje.</span>' +
       (e.erro ? '<div style="color:var(--danger);font-size:12.5px;margin-top:4px">' + esc(e.erro) + '</div>' : "") + '</td></tr>';
     return h;
   }
   function siloPintar(){
     var v = el("view-silos"); if (!v) return;
     var D = SILO.d, pode = !!D && D.pode && ME && ME.papel !== "leitura", adm = !!D && D.admin && pode;
-    var h = '<div class="card" style="margin-bottom:16px"><div class="card-head"><div><h2>🛢️ Controle de cimento</h2><p>O cimento atual de cada usina (até 3 cimentos / silos), a troca de cimento marcada e a data da troca — o mesmo formato da planilha. Clique no cimento, na troca ou na data para trocar ali mesmo.' + (D && !pode ? " Somente leitura." : "") + '</p></div>' +
+    var h = '<div class="card" style="margin-bottom:16px"><div class="card-head"><div><h2>🛢️ Controle de cimento</h2><p>O cimento atual de cada usina (até 4 cimentos / silos), a troca de cimento marcada e a data da troca — o mesmo formato da planilha. Clique no cimento, na troca ou na data para trocar ali mesmo.' + (D && !pode ? " Somente leitura." : "") + '</p></div>' +
       '<div class="silo-filtros"><input type="search" id="siloQ" placeholder="Buscar usina ou cimento" value="' + esc(SILO.q) + '">' +
       '<select id="ccF" aria-label="Situação"><option value="">Todas as situações</option>' + [["troca", "Com troca marcada"], ["pend", CC_EST.pend], ["prog", CC_EST.prog], ["ok", "Sem troca"], ["vazio", CC_EST.vazio], ["fora", "Fora da Base de Fábricas"]].map(function(o){ return '<option value="' + o[0] + '"' + (SILO.f === o[0] ? " selected" : "") + '>' + o[1] + '</option>'; }).join("") + '</select>' +
       '<select id="ccCim" aria-label="Cimento"><option value="">Todos os cimentos</option>' + (D ? ccUsados(D).map(function(n){ return '<option value="' + esc(n) + '"' + (SILO.cim === n ? " selected" : "") + '>' + esc(n) + '</option>'; }).join("") : "") + '</select>' +
@@ -7545,14 +7546,14 @@
     h += '</div>';
     var lista = ccFiltrar(D), hoje = ccHoje();
     h += '<div class="card"><div class="table-wrap" style="max-height:none"><table class="adm-tbl cc-tbl"><thead><tr><th rowspan="2">Usina</th>' +
-      [1, 2, 3].map(function(k){ return '<th colspan="3" class="cc-g cc-ini">Cimento ' + k + '</th>'; }).join("") + '<th rowspan="2" class="cc-ini">Observação</th><th rowspan="2"></th></tr><tr>' +
-      [1, 2, 3].map(function(){ return '<th class="cc-ini">Cimento atual</th><th>Troca de cimento</th><th>Data da troca</th>'; }).join("") + '</tr></thead><tbody>';
-    if (!lista.length) h += '<tr><td colspan="12" class="faint" style="text-align:center;padding:20px">Nenhuma usina neste filtro.</td></tr>';
+      CC_SLOTS.map(function(k){ return '<th colspan="3" class="cc-g cc-ini">Cimento ' + k + '</th>'; }).join("") + '<th rowspan="2" class="cc-ini">Observação</th><th rowspan="2"></th></tr><tr>' +
+      CC_SLOTS.map(function(){ return '<th class="cc-ini">Cimento atual</th><th>Troca de cimento</th><th>Data da troca</th>'; }).join("") + '</tr></thead><tbody>';
+    if (!lista.length) h += '<tr><td colspan="15" class="faint" style="text-align:center;padding:20px">Nenhuma usina neste filtro.</td></tr>';
     lista.forEach(function(u){
       if (SILO.ed && SILO.ed.u === u.usina_id){ h += ccLinhaEdicao(u, D); return; }
       var est = ccEstUsina(u), nh = 0;
       h += '<tr class="cc-row ' + est + '"><td class="cc-u" title="' + esc(CC_EST[est]) + '">' + esc(u.usina) + '</td>';
-      [1, 2, 3].forEach(function(k){
+      CC_SLOTS.forEach(function(k){
         var s = u.slots[k], e = ccEstSlot(s), cls = e === "ok" ? "" : " cc-" + e;
         // clique direto na célula (cimento atual / troca / data) troca o valor ali mesmo — salva sozinho
         var q = function(campo){ return pode ? ' data-ccq="' + campo + '" data-u="' + esc(u.usina_id) + '" data-s="' + k + '"' : ""; };
@@ -7577,7 +7578,7 @@
         (nh ? '<button class="btn-ghost" data-cc="hist" data-u="' + esc(u.usina_id) + '" title="Histórico de trocas">' + (ab ? "Ocultar" : "🕘 " + nh) + '</button>' : "") + '</div></td></tr>';
       if (SILO.feita && SILO.feita.u === u.usina_id){
         var sf = u.slots[SILO.feita.s] || {};
-        h += '<tr class="cc-edit-info"><td colspan="12"><div class="silo-form"><b style="flex:1 1 100%;font-size:13px">Troca feita — ' + esc(u.usina) + ' · Cimento ' + SILO.feita.s + ': ' + esc(sf.cimento || "—") + ' → ' + esc(sf.troca || "—") + '</b>' +
+        h += '<tr class="cc-edit-info"><td colspan="15"><div class="silo-form"><b style="flex:1 1 100%;font-size:13px">Troca feita — ' + esc(u.usina) + ' · Cimento ' + SILO.feita.s + ': ' + esc(sf.cimento || "—") + ' → ' + esc(sf.troca || "—") + '</b>' +
           '<label>Data da troca (hoje, passada ou o dia em que vai chegar)<input type="date" id="ccFeitaData" value="' + esc(SILO.feita.data) + '"></label>' +
           '<p class="faint" style="flex:1 1 100%;margin:0;font-size:12px">Data futura: a troca fica <b>confirmada</b> e, nesse dia, o cimento novo passa a ser o atual sozinho. A Programação já usa o cimento novo a partir dessa data.</p>' +
           '<div class="adm-acoes"><button class="btn-primary btn-inline" data-cc="feita-ok">' + (SILO.feita.data > hoje ? "Confirmar troca para " + esc(brDate(SILO.feita.data).slice(0, 5)) : "Confirmar troca feita") + '</button><button class="btn-ghost" data-cc="fechar">Cancelar</button></div>' +
@@ -7585,9 +7586,9 @@
       }
       if (ab){
         var hs = [];
-        [1, 2, 3].forEach(function(k){ var s = u.slots[k]; if (s) s.trocas.forEach(function(t){ hs.push({ k: k, t: t }); }); });
+        CC_SLOTS.forEach(function(k){ var s = u.slots[k]; if (s) s.trocas.forEach(function(t){ hs.push({ k: k, t: t }); }); });
         hs.sort(function(a, b){ return a.t.data < b.t.data ? 1 : a.t.data > b.t.data ? -1 : 0; });
-        h += '<tr class="cc-edit-info"><td colspan="12"><div class="silo-hist">' + hs.map(function(x){
+        h += '<tr class="cc-edit-info"><td colspan="15"><div class="silo-hist">' + hs.map(function(x){
           return '<div><b>' + esc(brDate(x.t.data)) + '</b> · Cimento ' + x.k + ' · ' + esc(x.t.de || "—") + ' → <b>' + esc(x.t.para || "—") + '</b>' + (x.t.obs ? ' · ' + esc(x.t.obs) : "") + (x.t.por ? ' · ' + esc(x.t.por) : "") + '</div>'; }).join("") + '</div></td></tr>';
       }
     });
@@ -7617,16 +7618,16 @@
     var D = SILO.d; if (!D || typeof XLSX === "undefined") return;
     var lista = ccFiltrar(D), hoje = ccHoje();
     var aoa = [["CONTROLE DE CIMENTO — USINAS"], ["Gerado em " + brDate(hoje)], [],
-      ["", "CIMENTO 1", "", "", "CIMENTO 2", "", "", "CIMENTO 3", "", "", "", ""],
-      ["USINA", "CIMENTO ATUAL", "TROCA DE CIMENTO", "DATA DA TROCA", "CIMENTO ATUAL", "TROCA DE CIMENTO", "DATA DA TROCA", "CIMENTO ATUAL", "TROCA DE CIMENTO", "DATA DA TROCA", "OBSERVAÇÃO", "SITUAÇÃO"]];
+      ["", "CIMENTO 1", "", "", "CIMENTO 2", "", "", "CIMENTO 3", "", "", "CIMENTO 4", "", "", "", ""],
+      ["USINA", "CIMENTO ATUAL", "TROCA DE CIMENTO", "DATA DA TROCA", "CIMENTO ATUAL", "TROCA DE CIMENTO", "DATA DA TROCA", "CIMENTO ATUAL", "TROCA DE CIMENTO", "DATA DA TROCA", "CIMENTO ATUAL", "TROCA DE CIMENTO", "DATA DA TROCA", "OBSERVAÇÃO", "SITUAÇÃO"]];
     lista.forEach(function(u){
       var r = [u.usina];
-      [1, 2, 3].forEach(function(k){ var s = u.slots[k]; r.push(s ? s.cimento || "" : "", s ? (s.troca || "NÃO") : "", s && s.troca && s.data ? brDate(s.data) : ""); });
+      CC_SLOTS.forEach(function(k){ var s = u.slots[k]; r.push(s ? s.cimento || "" : "", s ? (s.troca || "NÃO") : "", s && s.troca && s.data ? brDate(s.data) : ""); });
       r.push(u.obs || "", CC_EST[ccEstUsina(u)]); aoa.push(r);
     });
     var ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws["!merges"] = [{ s: { r: 3, c: 1 }, e: { r: 3, c: 3 } }, { s: { r: 3, c: 4 }, e: { r: 3, c: 6 } }, { s: { r: 3, c: 7 }, e: { r: 3, c: 9 } }];
-    ws["!cols"] = [{ wch: 22 }].concat([1, 2, 3].map(function(){ return [{ wch: 26 }, { wch: 24 }, { wch: 13 }]; }).reduce(function(a, b){ return a.concat(b); }, [])).concat([{ wch: 30 }, { wch: 24 }]);
+    ws["!merges"] = [{ s: { r: 3, c: 1 }, e: { r: 3, c: 3 } }, { s: { r: 3, c: 4 }, e: { r: 3, c: 6 } }, { s: { r: 3, c: 7 }, e: { r: 3, c: 9 } }, { s: { r: 3, c: 10 }, e: { r: 3, c: 12 } }];
+    ws["!cols"] = [{ wch: 22 }].concat(CC_SLOTS.map(function(){ return [{ wch: 26 }, { wch: 24 }, { wch: 13 }]; }).reduce(function(a, b){ return a.concat(b); }, [])).concat([{ wch: 30 }, { wch: 24 }]);
     var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Controle de cimento");
     XLSX.writeFile(wb, "controle-cimento-" + hoje + ".xlsx");
   }
@@ -7635,7 +7636,7 @@
     var v = el("view-silos"); if (!v) return;
     var ler = function(){
       var e = SILO.ed; if (!e) return;
-      [1, 2, 3].forEach(function(k){ var c = el("ccC" + k), t = el("ccT" + k), d = el("ccD" + k); if (c) e.slots[k].c = c.value; if (t) e.slots[k].t = t.value; if (d) e.slots[k].d = d.value; if (d) d.disabled = !e.slots[k].t; });
+      CC_SLOTS.forEach(function(k){ var c = el("ccC" + k), t = el("ccT" + k), d = el("ccD" + k); if (c) e.slots[k].c = c.value; if (t) e.slots[k].t = t.value; if (d) e.slots[k].d = d.value; if (d) d.disabled = !e.slots[k].t; });
       var o = el("ccObs"); if (o) e.obs = o.value;
     };
     v.addEventListener("input", function(ev){
@@ -7678,7 +7679,7 @@
       if (a === "hist"){ SILO.hist[b.dataset.u] = !SILO.hist[b.dataset.u]; siloPintar(); return; }
       if (a === "editar"){
         u = ccUsina(b.dataset.u); if (!u) return;
-        var sl = {}; [1, 2, 3].forEach(function(k){ var s = u.slots[k] || {}; sl[k] = { c: s.cimento || "", t: s.troca || "", d: s.troca ? (s.data || "") : "" }; });
+        var sl = {}; CC_SLOTS.forEach(function(k){ var s = u.slots[k] || {}; sl[k] = { c: s.cimento || "", t: s.troca || "", d: s.troca ? (s.data || "") : "" }; });
         SILO.ed = { u: u.usina_id, slots: sl, obs: u.obs || "" }; SILO.feita = null; SILO.msg = ""; siloPintar(); return;
       }
       if (a === "feita"){
@@ -7699,13 +7700,13 @@
       }
       if (a === "salvar"){
         ler(); var E = SILO.ed; if (!E) return; u = ccUsina(E.u); if (!u) return;
-        for (var k = 1; k <= 3; k++){
+        for (var k = 1; k <= CC_SLOTS.length; k++){
           var n = E.slots[k];
           if (n.t && !n.c){ E.erro = "Cimento " + k + ": escolha o cimento atual antes de marcar a troca."; siloPintar(); return; }
           if (n.t && n.t === n.c){ E.erro = "Cimento " + k + ": a troca é igual ao cimento atual. Deixe a troca como NÃO."; siloPintar(); return; }
         }
         b.disabled = true; var mud = 0;
-        for (var j = 1; j <= 3; j++){
+        for (var j = 1; j <= CC_SLOTS.length; j++){
           var o = u.slots[j] || {}, m = E.slots[j], dt = m.t ? (m.d || "") : "";
           if ((o.cimento || "") === m.c && (o.troca || "") === m.t && (o.troca ? (o.data || "") : "") === dt) continue;
           var rs = await sb.rpc("cimento_slot_salvar", { p_usina: u.usina_id, p_slot: j, p_cimento: m.c || null, p_troca: m.t || null, p_data: dt || null });
