@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-22-2">
+<meta name="app-versao" content="2026-10-22-3">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -413,6 +413,13 @@
   .cc-tbl input[type=date]{color-scheme:dark;} :root[data-theme="light"] .cc-tbl input[type=date]{color-scheme:light;}
   .cc-tbl input:disabled{opacity:.4;}
   .cc-tbl tr.cc-edit td{background:var(--surface-2);} .cc-tbl tr.cc-edit-info td{white-space:normal; font-size:12px; border-top:0;}
+  .cc-toast{position:fixed; right:22px; bottom:22px; z-index:300; max-width:min(560px, calc(100vw - 44px)); display:flex; gap:10px; align-items:center; box-shadow:0 12px 34px rgba(0,0,0,.45); margin:0 !important;}
+  .cc-toast .btn-ghost{padding:2px 8px; flex:none;}
+  /* cabeçalho de 2 linhas fixo no topo: a 2ª linha fica embaixo da 1ª; a coluna Usina do cabeçalho fica por cima das linhas */
+  .cc-tbl thead tr:first-child th{height:31px; box-sizing:border-box;} .cc-tbl thead tr:nth-child(2) th{top:30px;}
+  .cc-tbl thead th{z-index:3;} .cc-tbl thead tr:first-child th:first-child{z-index:5 !important;}
+  /* texto da linha de edição/histórico: fica visível mesmo com a tabela rolada para o lado */
+  .cc-tbl tr.cc-edit-info td > *{position:sticky; left:12px; display:block; max-width:min(1000px, calc(100vw - 340px));}
   .cc-tbl .silo-mat small{display:block; font-weight:600; font-size:10px; opacity:.85; text-transform:none;}
   .cc-tbl .silo-mat.cc-fora{background:var(--surface-2); color:var(--text); border:1px dashed var(--danger);}
   .enc-tbl .enc-in{width:100%; min-width:120px; background:transparent; color:var(--text); border:1px solid transparent; border-radius:5px; padding:6px 8px; font:inherit; font-size:12.5px;}
@@ -707,6 +714,9 @@
   .topbar{position:sticky; top:0; z-index:12; gap:12px; box-shadow:0 1px 0 var(--border), 0 4px 14px rgba(0,0,0,.10);}
   .topbar-title{flex:1; min-width:0;}
   .topbar h1{font-size:16px;}
+  /* o topo não muda de altura quando o aviso "Salvo / Alterações pendentes" troca de texto (isso empurrava a tela) */
+  .topbar h1, .topbar .crumb{white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  #syncChip{display:inline-block; min-width:150px; text-align:right; white-space:nowrap;}
   .menu-toggle{flex:none; width:34px; height:34px; border-radius:8px; border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text-muted); font-size:16px; line-height:1; display:flex; align-items:center; justify-content:center; transition:background .12s,color .12s,border-color .12s;}
   .menu-toggle:hover{background:var(--accent-soft); color:var(--accent-strong); border-color:var(--accent);}
   .sidebar{transition:width .18s ease; overflow:hidden;}
@@ -7593,7 +7603,7 @@
     }).join("");
   }
   function ccLinhaEdicao(u, D){
-    var e = SILO.ed, h = '<tr class="cc-row cc-edit"><td class="cc-u">' + esc(u.usina) + '</td>';
+    var e = SILO.ed, h = '<tr class="cc-row cc-edit" data-u="' + esc(u.usina_id) + '"><td class="cc-u">' + esc(u.usina) + '</td>';
     CC_SLOTS.forEach(function(k){
       var s = e.slots[k];
       h += '<td class="cc-ini"><select id="ccC' + k + '" aria-label="Cimento ' + k + ' atual">' + ccOpts(s.c, "— vazio —") + '</select></td>' +
@@ -7614,7 +7624,8 @@
       '<select id="ccF" aria-label="Situação"><option value="">Todas as situações</option>' + [["troca", "Com troca marcada"], ["pend", CC_EST.pend], ["prog", CC_EST.prog], ["ok", "Sem troca"], ["vazio", CC_EST.vazio], ["fora", "Fora da Base de Fábricas"]].map(function(o){ return '<option value="' + o[0] + '"' + (SILO.f === o[0] ? " selected" : "") + '>' + o[1] + '</option>'; }).join("") + '</select>' +
       '<select id="ccCim" aria-label="Cimento"><option value="">Todos os cimentos</option>' + (D ? ccUsados(D).map(function(n){ return '<option value="' + esc(n) + '"' + (SILO.cim === n ? " selected" : "") + '>' + esc(n) + '</option>'; }).join("") : "") + '</select>' +
       '<button class="btn-ghost" data-cc="base" title="Cadastrar ou alterar fábricas e cimentos">🏗️ Base de Fábricas</button><button class="btn-ghost" data-cc="excel">⬇ Excel</button><button class="btn-ghost" data-cc="atualizar">↻ Atualizar</button></div></div>';
-    if (SILO.msg) h += '<div class="adm-msg ' + (SILO.ruim ? "bad" : "ok") + '" role="status">' + esc(SILO.msg) + '</div>';
+    // aviso flutuante (não empurra a tabela para baixo)
+    if (SILO.msg) h += '<div class="adm-msg cc-toast ' + (SILO.ruim ? "bad" : "ok") + '" role="status"><span>' + esc(SILO.msg) + '</span><button type="button" class="btn-ghost" data-cc="msg-x" aria-label="Fechar aviso">✕</button></div>';
     if (!D){ v.innerHTML = h + '<div class="adm-pad faint">' + (SILO.carregando ? "Carregando…" : "Sem dados. Use Atualizar.") + '</div></div>'; return; }
     var cont = { ok: 0, prog: 0, pend: 0, vazio: 0 };
     D.usinas.forEach(function(u){ cont[ccEstUsina(u)]++; });
@@ -7633,7 +7644,7 @@
     lista.forEach(function(u){
       if (SILO.ed && SILO.ed.u === u.usina_id){ h += ccLinhaEdicao(u, D); return; }
       var est = ccEstUsina(u), nh = 0;
-      h += '<tr class="cc-row ' + est + '"><td class="cc-u" title="' + esc(CC_EST[est]) + '">' + esc(u.usina) + '</td>';
+      h += '<tr class="cc-row ' + est + '" data-u="' + esc(u.usina_id) + '"><td class="cc-u" title="' + esc(CC_EST[est]) + '">' + esc(u.usina) + '</td>';
       CC_SLOTS.forEach(function(k){
         var s = u.slots[k], e = ccEstSlot(s), cls = e === "ok" ? "" : " cc-" + e;
         // clique direto na célula (cimento atual / troca / data) troca o valor ali mesmo — salva sozinho
@@ -7674,20 +7685,38 @@
       }
     });
     h += '</tbody></table></div></div>';
-    // redesenhar não pode mudar o lugar da tabela: guarda e devolve a rolagem (da tabela, da página e de quem rola por fora)
+    // redesenhar não pode mudar o lugar da tabela: guarda a rolagem e a altura da tabela e a posição na tela da
+    // linha em que a pessoa mexeu (abrir a edição deixa a tabela mais larga e as linhas mudam de altura);
+    // depois do redesenho, a linha volta exatamente para o mesmo lugar.
     var rol = [], tw0 = v.querySelector(".table-wrap"), anc = v.parentElement;
     if (tw0) rol.push([".table-wrap", tw0.scrollTop, tw0.scrollLeft]);
-    var mh0 = tw0 ? tw0.style.maxHeight : "";   // a altura da tabela (ajustada à janela) vale já no redesenho, senão a rolagem volta ao topo
     while (anc){ if (anc.scrollTop || anc.scrollLeft) rol.push([anc, anc.scrollTop, anc.scrollLeft]); anc = anc.parentElement; }
-    var wy = window.scrollY, wx = window.scrollX;
+    var wy = window.scrollY, wx = window.scrollX, mh0 = tw0 ? tw0.style.maxHeight : "";
+    var ancora = null;
+    if (tw0){
+      var lin = SILO.ancora ? tw0.querySelector('tr.cc-row[data-u="' + SILO.ancora + '"]') : null, topo = tw0.getBoundingClientRect().top;
+      if (!lin) lin = Array.prototype.find.call(tw0.querySelectorAll("tr.cc-row"), function(r){ return r.getBoundingClientRect().bottom > topo + 40; });
+      if (lin) ancora = { u: lin.dataset.u, y: lin.getBoundingClientRect().top };
+      // logo depois de um clique, vale o lugar onde a linha estava NA HORA do clique (algo fora da tabela pode ter mudado de tamanho)
+      if (ancora && ancora.u === SILO.ancora && SILO.ancoraY != null && Date.now() - (SILO.ancoraT || 0) < 4000) ancora.y = SILO.ancoraY;
+    }
     v.innerHTML = h;
     var tw1 = v.querySelector(".table-wrap"); if (tw1 && mh0) tw1.style.maxHeight = mh0;
-    // a altura da tabela é ajustada depois (no próximo quadro): devolve a rolagem agora e de novo quando a altura assentar
-    var devolver = function(){
-      rol.forEach(function(r){ var e = typeof r[0] === "string" ? v.querySelector(r[0]) : r[0]; if (e){ if (e.scrollTop !== r[1]) e.scrollTop = r[1]; if (e.scrollLeft !== r[2]) e.scrollLeft = r[2]; } });
-      if (window.scrollY !== wy || window.scrollX !== wx) window.scrollTo(wx, wy);
+    rol.forEach(function(r){ var e = typeof r[0] === "string" ? v.querySelector(r[0]) : r[0]; if (e){ e.scrollTop = r[1]; e.scrollLeft = r[2]; } });
+    if (window.scrollY !== wy || window.scrollX !== wx) window.scrollTo(wx, wy);
+    var rolador = function(el0){ var e = el0; while (e && e !== document.body){ var cs = getComputedStyle(e); if (/(auto|scroll)/.test(cs.overflowY) && e.scrollHeight > e.clientHeight + 1) return e; e = e.parentElement; } return null; };
+    var ger = SILO.ger = (SILO.ger || 0) + 1;   // redesenho mais novo manda: correções pendentes do anterior não valem mais
+    var ajustar = function(){
+      if (ger !== SILO.ger) return;
+      if (tw1 && rol.length && rol[0][0] === ".table-wrap" && tw1.scrollLeft !== rol[0][2]) tw1.scrollLeft = rol[0][2];
+      if (!ancora) return;
+      var r = v.querySelector('tr.cc-row[data-u="' + ancora.u + '"]'); if (!r) return;
+      var d = r.getBoundingClientRect().top - ancora.y; if (Math.abs(d) < 1) return;
+      var sc = rolador(r.parentElement); if (sc) sc.scrollTop += d; else window.scrollBy(0, d);
     };
-    devolver(); requestAnimationFrame(function(){ devolver(); requestAnimationFrame(devolver); }); setTimeout(devolver, 80);
+    ajustar(); requestAnimationFrame(function(){ ajustar(); requestAnimationFrame(ajustar); }); setTimeout(ajustar, 90); setTimeout(ajustar, 200);
+    clearTimeout(SILO.msgT);
+    if (SILO.msg && !SILO.ruim){ var m0 = SILO.msg; SILO.msgT = setTimeout(function(){ if (SILO.msg === m0){ SILO.msg = ""; var tt = v.querySelector(".cc-toast"); if (tt) tt.remove(); } }, 7000); }
     if (SILO.ed && !SILO.ed.focado){ SILO.ed.focado = true; var f = el("ccC1"); if (f) f.focus({ preventScroll: true }); }
     var ci = v.querySelector(".cc-inl");
     if (ci && SILO.inl && !SILO.inl.aberto){ SILO.inl.aberto = true; ci.focus({ preventScroll: true }); try { if (ci.showPicker) ci.showPicker(); } catch (x){ } }
@@ -7749,6 +7778,17 @@
       var b = ev.target.closest(".cc-edit") ? v.querySelector('[data-cc="salvar"]') : ev.target.id === "ccFeitaData" ? v.querySelector('[data-cc="feita-ok"]') : null;
       if (b){ ev.preventDefault(); b.click(); }
     });
+    var lembrar = function(ev){
+      var tr = ev.target.closest && ev.target.closest("tr[data-u]"), x = !tr && ev.target.closest && ev.target.closest("tr.cc-edit-info");
+      if (!tr && x && x.previousElementSibling && x.previousElementSibling.dataset.u) tr = x.previousElementSibling;
+      if (!tr) return;
+      if (SILO.ancora !== tr.dataset.u || ev.type === "mousedown" || SILO.ancoraY == null){ SILO.ancoraY = tr.getBoundingClientRect().top; }
+      SILO.ancora = tr.dataset.u; SILO.ancoraT = Date.now();
+    };
+    // a pessoa rolou a tela: vale a nova posição
+    var rolou = function(){ SILO.ancoraY = null; };
+    v.addEventListener("wheel", rolou, { passive: true }); v.addEventListener("touchmove", rolou, { passive: true });
+    v.addEventListener("mousedown", lembrar, true); v.addEventListener("focusin", lembrar, true); v.addEventListener("keydown", lembrar, true);
     v.addEventListener("change", function(ev){ var t = ev.target; if (t.dataset && t.dataset.ccinl && SILO.inl && !SILO.inl.salvando) ccInlSalvar(t.dataset.ccinl, t.value); });
     v.addEventListener("keydown", function(ev){ if (ev.key === "Escape" && SILO.inl){ SILO.inl = null; siloPintar(); } });
     v.addEventListener("focusout", function(ev){
@@ -7765,6 +7805,7 @@
       var b = ev.target.closest && ev.target.closest("[data-cc]"); if (!b || b.disabled) return;
       var a = b.dataset.cc, u;
       var falha = function(e, onde){ var m = dbErr(e); if (onde) onde.erro = m; else { SILO.msg = m; SILO.ruim = true; } b.disabled = false; siloPintar(); };
+      if (a === "msg-x"){ SILO.msg = ""; var tt = v.querySelector(".cc-toast"); if (tt) tt.remove(); return; }
       if (a === "atualizar"){ SILO.msg = ""; siloCarregar(); return; }
       if (a === "excel"){ ccExcel(); return; }
       if (a === "tile"){ SILO.f = SILO.f === b.dataset.f ? "" : b.dataset.f; siloPintar(); return; }
