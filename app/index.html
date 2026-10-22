@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-19-3">
+<meta name="app-versao" content="2026-10-22-1">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -156,6 +156,20 @@
   .vpo-cel:focus, .vpo-rota-in:focus{border-color:var(--accent); outline:none; background:var(--surface);}
   .vpo-cel.erro, .vpo-rota-in.erro{border-color:var(--danger) !important; box-shadow:0 0 0 1px var(--danger) inset;}
   .vpo-rota-in{width:100%; min-width:210px; border:1px solid var(--border); border-radius:6px; padding:7px 9px; font:inherit; font-size:12.5px; background:var(--surface-2); color:var(--text);}
+  /* lista de roteiros (Usina 1 / Usina 2 do VPO): agrupada por usina, fábrica + selo do pedágio */
+  .rota-pop{position:fixed; z-index:400; background:var(--surface); border:1px solid var(--border-strong); border-radius:10px; box-shadow:0 14px 40px rgba(0,0,0,.45); overflow-y:auto; padding:4px 0; font-size:12.5px;}
+  .rota-pop .rp-u{position:sticky; top:-4px; background:var(--surface); padding:7px 12px 3px; font-size:10.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--text-faint); border-top:1px solid var(--border);}
+  .rota-pop .rp-u:first-child{border-top:0;}
+  .rota-pop .rp-i{display:flex; align-items:center; gap:10px; justify-content:space-between; padding:6px 12px 6px 22px; cursor:pointer; color:var(--text);}
+  .rota-pop .rp-i:hover, .rota-pop .rp-i.on{background:var(--accent-soft, rgba(225,29,72,.14));}
+  .rota-pop .rp-i.atual{box-shadow:inset 3px 0 0 var(--accent);}
+  .rota-pop .rp-f{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .rota-pop .rp-f b{color:var(--accent);}
+  .rota-pop .rp-p{flex:none; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:99px; white-space:nowrap;}
+  .rota-pop .rp-p.sem{background:var(--success-soft); color:var(--success);} .rota-pop .rp-p.com{background:var(--danger-soft); color:var(--danger);}
+  .rota-pop .rp-p.inc{background:var(--warning-soft); color:var(--warning);} .rota-pop .rp-p.nada{background:var(--neutral-soft); color:var(--neutral);}
+  .rota-pop .rp-vazio{padding:12px; color:var(--text-muted);}
+  .rota-pop .rp-mais{padding:6px 12px; font-size:11.5px; color:var(--text-faint);}
   input.vpo-rota-in.auto-fab{border-color:var(--success);}
   .vpo-prog{font-size:11px; color:var(--text-muted); margin-top:3px; white-space:normal;}
   .vpo-tbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:0 0 12px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);} .vpo-tbar .grow{flex:1;}
@@ -5284,8 +5298,8 @@
     var lista = [];
     MASTER_USINAS.forEach(function(u){
       var rotas = ROTAS_POR_USINA[u];
-      if (rotas && rotas.length) rotas.forEach(function(r){ lista.push({ key: routeKey(u, r.fabrica), usina: u, rot: u + " · " + r.fabrica, ped: PEDAGIO_LABEL[r.pedagio] || "Incerto" }); });
-      else lista.push({ key: routeKey(u, ""), usina: u, rot: u + " (sem rota cadastrada)", ped: "" });
+      if (rotas && rotas.length) rotas.forEach(function(r){ lista.push({ key: routeKey(u, r.fabrica), usina: u, fab: r.fabrica, pc: r.pedagio === "sem" || r.pedagio === "com" ? r.pedagio : "inc", rot: u + " · " + r.fabrica, ped: PEDAGIO_LABEL[r.pedagio] || "Incerto" }); });
+      else lista.push({ key: routeKey(u, ""), usina: u, fab: "", pc: "nada", rot: u + " (sem rota cadastrada)", ped: "" });
     });
     VPO_ROTAS = { lista: lista, porRot: {}, porKey: {} };
     lista.forEach(function(o){ VPO_ROTAS.porRot[o.rot] = o.key; VPO_ROTAS.porKey[o.key] = o.rot; });
@@ -5302,10 +5316,77 @@
     var exato = hits.filter(function(o){ return solNorm(o.usina) === t; });
     if (exato.length === 1) return exato[0].key;
     return null;
+  }  /* Lista própria de roteiros (no lugar da lista padrão do navegador): agrupa por usina, mostra a fábrica
+     e um selo colorido do pedágio, destaca o que foi digitado e marca o roteiro atual.
+     Vale para todo campo com a classe "rota-ac". ↑/↓ escolhem, Enter confirma, Esc fecha. */
+  var ROTA_AC = { pop: null, inp: null, itens: [], sel: -1 };
+  function rotaAcFechar(){ if (ROTA_AC.pop) ROTA_AC.pop.hidden = true; ROTA_AC.inp = null; ROTA_AC.itens = []; ROTA_AC.sel = -1; }
+  function rotaAcPos(){
+    var p = ROTA_AC.pop, t = ROTA_AC.inp; if (!p || !t) return;
+    var r = t.getBoundingClientRect(), w = Math.min(Math.max(r.width, 340), window.innerWidth - 16), x = Math.min(r.left, window.innerWidth - w - 8);
+    var baixo = window.innerHeight - r.bottom - 12, cima = r.top - 12, alto = Math.min(340, Math.max(baixo, cima));
+    p.style.width = w + "px"; p.style.left = Math.max(8, x) + "px"; p.style.maxHeight = alto + "px";
+    if (baixo >= 200 || baixo >= cima){ p.style.top = (r.bottom + 4) + "px"; p.style.bottom = ""; } else { p.style.top = ""; p.style.bottom = (window.innerHeight - r.top + 4) + "px"; }
   }
+  function rotaAcMarca(txt, termos){
+    var out = esc(txt); termos.forEach(function(t){
+      if (!t) return; var n = solNorm(txt), k = n.indexOf(t); if (k < 0) return;
+      out = esc(txt.slice(0, k)) + "<b>" + esc(txt.slice(k, k + t.length)) + "</b>" + esc(txt.slice(k + t.length));
+    }); return out;
+  }
+  function rotaAcPintar(){
+    var t = ROTA_AC.inp; if (!t) return;
+    if (!VPO_ROTAS.lista.length) vpoRotasMontar();
+    var p = ROTA_AC.pop;
+    if (!p){ p = ROTA_AC.pop = document.createElement("div"); p.className = "rota-pop"; p.setAttribute("role", "listbox"); document.body.appendChild(p);
+      p.addEventListener("mousedown", function(ev){ ev.preventDefault(); var it = ev.target.closest(".rp-i"); if (it) rotaAcEscolher(+it.dataset.i); }); }
+    var txt = t.value, atual = VPO_ROTAS.porRot[txt] ? txt : "";
+    var termos = atual ? [] : solNorm(txt).split(/\s*[·\-]\s*|\s+/).filter(Boolean);
+    var hits = VPO_ROTAS.lista.filter(function(o){ var n = solNorm(o.rot); return termos.every(function(q){ return n.indexOf(q) !== -1; }); });
+    var MAX = 150, h = "", ult = null;
+    ROTA_AC.itens = hits.slice(0, MAX);
+    ROTA_AC.itens.forEach(function(o, i){
+      if (o.usina !== ult){ h += '<div class="rp-u">' + rotaAcMarca(o.usina, termos) + '</div>'; ult = o.usina; }
+      h += '<div class="rp-i' + (i === ROTA_AC.sel ? " on" : "") + (o.rot === atual ? " atual" : "") + '" role="option" data-i="' + i + '"><span class="rp-f">' + (o.fab ? rotaAcMarca(o.fab, termos) : '<span class="faint">sem rota cadastrada</span>') + '</span>' +
+        '<span class="rp-p ' + o.pc + '">' + esc(o.pc === "nada" ? "—" : o.pc === "inc" ? "Incerto" : o.ped) + '</span></div>';
+    });
+    if (!hits.length) h = '<div class="rp-vazio">Nenhum roteiro com “' + esc(txt) + '”. Digite parte do nome da usina ou da fábrica.</div>';
+    else if (hits.length > MAX) h += '<div class="rp-mais">+' + (hits.length - MAX) + ' roteiros — digite mais para filtrar</div>';
+    p.innerHTML = h; p.hidden = false; rotaAcPos();
+    var on = p.querySelector(".rp-i.on") || p.querySelector(".rp-i.atual");
+    if (on){ var top = on.offsetTop - 30; if (top < p.scrollTop || on.offsetTop + on.offsetHeight > p.scrollTop + p.clientHeight) p.scrollTop = Math.max(0, top); }
+  }
+  function rotaAcEscolher(i){
+    var t = ROTA_AC.inp, o = ROTA_AC.itens[i]; if (!t || !o) return;
+    t.value = o.rot; rotaAcFechar(); ROTA_AC.calar = Date.now();   // a tela se redesenha e devolve o foco: não reabrir a lista
+    t.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+  document.addEventListener("focusin", function(ev){
+    var t = ev.target; if (!t.classList || !t.classList.contains("rota-ac") || t.readOnly) return;
+    if (ROTA_AC.calar && Date.now() - ROTA_AC.calar < 600) return;
+    ROTA_AC.inp = t; ROTA_AC.sel = -1; rotaAcPintar();
+  });
+  document.addEventListener("input", function(ev){ if (ev.target.classList && ev.target.classList.contains("rota-ac") && !ev.target.readOnly && ev.target === document.activeElement) ROTA_AC.inp = ev.target; if (ev.target === ROTA_AC.inp){ ROTA_AC.sel = 0; rotaAcPintar(); } });
+  document.addEventListener("focusout", function(ev){ var t = ev.target; if (t === ROTA_AC.inp) setTimeout(function(){ if (ROTA_AC.inp === t && document.activeElement !== t) rotaAcFechar(); }, 120); });
+  document.addEventListener("keydown", function(ev){
+    if (!ROTA_AC.inp || ev.target !== ROTA_AC.inp || !ROTA_AC.pop || ROTA_AC.pop.hidden) return;
+    var n = ROTA_AC.itens.length;
+    if (ev.key === "ArrowDown" || ev.key === "ArrowUp"){
+      ev.preventDefault(); ev.stopPropagation(); if (!n) return;
+      ROTA_AC.sel = ev.key === "ArrowDown" ? (ROTA_AC.sel + 1) % n : (ROTA_AC.sel <= 0 ? n - 1 : ROTA_AC.sel - 1);
+      var p = ROTA_AC.pop; p.querySelectorAll(".rp-i.on").forEach(function(x){ x.classList.remove("on"); });
+      var it = p.querySelector('.rp-i[data-i="' + ROTA_AC.sel + '"]'); if (it){ it.classList.add("on"); it.scrollIntoView({ block: "nearest" }); }
+    } else if (ev.key === "Enter" && ROTA_AC.sel >= 0 && ROTA_AC.sel < n){
+      ev.preventDefault(); ev.stopPropagation(); rotaAcEscolher(ROTA_AC.sel);
+    } else if (ev.key === "Escape"){ ev.preventDefault(); ev.stopPropagation(); rotaAcFechar(); }
+    else if (ev.key === "Tab" && n === 1 && ROTA_AC.inp.value && !VPO_ROTAS.porRot[ROTA_AC.inp.value]){ rotaAcEscolher(0); }
+  }, true);
+  window.addEventListener("resize", rotaAcPos);
+  document.addEventListener("scroll", function(ev){ if (ROTA_AC.pop && !ROTA_AC.pop.hidden && !ROTA_AC.pop.contains(ev.target)) rotaAcPos(); }, true);
+
   function vpoUsinaSelect(iso, key, field, value, dica, extra){
     var ro = ME && ME.papel === "leitura";
-    return '<td class="vpo-rota-td" style="padding:4px 6px;"><input class="vpo-rota-in' + (dica && dica.auto && dica.key === value ? " auto-fab" : "") + '" list="dlVpoRotas" autocomplete="off" placeholder="Digite a usina…" value="' + esc(vpoRotaRotulo(value)) + '" data-iso="' + iso + '" data-key="' + esc(key) + '" data-field="' + field + '" data-atual="' + esc(value || "") + '"' + (ro ? " readonly" : "") + '>' +
+    return '<td class="vpo-rota-td" style="padding:4px 6px;"><input class="vpo-rota-in rota-ac' + (dica && dica.auto && dica.key === value ? " auto-fab" : "") + '" autocomplete="off" placeholder="Digite a usina…" value="' + esc(vpoRotaRotulo(value)) + '" data-iso="' + iso + '" data-key="' + esc(key) + '" data-field="' + field + '" data-atual="' + esc(value || "") + '"' + (ro ? " readonly" : "") + '>' +
       (dica ? '<div class="vpo-prog" title="Da Programação de Cimento deste dia">📋 ' + esc(dica.txt) + (dica.key ? "" : ' <span class="faint">— escolha o local</span>') + '</div>' : "") + (extra || "") + '</td>';
   }
   // Programação do dia: placa → cargas (usina + fábrica), para sugerir Usina 1 / Usina 2
@@ -8897,7 +8978,7 @@
     if (VEM.msg) h += '<div class="adm-msg ' + (VEM.ruim ? "bad" : "ok") + '">' + esc(VEM.msg) + '</div>';
     if (VEM.novo && ed){
       var N = VEM.novo;
-      h += '<div class="vpo-novo"><b>Registrar VPO emitido</b><input id="vemPlaca" list="dlVemPlacas" placeholder="Placa" value="' + esc(N.placa || "") + '"><input id="vemRota" list="dlVpoRotas" placeholder="Usina · fábrica (digite para filtrar)" style="min-width:300px" value="' + esc(N.rota || "") + '">' +
+      h += '<div class="vpo-novo"><b>Registrar VPO emitido</b><input id="vemPlaca" list="dlVemPlacas" placeholder="Placa" value="' + esc(N.placa || "") + '"><input id="vemRota" class="rota-ac" autocomplete="off" placeholder="Usina · fábrica (digite para filtrar)" style="min-width:300px" value="' + esc(N.rota || "") + '">' +
         '<input id="vemId" placeholder="ID do VPO" style="min-width:200px" value="' + esc(N.id_vpo || "") + '"><input id="vemData" type="date" value="' + esc(N.data || modHoje()) + '" title="Emitido em">' +
         '<input id="vemObs" placeholder="Obs. (opcional)" value="' + esc(N.obs || "") + '"><button class="btn-primary btn-inline" data-vem="salvar">Registrar</button><button class="btn-ghost" data-vem="novo-x">Cancelar</button>' +
         (N.erro ? '<span class="vpo-erro">' + esc(N.erro) + '</span>' : "") +
