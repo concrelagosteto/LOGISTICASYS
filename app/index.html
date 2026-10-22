@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-22-1">
+<meta name="app-versao" content="2026-10-22-2">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -7674,10 +7674,23 @@
       }
     });
     h += '</tbody></table></div></div>';
+    // redesenhar não pode mudar o lugar da tabela: guarda e devolve a rolagem (da tabela, da página e de quem rola por fora)
+    var rol = [], tw0 = v.querySelector(".table-wrap"), anc = v.parentElement;
+    if (tw0) rol.push([".table-wrap", tw0.scrollTop, tw0.scrollLeft]);
+    var mh0 = tw0 ? tw0.style.maxHeight : "";   // a altura da tabela (ajustada à janela) vale já no redesenho, senão a rolagem volta ao topo
+    while (anc){ if (anc.scrollTop || anc.scrollLeft) rol.push([anc, anc.scrollTop, anc.scrollLeft]); anc = anc.parentElement; }
+    var wy = window.scrollY, wx = window.scrollX;
     v.innerHTML = h;
-    if (SILO.ed && !SILO.ed.focado){ SILO.ed.focado = true; var f = el("ccC1"); if (f) f.focus(); }
+    var tw1 = v.querySelector(".table-wrap"); if (tw1 && mh0) tw1.style.maxHeight = mh0;
+    // a altura da tabela é ajustada depois (no próximo quadro): devolve a rolagem agora e de novo quando a altura assentar
+    var devolver = function(){
+      rol.forEach(function(r){ var e = typeof r[0] === "string" ? v.querySelector(r[0]) : r[0]; if (e){ if (e.scrollTop !== r[1]) e.scrollTop = r[1]; if (e.scrollLeft !== r[2]) e.scrollLeft = r[2]; } });
+      if (window.scrollY !== wy || window.scrollX !== wx) window.scrollTo(wx, wy);
+    };
+    devolver(); requestAnimationFrame(function(){ devolver(); requestAnimationFrame(devolver); }); setTimeout(devolver, 80);
+    if (SILO.ed && !SILO.ed.focado){ SILO.ed.focado = true; var f = el("ccC1"); if (f) f.focus({ preventScroll: true }); }
     var ci = v.querySelector(".cc-inl");
-    if (ci && SILO.inl && !SILO.inl.aberto){ SILO.inl.aberto = true; ci.focus(); try { if (ci.showPicker) ci.showPicker(); } catch (x){ } }
+    if (ci && SILO.inl && !SILO.inl.aberto){ SILO.inl.aberto = true; ci.focus({ preventScroll: true }); try { if (ci.showPicker) ci.showPicker(); } catch (x){ } }
   }
   async function ccInlSalvar(campo, valor){
     var I = SILO.inl; if (!I) return;
