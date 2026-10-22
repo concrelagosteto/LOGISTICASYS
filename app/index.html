@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-22-4">
+<meta name="app-versao" content="2026-10-22-5">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -2289,7 +2289,7 @@
     cementDayData(iso).entries.forEach(function(e){
       if (e.status === "sem_necessidade"){ c.semNec++; return; }
       var adiado = e.status === "adiado";
-      if (!String(e.carretas || "").trim() && !adiado) return;
+      if (!temValor(e.carretas) && !adiado) return;
       c.programadas++;
       if (adiado){ c.adiado++; return; }
       if (!e.status) c.semStatus++;
@@ -2322,7 +2322,7 @@
       if (sunday && !data.isException) return ""; // domingo sem exceção: não mostra bloco
       var feriado = feriadoNome(day);
       // feriado no meio de um período: só aparece se já tiver carga programada (escolhendo só o dia do feriado, ele aparece)
-      if (feriado && !sunday && days.length > 1 && !data.entries.some(function(e){ return String(e.carretas || "").trim(); })) return "";
+      if (feriado && !sunday && days.length > 1 && !data.entries.some(function(e){ return temValor(e.carretas); })) return "";
       shown++;
 
       // Monta as linhas: para dias normais, SEMPRE repete a lista completa de
@@ -2342,7 +2342,7 @@
       var dc = {programadas:0, ok:0, conferir:0, adiado:0, pendentes:0};
       var rows = entries.map(function(e){
         var key = entryKey(e);
-        if (String(e.carretas||"").trim() || e.status === "adiado"){
+        if (temValor(e.carretas) || e.status === "adiado"){
           agg.programadas++; dc.programadas++;
           if (e.status === "ok"){ agg.ok++; dc.ok++; }
           else if (e.status === "conferir"){ agg.conferir++; dc.conferir++; }
@@ -2485,12 +2485,19 @@
   // vez de digitar a barra manualmente. O layout da tabela não muda — cada
   // célula continua sendo uma célula só, só que pode crescer pra até 3
   // linhas de input dentro dela.
+  // Campo deixado em branco de propósito (clicou no "+" e não escreveu) CONTINUA lá: as posições são mantidas
+  // ("A /  / C" = 3 campos, o do meio vazio). Só some quando a pessoa clica no "×".
   function multiListFrom(str){
-    return String(str||"").split("/").map(function(s){ return s.trim(); }).filter(function(s){ return s && s !== "—"; });
+    var s = String(str || "");
+    if (!s.replace(/[\s\/—–-]/g, "")){ var n = (s.match(/\//g) || []).length; return n ? new Array(n + 1).fill("") : []; }
+    return s.split("/").map(function(x){ x = x.trim(); return /^[—–-]+$/.test(x) ? "" : x; });
   }
   function multiJoin(vals){
-    return vals.map(function(s){ return String(s||"").trim(); }).filter(Boolean).join(" / ");
+    var v = vals.map(function(s){ return String(s || "").trim(); });
+    return v.length <= 1 ? (v[0] || "") : v.join(" / ");
   }
+  // tem algum valor de verdade (não só barras / campos vazios)?
+  function temValor(str){ return !!String(str || "").replace(/[\s\/—–-]/g, ""); }
   var MULTI_INPUT_STYLE = 'flex:1;min-width:0;border:1px solid transparent;border-radius:5px;padding:6px 8px;font-size:12.5px;background:transparent;color:var(--text);';
   function progMultiInput(iso, key, field, value, placeholder, tdClass, max){
     max = max || 99;   // sem limite prático de cargas por usina
@@ -5792,8 +5799,10 @@
     }
     return out;
   }
-  function joinTrim(vals){
-    var v = vals.slice(); while (v.length && !String(v[v.length - 1] || "").trim()) v.pop();
+  function joinTrim(vals, cg){
+    var vazia = function(i){ var c = cg && cg[i]; return !!c && !String(c.placa || "").trim() && !String(c.fabrica_nome || "").trim() && !String(c.pedido || "").trim(); };
+    var v = vals.slice(); while (v.length && !String(v[v.length - 1] || "").trim() && !vazia(v.length - 1)) v.pop();
+    if (v.length === 1 && !String(v[0] || "").trim()) v = [];
     return v.map(function(x){ return String(x || "").trim(); }).join(" / ");
   }
   async function hydrate(){
@@ -5848,8 +5857,8 @@
       var dia = cementScheduleByDate[dataDoDia[it.dia_id]]; if (!dia) return;
       var cg = (it.programacao_cargas || []).slice().sort(function(a, b){ return a.ordem - b.ordem; });
       var comPedido = cg.some(function(c){ return c.pedido; });
-      var e = { usina: nz(it.usina_nome), carretas: joinTrim(cg.map(function(c){ return c.placa; })), fabrica: joinTrim(cg.map(function(c){ return c.fabrica_nome; })),
-        pedido: joinTrim(cg.map(function(c){ return c.pedido || (comPedido && cg.length > 1 ? "—" : ""); })), obs: nz(it.obs) };
+      var e = { usina: nz(it.usina_nome), carretas: joinTrim(cg.map(function(c){ return c.placa; }), cg), fabrica: joinTrim(cg.map(function(c){ return c.fabrica_nome; }), cg),
+        pedido: joinTrim(cg.map(function(c){ return c.pedido || (comPedido && cg.length > 1 ? "—" : ""); }), cg), obs: nz(it.obs) };
       if (it.status) e.status = it.status;
       if (!e.usina) e.__key = "extra-db-" + it.dia_id.slice(0, 6) + "-" + it.ordem;
       dia.entries.push(e);
@@ -5890,13 +5899,14 @@
   }
 
   /* ---------- retrato do que está na tela, para saber o que mudou ---------- */
-  function splitPos(s){ return String(s == null ? "" : s).split("/").map(function(x){ return x.trim(); }); }
+  function splitPos(s){ s = String(s == null ? "" : s); if (!s.trim()) return []; return s.split("/").map(function(x){ return x.trim(); }); }
   function dbItem(e){
     var pl = splitPos(e.carretas), fb = splitPos(e.fabrica), pd = splitPos(e.pedido);
     var n = Math.max(pl.length, fb.length, pd.length), cargas = [];
+    var temBarra = /\//.test(String(e.carretas || "") + String(e.fabrica || "") + String(e.pedido || ""));   // campo vazio de propósito: guarda a posição
     for (var k = 0; k < n; k++){
       var ped = pd[k] || ""; if (/^[—–-]+$/.test(ped)) ped = "";
-      if (pl[k] || fb[k] || ped) cargas.push({ placa: pl[k] || "", fabrica: fb[k] || "", pedido: ped });
+      if (pl[k] || fb[k] || ped || temBarra) cargas.push({ placa: pl[k] || "", fabrica: fb[k] || "", pedido: ped });
     }
     return { usina: String(e.usina || "").trim(), status: e.status || "", obs: e.obs || "", cargas: cargas };
   }
@@ -6757,8 +6767,8 @@
   function entradaDeLinha(it){
     var cg = (it.programacao_cargas || []).slice().sort(function(a, b){ return a.ordem - b.ordem; });
     var comPedido = cg.some(function(c){ return c.pedido; });
-    var e = { usina: nz(it.usina_nome), carretas: joinTrim(cg.map(function(c){ return c.placa; })), fabrica: joinTrim(cg.map(function(c){ return c.fabrica_nome; })),
-      pedido: joinTrim(cg.map(function(c){ return c.pedido || (comPedido && cg.length > 1 ? "—" : ""); })), obs: nz(it.obs) };
+    var e = { usina: nz(it.usina_nome), carretas: joinTrim(cg.map(function(c){ return c.placa; }), cg), fabrica: joinTrim(cg.map(function(c){ return c.fabrica_nome; }), cg),
+      pedido: joinTrim(cg.map(function(c){ return c.pedido || (comPedido && cg.length > 1 ? "—" : ""); }), cg), obs: nz(it.obs) };
     if (it.status) e.status = it.status;
     return e;
   }
@@ -7387,11 +7397,11 @@
       var assin = multiJoin(sug); if (PROG_AUTO_FEITO[k] === assin) return;   // já aplicado para ESTE pedido (versão nova da usina = assinatura nova)
       var day = cementScheduleByDate[iso], e = day && day.entries.find(function(x){ return entryKey(x) === usina; });
       if (e && e.status === "adiado"){ PROG_AUTO_FEITO[k] = assin; return; }
-      var atual = e ? multiListFrom(e.fabrica) : [];
+      var atual = e ? multiListFrom(e.fabrica).filter(Boolean) : [];
       if (atual.length){
         // a usina mandou nova solicitação (ex.: de CP2 ×1 + POZ ×2 para CP2 ×2 + POZ ×1): refaz as fábricas pré-preenchidas,
         // mas só enquanto a Logística ainda não pôs carreta e não escolheu à mão um cimento fora do pedido
-        var semCarreta = !multiListFrom(e.carretas).length, soDoPedido = atual.every(function(f){ return sug.indexOf(f) !== -1; });
+        var semCarreta = !multiListFrom(e.carretas).filter(Boolean).length, soDoPedido = atual.every(function(f){ return sug.indexOf(f) !== -1; });
         if (semCarreta && soDoPedido && multiJoin(atual) !== assin){ e.fabrica = assin; mudou = true; }
         PROG_AUTO_FEITO[k] = assin; return;
       }
@@ -7404,7 +7414,7 @@
       PROG_SN_FEITO[k] = true;
       if ((SOL_PROG[k] || []).length) return;   // tem pedido para o dia: vale o pedido
       var day = cementScheduleByDate[iso], e = day && day.entries.find(function(x){ return entryKey(x) === usina; });
-      if (e && (String(e.carretas || "").trim() || e.status)) return;
+      if (e && (temValor(e.carretas) || e.status)) return;
       e = getOrCreateEntry(iso, usina); e.status = "sem_necessidade"; mudou = true;
     });
     Object.keys(SOL_PROG).forEach(function(k){
@@ -7414,7 +7424,7 @@
       // só quando a usina TROCOU o "sem necessidade" por um pedido (nova solicitação); escolha manual da Logística fica
       var mx = SOL_MUD[k], ass = mx ? k + "|v" + mx.versao : ""; if (!mx || (mx.antes && mx.antes.length) || PROG_SN_FEITO[ass]) return;
       PROG_SN_FEITO[ass] = true;
-      if (e && e.status === "sem_necessidade" && !String(e.carretas || "").trim()){ e.status = ""; mudou = true; }
+      if (e && e.status === "sem_necessidade" && !temValor(e.carretas)){ e.status = ""; mudou = true; }
     });
     if (mudou) setTimeout(function(){ scheduleSync(); }, 0);
     return mudou;
