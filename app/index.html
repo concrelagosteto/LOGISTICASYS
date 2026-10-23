@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-22-5">
+<meta name="app-versao" content="2026-10-23-1">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -100,11 +100,14 @@
 
   /* fundo do login (imagem) — cartão sempre escuro, mesmo no tema claro */
   #login{
-    background:#060a12 url("login-bg.webp") center center / cover no-repeat;
+    background:#060a12 url("fundo-padrao.webp") center center / cover no-repeat;
     --surface:#0f141c; --surface-2:#151b24; --border:#232b37; --border-strong:#36414f;
     --text:#e8ecf2; --text-muted:#98a5b6; --text-faint:#7a8696; --danger:#ff8a5c;
     color-scheme:dark; color:var(--text);
   }
+  /* fundo padrão (Concrelagos): logotipo e usina à esquerda, o cartão de entrada vai para a direita */
+  @media (min-width:1000px){ #login.fundo-padrao{justify-content:flex-end; padding-right:8vw;} }
+  @media (max-width:700px) and (orientation:portrait){ #login.fundo-padrao{align-items:flex-end; padding-bottom:6vh; background:linear-gradient(180deg, rgba(6,10,18,0) 0, rgba(6,10,18,0) 34vh, #0b0f17 50vh) 0 0 / 100% 100% no-repeat, url("fundo-padrao.webp") 0 0 / auto 50vh no-repeat, #0b0f17;} }
   .login-card{background:rgba(12,17,25,.80); backdrop-filter:blur(7px); -webkit-backdrop-filter:blur(7px); border-color:rgba(255,255,255,.07); box-shadow:0 18px 50px rgba(0,0,0,.55), 0 0 0 1px rgba(var(--accent-rgb),.05);}
   .login-mark{background:linear-gradient(155deg,var(--accent),var(--accent-btn)); box-shadow:0 4px 16px rgba(var(--accent-rgb),.35);}
   .field-input:focus-within{border-color:var(--accent); box-shadow:0 0 0 3px rgba(var(--accent-rgb),.16);}
@@ -7908,7 +7911,10 @@
       if (APAR.fundo){ app.classList.add("com-fundo"); app.style.setProperty("--fundo-img", 'url("' + APAR.fundo + '")'); app.style.setProperty("--fundo-veu", String((APAR.fundo_veu || 0) / 100)); }
       else { app.classList.remove("com-fundo"); app.style.removeProperty("--fundo-img"); }
     }
-    var lg = el("login"); if (lg) lg.style.backgroundImage = (APAR.fundo && APAR.fundo_login) ? 'url("' + APAR.fundo + '")' : "";
+    // tela de entrada: o fundo que alguém escolheu NESTE computador (fica até alguém trocar/remover); senão, o padrão
+    if (ME && APAR.fundo && APAR.fundo_login) fundoMaquinaGravar(APAR.fundo);
+    var fm = fundoMaquina(), lg = el("login");
+    if (lg){ lg.style.backgroundImage = fm ? 'url("' + fm + '")' : ""; lg.classList.toggle("fundo-padrao", !fm); }
     aparMenuNome();
     var av = el("whoAvatar");
     if (av){
@@ -7917,6 +7923,11 @@
     }
   }
   if (aparMQ && aparMQ.addEventListener) aparMQ.addEventListener("change", function(){ if (APAR.tema === "auto") aparAplicar(); });
+  var FUNDO_MAQ = "cl_fundo_login";
+  function fundoMaquina(){ try { return localStorage.getItem(FUNDO_MAQ) || ""; } catch (e){ return ""; } }
+  function fundoMaquinaGravar(v){ try { if (v){ if (localStorage.getItem(FUNDO_MAQ) !== v) localStorage.setItem(FUNDO_MAQ, v); } else localStorage.removeItem(FUNDO_MAQ); } catch (e){ } }
+  // tirar o fundo da tela de entrada deste computador só quando é o fundo desta pessoa
+  function fundoMaquinaTirar(meu){ if (meu && fundoMaquina() === meu) fundoMaquinaGravar(""); }
   function aparLocalGravar(){
     var o = Object.assign({ uid: APAR_UID }, APAR);
     try { localStorage.setItem("cl_aparencia", JSON.stringify(o)); }
@@ -7924,6 +7935,7 @@
   }
   (function aparInicial(){   // antes de entrar: o jeito da última pessoa que usou este computador
     try { var o = JSON.parse(localStorage.getItem("cl_aparencia") || "null"); if (o){ APAR_UID = o.uid || null; Object.keys(APAR_PADRAO).forEach(function(k){ if (o[k] !== undefined) APAR[k] = o[k]; }); } } catch (e){ }
+    if (!fundoMaquina() && APAR.fundo && APAR.fundo_login) fundoMaquinaGravar(APAR.fundo);   // computador que já tinha fundo escolhido (versão anterior)
     aparAplicar();
   })();
   async function aparCarregar(){
@@ -8094,8 +8106,8 @@
       if (a === "tema"){ APAR.tema = b.dataset.v; aparMudou(); }
       else if (a === "cor"){ APAR.cor = b.dataset.v || null; aparMudou(); }
       else if (a === "sem-foto") APAR.avatar = null;
-      else if (a === "sem-fundo"){ APAR.fundo = null; APAR.fundo_id = null; aparMudou(); }
-      else if (a === "padrao"){ var mantem = { modos: APAR.modos, avatar: APAR.avatar }; APAR = Object.assign({}, APAR_PADRAO, { modos: mantem.modos || [], avatar: null }); }
+      else if (a === "sem-fundo"){ fundoMaquinaTirar(APAR.fundo); APAR.fundo = null; APAR.fundo_id = null; aparMudou(); }
+      else if (a === "padrao"){ fundoMaquinaTirar(APAR.fundo); var mantem = { modos: APAR.modos, avatar: APAR.avatar }; APAR = Object.assign({}, APAR_PADRAO, { modos: mantem.modos || [], avatar: null }); }
       else return;
       aparSalvar(); aparPintar();
     });
@@ -8111,13 +8123,13 @@
         var m = (APAR.modos || []).find(function(x){ return x.id === t.dataset.modoNome; });
         if (m){ m.nome = t.value.trim().slice(0, 30) || m.nome; aparMsg = "Nome do modo salvo."; aparSalvar(); setTimeout(aparPintar, 0); }
       }
-      else if (t.id === "cfgFundoLogin"){ APAR.fundo_login = t.checked; aparSalvar(); }
+      else if (t.id === "cfgFundoLogin"){ APAR.fundo_login = t.checked; if (!t.checked) fundoMaquinaTirar(APAR.fundo); aparSalvar(); aparAplicar(); }
       else if (t.id === "cfgFoto" || t.id === "cfgFundo"){
         var f = t.files && t.files[0]; if (!f) return;
         aparMsg = "Preparando a imagem…"; aparStatus();
         try {
           var d = await aparImagem(f, t.id === "cfgFoto", t.id === "cfgFoto" ? 60000 : 460000);
-          if (t.id === "cfgFoto") APAR.avatar = d; else { APAR.fundo = d; APAR.fundo_id = null; aparMudou(); }
+          if (t.id === "cfgFoto") APAR.avatar = d; else { fundoMaquinaTirar(APAR.fundo); APAR.fundo = d; APAR.fundo_id = null; aparMudou(); }
           aparSalvar(); aparPintar();
         } catch (e){ aparMsg = e.message; aparStatus(); }
       }
