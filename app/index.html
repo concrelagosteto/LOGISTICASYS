@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-26-5">
+<meta name="app-versao" content="2026-10-26-6">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -3322,6 +3322,8 @@
   function cargaDaNota(nf, entry){
     if (!entry) return null;
     var cs = cargasDaLinha(entry);
+    var sd = distPedidos().get(nf);
+    if (sd && sd.entry === entry){ var cd = cs.find(function(x){ return x.idx === sd.idx; }); if (cd) return cd; }
     var pn = normalizePedidoNum(pedidoEfetivo(nf));
     var c = pn && cs.find(function(x){ return cargaTemPedido(x, pn); });
     if (!c && nf.placa) c = cs.find(function(x){ return x.placa && x.placa.toUpperCase() === String(nf.placa).trim().toUpperCase(); });
@@ -3438,9 +3440,65 @@
     {value:"sem_certeza", label:"Sem certeza", tone:"usina-conferir"},
     {value:"nao_vinculado", label:"Não vinculado", tone:"usina-danger"}
   ];
+  // Pedido "aberto": o MESMO nº de pedido em várias cargas da Programação (vários dias, ou 2 cargas no mesmo dia).
+  // Cada nota desse pedido vai para UMA carga, pela data: a data de entrada na usina (PUZL) igual ao dia programado
+  // é o melhor encaixe; sem entrada, a emissão no próprio dia ou na véspera. Cada carga recebe uma nota; as que
+  // sobram ficam na carga mais próxima (até 3 dias); mais longe que isso, a nota não é ligada (não foi programada).
+  var __distCache = null;
+  setInterval(function(){ __distCache = null; }, 1500);
+  function distPedidos(){
+    if (__passo && __passo.dist) return __passo.dist;
+    if (!__passo && __distCache) return __distCache;
+    var slots = new Map(), res = new Map();
+    Object.keys(cementScheduleByDate).forEach(function(iso){
+      if (!toIsoDate(iso)) return;
+      progAtivos(cementScheduleByDate[iso]).forEach(function(e){
+        cargasDaLinha(e).forEach(function(c){
+          (c.pedidos || []).forEach(function(p){ var k = normalizePedidoNum(p); if (!k) return; var l = slots.get(k); if (!l) slots.set(k, l = []); l.push({ entry: e, iso: iso, idx: c.idx }); });
+        });
+      });
+    });
+    var multi = new Map(); slots.forEach(function(l, k){ if (l.length > 1) multi.set(k, l); });
+    if (multi.size){
+      var porPed = new Map();
+      cementNFes.forEach(function(nf){
+        if (nfSoRegistro(nf)) return;
+        var k = normalizePedidoNum(pedidoEfetivo(nf)); if (!k || !multi.has(k)) return;
+        var l = porPed.get(k); if (!l) porPed.set(k, l = []); l.push(nf);
+      });
+      var custo = function(nf, s){
+        var en = nfEntradaMatch(nf);
+        if (en && en.data) return Math.abs(diasEntre(en.data, s.iso));
+        var em = String(nf.emissao || ""); if (!toIsoDate(em)) return 99;
+        var d = diasEntre(em, s.iso);                     // dia programado - emissão
+        return d === 0 || d === 1 ? 0.5 : (d > 1 ? d - 0.5 : 1 + Math.abs(d));
+      };
+      porPed.forEach(function(nfs, k){
+        var sl = multi.get(k), pares = [];
+        nfs.forEach(function(nf){ sl.forEach(function(s, j){ var c = custo(nf, s); if (c <= 3) pares.push({ nf: nf, s: s, j: j, c: c }); }); });
+        pares.sort(function(a, b){ return a.c - b.c || (a.s.iso < b.s.iso ? -1 : a.s.iso > b.s.iso ? 1 : a.j - b.j); });
+        var usadaNf = new Set(), usadaSl = new Set();
+        pares.forEach(function(p){ if (usadaNf.has(p.nf) || usadaSl.has(p.j)) return; usadaNf.add(p.nf); usadaSl.add(p.j); res.set(p.nf, p.s); });
+        nfs.forEach(function(nf){
+          if (usadaNf.has(nf)) return;
+          var melhor = null; pares.forEach(function(p){ if (p.nf === nf && (!melhor || p.c < melhor.c)) melhor = p; });
+          res.set(nf, melhor ? melhor.s : null);           // sobra: carga mais próxima · longe de tudo: não ligada
+        });
+      });
+    }
+    if (__passo) __passo.dist = res; else __distCache = res;
+    return res;
+  }
   function nfProgMatch(nf){
     var pedidoAlvo = pedidoEfetivo(nf);
     var viaPuzl = !String(nf.pedido||"").trim() && !!pedidoAlvo;
+    var dist = pedidoAlvo ? distPedidos() : null;
+    if (dist && dist.has(nf)){
+      var sd = dist.get(nf);
+      if (sd) return {entry:sd.entry, iso:sd.iso, matchedBy:"pedido", viaPuzl:viaPuzl, cargaIdx:sd.idx};
+      if (!viaPuzl) return null;
+      pedidoAlvo = "";                                     // pedido da PUZL longe de qualquer carga: tenta usina + placa + data
+    }
     if (pedidoAlvo){
       var pedidoAlvoNorm = normalizePedidoNum(pedidoAlvo);
       var achou = null, achouIso = null;
@@ -4551,6 +4609,8 @@
         if (!cs.length){ if (!adiado) return; cs = [{placa:"", fabrica:"", pedido:"", idx:0}]; }
         var res = adiado ? null : progNFPorCarga(e);
         var cancAll = adiado ? [] : nfCanceladasLigadas(e);
+        var enUsadas = new Set();                          // entradas já ligadas pela nota de alguma carga desta linha
+        if (res) res.forEach(function(x){ x.nfs.forEach(function(y){ var en0 = nfEntradaMatch(y.nf); if (en0) enUsadas.add(en0); }); });
         cs.forEach(function(c){
           if (!String(c.fabrica || "").trim()) return;     // sem fábrica/material: fica só na Programação, não vai pro Controle
           var r = res && res.find(function(x){ return x.carga.idx === c.idx; });
@@ -4561,10 +4621,13 @@
           nfs.forEach(function(nf){ var en = nfEntradaMatch(nf); if (en && en.data && en.data > descarga) descarga = en.data; });
           if (!adC){
             (entPorLinha.get(e) || []).forEach(function(en){
+              if (enUsadas.has(en)) return;
               var daCarga = (c.pedido && en.pedido) ? cargaTemPedido(c, en.pedido) : cs.length === 1;
               if (!daCarga) return;
               var est = entradaNFStatus(en).status;
               if (est === "cancelada") return;
+              if (status === "descarregada" || (status === "emitida" && est !== "confirmada")) return;   // esta carga já tem a sua
+              enUsadas.add(en);
               if (est === "confirmada"){ status = "descarregada"; if (en.data && en.data > descarga) descarga = en.data; if (!desvio) desvio = desvioDaEntrada(en, e); }
               else if (status === "sem_nota") status = "emitida";
             });
