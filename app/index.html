@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-23-1">
+<meta name="app-versao" content="2026-10-26-1">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -1650,6 +1650,18 @@
   }
   document.addEventListener("click", function(){ xlCloseAllPopovers(); });
 
+  // A linha passa nos filtros ativos e na busca? exceto = coluna cujo filtro é ignorado
+  // (ao abrir o filtro de uma coluna, a lista mostra só o que sobra pelos filtros das OUTRAS colunas, como no Excel).
+  function xlLinhaPassa(tr, state, exceto){
+    var tds = Array.from(tr.children);
+    var ok = Object.keys(state.filters).every(function(cs){
+      var c = parseInt(cs, 10), allowed = state.filters[c];
+      if (!allowed || c === exceto) return true;
+      return allowed.has(xlCellValue(tds[c]));
+    });
+    if (ok && state.busca) ok = solNormBusca(tds.map(function(td){ return xlCellValue(td); }).join(" ")).indexOf(solNormBusca(state.busca)) !== -1;
+    return ok;
+  }
   function xlApplyState(table, key, skipCols){
     var state = xlGetState(key);
     var tbody = table.querySelector("tbody");
@@ -1659,23 +1671,7 @@
 
     // Filtro: uma linha some se, pra QUALQUER coluna com filtro ativo, o
     // valor dela não estiver marcado.
-    rows.forEach(function(tr){
-      var tds = Array.from(tr.children);
-      var visible = true;
-      Object.keys(state.filters).forEach(function(colIdxStr){
-        if (!visible) return;
-        var colIdx = parseInt(colIdxStr, 10);
-        var allowed = state.filters[colIdx];
-        if (!allowed) return; // sem filtro nessa coluna
-        var v = xlCellValue(tds[colIdx]);
-        if (!allowed.has(v)) visible = false;
-      });
-      if (visible && state.busca){
-        var q = solNormBusca(state.busca);
-        visible = solNormBusca(tds.map(function(td){ return xlCellValue(td); }).join(" ")).indexOf(q) !== -1;
-      }
-      tr.style.display = visible ? "" : "none";
-    });
+    rows.forEach(function(tr){ tr.style.display = xlLinhaPassa(tr, state, -1) ? "" : "none"; });
 
     // Ordenação: reordena os <tr> dentro do tbody (mantém os elementos vivos,
     // então inputs/listeners continuam funcionando).
@@ -1720,10 +1716,11 @@
     var tbody = table.querySelector("tbody");
     var rows = Array.from(tbody.querySelectorAll("tr"));
 
-    // Valores únicos da coluna, olhando TODAS as linhas (independente do
-    // filtro atual dessa mesma coluna — assim dá pra reabrir e trocar).
+    // Valores da coluna nas linhas que passam pelos filtros das OUTRAS colunas e pela busca (como no Excel).
+    // O filtro desta mesma coluna é ignorado aqui, para dar para reabrir e trocar.
     var counts = {};
     rows.forEach(function(tr){
+      if (!xlLinhaPassa(tr, state, colIdx)) return;
       var v = xlCellValue(tr.children[colIdx]);
       if (v === "") v = "(vazio)";
       counts[v] = (counts[v] || 0) + 1;
@@ -1755,7 +1752,7 @@
     var okBtn = pop.querySelector(".xl-pop-ok");
     function visiveis(){ var t = txtAtual.toLowerCase(); return values.filter(function(v){ return v.toLowerCase().indexOf(t) !== -1; }); }
     function paintChips(){
-      var tudo = sel.size === values.length;
+      var tudo = values.length > 0 && values.every(function(v){ return sel.has(v); });
       chips.innerHTML = tudo || !sel.size ? "" : '<span class="xl-chips-tit">Marcados (' + sel.size + '):</span>' + Array.from(sel).sort(function(x, y){ return x.localeCompare(y, "pt-BR", {numeric:true}); }).slice(0, 12).map(function(v){
         return '<button type="button" class="xl-chip" data-v="' + esc(v) + '" title="Desmarcar">' + esc(v) + ' ×</button>'; }).join("") + (sel.size > 12 ? '<span class="xl-chips-tit">+' + (sel.size - 12) + '</span>' : "");
       okBtn.disabled = !sel.size; okBtn.title = sel.size ? "" : "Marque pelo menos um valor";
@@ -1804,7 +1801,7 @@
     });
     okBtn.addEventListener("click", function(){
       if (!sel.size){ xlCloseAllPopovers(); return; }
-      if (sel.size === values.length) delete state.filters[colIdx];
+      if (values.every(function(v){ return sel.has(v); })) delete state.filters[colIdx];   // tudo o que aparece marcado = sem filtro nesta coluna (como no Excel)
       else state.filters[colIdx] = new Set(sel);
       xlApplyState(table, key);
       xlCloseAllPopovers();
