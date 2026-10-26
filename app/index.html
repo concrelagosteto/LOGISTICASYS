@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-26-3">
+<meta name="app-versao" content="2026-10-26-4">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -3484,15 +3484,21 @@
     pedido_puzl: " · pedido da PUZL",
     usina_data_placa_diverge: " · placa diverge/ausente"
   };
+  // placa brasileira (ABC1234 ou Mercosul ABC1D23), ignorando traço e espaço
+  function placaSoLetras(t){ return String(t || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); }
+  function ehPlaca(t){ return /^[A-Z]{3}\d[A-Z0-9]\d{2}$/.test(placaSoLetras(t)); }
   function nfSituacao(nf){
     var m = nfProgMatch(nf);
     if (!m) return {situacao:"nao_vinculado", entry:null, iso:null, placaOk:null, matchedBy:null};
     if (m.matchedBy === "usina_placa_data") return {situacao:"confere", entry:m.entry, iso:m.iso, placaOk:true, matchedBy:m.matchedBy};
     if (m.matchedBy === "usina_data_placa_diverge") return {situacao:"sem_certeza", entry:m.entry, iso:m.iso, placaOk:false, matchedBy:m.matchedBy};
-    var placaAlvo = String(nf.placa||"").trim().toUpperCase();
+    var placaAlvo = placaSoLetras(nf.placa);
     var cargaP = cargaDaNota(nf, m.entry);
-    var placaProg = String((cargaP && cargaP.placa) ? cargaP.placa : (m.entry.carretas||"")).trim().toUpperCase();
-    var placaOk = !placaAlvo ? null : (placaProg.indexOf(placaAlvo) !== -1);
+    var placaProg = String((cargaP && cargaP.placa) ? cargaP.placa : (m.entry.carretas||""));
+    // Só compara quando a Programação tem uma PLACA de verdade: nome de transportadora ("BR LOG", "VIVA LOG")
+    // ou texto livre no lugar da placa não conta como placa diferente — a ligação fica só pelo pedido.
+    var temPlacaProg = placaProg.split(/[\/+,;]/).some(ehPlaca);
+    var placaOk = (!placaAlvo || !temPlacaProg) ? null : (placaSoLetras(placaProg).indexOf(placaAlvo) !== -1);
     return {situacao: (placaOk === false ? "sem_certeza" : "confere"), entry:m.entry, iso:m.iso, placaOk:placaOk, matchedBy:"pedido", viaPuzl:!!m.viaPuzl};
   }
   // Colunas aceitas: Número, Emissão, Fornecedor, Material, Pedido, Placa,
