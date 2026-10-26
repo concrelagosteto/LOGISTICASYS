@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-26-6">
+<meta name="app-versao" content="2026-10-26-7">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -186,6 +186,7 @@
   .vpo-placa{font-weight:700; letter-spacing:.02em; cursor:copy; min-width:96px;} td.usina-ok .vpo-placa, td.usina-conferir .vpo-placa{background:transparent;}
   .vpo-conf{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:-4px 0 14px; padding:10px 14px; background:var(--warning-soft); border:1px solid var(--warning); border-radius:var(--radius); font-size:13px;} .vpo-conf .grow{flex:1;}
   .vpo-erro{color:var(--danger); font-size:12.5px; font-weight:600;}
+  .vpo-sync-msg{margin:0 0 12px; padding:10px 14px; border:1px solid var(--success); background:var(--success-soft); border-radius:var(--radius); font-size:12.5px; display:flex; gap:12px; align-items:center; justify-content:space-between;}
   .xl-pop-chips{display:flex; flex-wrap:wrap; gap:4px; margin:2px 0 6px;} .xl-pop-chips:empty{display:none;}
   .xl-chips-tit{font-size:11px; color:var(--text-muted); align-self:center;}
   .xl-chip{font:inherit; font-size:11px; padding:2px 7px; border-radius:10px; border:1px solid var(--danger); background:var(--danger-soft, #fde8e8); color:var(--danger); cursor:pointer; white-space:nowrap;}
@@ -5603,6 +5604,54 @@
     if (rotas.length === 1 && !c.fabrica) return { key: routeKey(c.usina, rotas[0].fabrica), txt: txt, auto: true };
     return { key: null, txt: txt, auto: false };
   }
+  // Botão "Atualizar pela Programação": o VPO só preenche sozinho a usina VAZIA; quando a Programação muda depois,
+  // este botão traz as usinas de volta para o que está na Programação (transportadora da aba, dias mostrados).
+  // Não mexe em VPO já emitido nem quando a usina da Programação tem mais de um roteiro possível (aí só avisa).
+  var VPO_SYNC_MSG = "";
+  function vpoSyncProgramacao(){
+    var T = vpoTranspAtual(); if (!T || !vpoPicker) return;
+    var frota = frtVeiculosDe(T.id).filter(function(x){ return x.ativo !== false; });
+    var nomeRota = function(k){ if (!k) return "(vazio)"; var p = parseRouteKey(k); return p.usina + (p.fabrica ? " · " + p.fabrica : ""); };
+    var muda = [], emit = [], escolher = [];
+    rangeDays(vpoPicker.state).forEach(function(day){
+      var iso = toISO(day), prog = vpoProgDoDia(iso), byKey = {};
+      vpoDayData(iso).entries.forEach(function(e){ byKey[vpoEntryKey(e)] = e; });
+      frota.forEach(function(v){
+        var cargas = prog[frtNorm(v.cavalo)] || []; if (!cargas.length) return;   // placa fora da Programação do dia: não mexe
+        var key = "v:" + v.id, e = byKey[key] || {};
+        [1, 2, 3, 4].forEach(function(n){
+          var c = cargas[n - 1], atual = e["usina" + n] || "", d = vpoSugestao(c);
+          if (d && !d.key){
+            var ra = atual ? parseRouteKey(atual).usina : "";
+            if (String(ra).toUpperCase() !== c.usina) escolher.push(v.cavalo + " (" + fmtBR(day).slice(0, 5) + ", Usina " + n + ": " + c.usina + ")");
+            return;
+          }
+          var novo = d ? d.key : "";
+          if (novo === atual) return;
+          if (e.status === "emitido"){ emit.push(v.cavalo + " (" + fmtBR(day).slice(0, 5) + ")"); return; }
+          muda.push({ iso: iso, key: key, n: n, novo: novo, txt: v.cavalo + " · " + fmtBR(day).slice(0, 5) + " · Usina " + n + ": " + nomeRota(atual) + " → " + nomeRota(novo) });
+        });
+      });
+    });
+    var uniq = function(l){ return l.filter(function(x, i){ return l.indexOf(x) === i; }); };
+    emit = uniq(emit); escolher = uniq(escolher);
+    var extra = (emit.length ? "\n\nJá emitidos (não mexo, confira na Repom): " + emit.join(", ") : "") + (escolher.length ? "\n\nEscolher o roteiro na mão (usina com mais de um roteiro): " + escolher.join(", ") : "");
+    if (!muda.length){
+      VPO_SYNC_MSG = "✅ O VPO de " + esc(T.nome) + " já está igual à Programação nos dias mostrados." + (extra ? "<br>" + esc(extra.trim()).replace(/\n\n/g, "<br>") : "");
+      paintVpoBlocks(); return;
+    }
+    var lista = muda.slice(0, 15).map(function(m){ return "• " + m.txt; }).join("\n") + (muda.length > 15 ? "\n… e mais " + (muda.length - 15) : "");
+    if (!window.confirm("Atualizar " + muda.length + " usina(s) do VPO de " + T.nome + " pela Programação?\n\n" + lista + extra)) return;
+    muda.forEach(function(m){
+      var en = vpoGetOrCreateEntry(m.iso, m.key);
+      en["usina" + m.n] = m.novo; delete en["semAuto" + m.n];
+      if (!m.novo && m.n > 1) en["semAuto" + m.n] = true;   // a Programação tirou essa carga: não sugere de novo
+      if (m.n === 1) applyAutoVpoStatus(en);
+    });
+    VPO_SYNC_MSG = "✅ " + muda.length + " usina(s) atualizada(s) pela Programação." + (extra ? "<br>" + esc(extra.trim()).replace(/\n\n/g, "<br>") : "");
+    paintVpoBlocks();
+    if (typeof scheduleSync === "function") scheduleSync();
+  }
   function vpoTranspAtual(){ return VPO_TRANSP && FRT.d ? (FRT.d.transportadoras || []).find(function(t){ return t.id === VPO_TRANSP; }) : null; }
   // dados do veículo no VPO: só leitura (muda em Base de Dados › Transportadoras e frota); clicar copia
   function vpoVeicCel(v, f, ph, iso){
@@ -5751,7 +5800,9 @@
     if (!T && el("vpoTbar")) el("vpoTbar").innerHTML = "";
     if (T){
       el("vpoTbar").innerHTML = '<span class="faint" title="Clique numa célula para copiar · motorista, carreta e fábrica mudam na Frota completa">🚛 ' + frota.length + ' veículos</span>' +
+        (modPodeEditar() ? '<button class="btn-ghost" data-vpo="sync-prog" title="Troca as usinas desta transportadora, nos dias mostrados, pelo que está hoje na Programação de Cimento (VPO já emitido não é mexido)">📋 Atualizar pela Programação</button>' : "") +
         (modPodeEditar() ? '<button class="btn-ghost" data-vpo="novo-v">＋ Veículo</button>' : "") + '<button class="btn-ghost" data-vpo="frota" title="Abrir a frota (eixos, tipo, ordem, ativo)">Frota ›</button>';
+      if (VPO_SYNC_MSG) bar += '<div class="vpo-sync-msg">' + VPO_SYNC_MSG + ' <button class="btn-ghost" data-vpo="sync-ok">OK</button></div>';
       if (VPO_NOVO && modPodeEditar()) bar += '<div class="vpo-novo"><b>Novo veículo — ' + esc(T.nome) + '</b><input id="vpoNvCavalo" placeholder="Placa do cavalo"><input id="vpoNvCarreta" placeholder="Carreta(s), separadas por /"><input id="vpoNvMot" placeholder="Motorista"><input id="vpoNvFab" placeholder="Fábrica (ex.: Nassau)">' +
         '<input id="vpoNvEi" type="number" min="0" max="20" placeholder="Eixos ida" style="width:90px"><input id="vpoNvEv" type="number" min="0" max="20" placeholder="Eixos volta" style="width:96px">' +
         '<button class="btn-primary btn-inline" data-vpo="novo-salvar">Adicionar</button><button class="btn-ghost" data-vpo="novo-x">Cancelar</button>' + (VPO_NOVO.erro ? '<span class="vpo-erro">' + esc(VPO_NOVO.erro) + '</span>' : "") + '</div>';
@@ -5826,6 +5877,8 @@
         paintVpoBlocks(); return;
       }
       var acao = a.dataset.vpo;
+      if (acao === "sync-ok"){ VPO_SYNC_MSG = ""; paintVpoBlocks(); return; }
+      if (acao === "sync-prog"){ vpoSyncProgramacao(); return; }
       if (acao === "frota"){ showView("dados"); FRT.aberto = VPO_TRANSP; paintFrota(); return; }
       if (acao === "novo-v"){ VPO_NOVO = {}; paintVpoBlocks(); var c = el("vpoNvCavalo"); if (c) c.focus(); return; }
       if (acao === "novo-x"){ VPO_NOVO = null; paintVpoBlocks(); return; }
