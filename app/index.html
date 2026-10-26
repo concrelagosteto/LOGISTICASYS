@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-26-1">
+<meta name="app-versao" content="2026-10-26-2">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -758,6 +758,11 @@
   tr.prog-row-ok .status-select{border-color:var(--success); color:var(--success); font-weight:700;}
   tr.prog-row-conferir .status-select, tr.prog-row-adiado .status-select{border-color:var(--warning); color:var(--warning); font-weight:700;}
   .status-select{height:32px; font-weight:600;}
+  .st-multi .status-select{flex:1; min-width:118px; width:auto;}
+  .st-multi .status-select[data-v="ok"]{border-color:var(--success); color:var(--success); font-weight:700;}
+  .st-multi .status-select[data-v="conferir"], .st-multi .status-select[data-v="adiado"]{border-color:var(--warning); color:var(--warning); font-weight:700;}
+  .st-multi .status-select[data-v="sem_necessidade"]{border-color:var(--roxo); color:var(--roxo); font-weight:700;}
+  .st-multi .status-select[data-v=""]{border-color:var(--border-strong); color:var(--text); font-weight:600;}
   select:focus, input:focus, button:focus-visible{outline:2px solid var(--accent); outline-offset:1px;}
   .badge{box-shadow:inset 0 0 0 1px rgba(127,140,160,.18);}
   .btn-mini{border-radius:8px;}
@@ -1633,8 +1638,9 @@
     // coluna) — junta os valores preenchidos, igual ao que é salvo no dado.
     if (inputs.length > 1) return Array.prototype.map.call(inputs, function(i){ return i.value; }).filter(Boolean).join(" / ");
     if (inputs.length === 1) return inputs[0].value || "";
-    var sel = td.querySelector("select");
-    if (sel) return sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : "";
+    var sels = td.querySelectorAll("select"), txt = function(sl){ return sl.options[sl.selectedIndex] ? sl.options[sl.selectedIndex].text : ""; };
+    if (sels.length > 1) return Array.prototype.map.call(sels, txt).filter(function(t){ return t && t !== "—"; }).join(" / ");
+    if (sels.length) return txt(sels[0]);
     // selos que aparecem e somem sozinhos (📥 pedido da usina, "✎ alterou", "● editando"…) não fazem parte do valor:
     // senão o filtro marcado deixa de bater quando a tela é redesenhada sem eles e a linha some
     var t = td.textContent || "";
@@ -2353,13 +2359,7 @@
         var usinaCell = MASTER_USINAS.indexOf(e.usina) !== -1
           ? '<td class="cell-strong '+statusClass+'" style="white-space:nowrap;">'+esc(e.usina)+'</td>'
           : progInput(iso, key, "usina", e.usina, "Nome da usina", statusClass);
-        var statusSelect = '<td style="padding:4px 6px;"><select data-iso="'+iso+'" data-key="'+esc(key)+'" data-field="status" class="status-select">' +
-          '<option value=""'+(!e.status?" selected":"")+'>—</option>' +
-          '<option value="ok"'+(e.status==="ok"?" selected":"")+'>Tudo OK</option>' +
-          '<option value="conferir"'+(e.status==="conferir"?" selected":"")+'>Conferir</option>' +
-          '<option value="adiado"'+(e.status==="adiado"?" selected":"")+'>Adiado</option>' +
-          '<option value="sem_necessidade"'+(e.status==="sem_necessidade"?" selected":"")+'>Sem necessidade</option>' +
-          '</select></td>';
+        var statusSelect = progStatusCell(iso, key, e);
         // NF (SEFAZ): traz a conferência de Controle de Pedidos até aqui —
         // se alguma entrada que já bate com essa linha da programação tiver
         // uma nota confirmada no SEFAZ, mostra "Descarregada"; se tiver
@@ -2406,24 +2406,6 @@
       });
     });
     el("progBlocks").querySelectorAll(".multi-field").forEach(wireMultiField);
-    el("progBlocks").querySelectorAll("select.status-select").forEach(function(sel){
-      sel.addEventListener("change", function(){
-        var entry = getOrCreateEntry(sel.dataset.iso, sel.dataset.key);
-        entry.status = sel.value;
-        var tr = sel.closest("tr");
-        var usinaTd = tr.querySelector("td:first-child");
-        usinaTd.classList.remove("usina-ok", "usina-conferir");
-        tr.classList.remove("prog-row-ok", "prog-row-conferir", "prog-row-adiado", "prog-row-semnec");
-        if (sel.value === "ok"){ usinaTd.classList.add("usina-ok"); tr.classList.add("prog-row-ok"); }
-        else if (sel.value === "conferir"){ usinaTd.classList.add("usina-conferir"); tr.classList.add("prog-row-conferir"); }
-        else if (sel.value === "adiado"){ usinaTd.classList.add("usina-conferir"); tr.classList.add("prog-row-adiado"); }
-        else if (sel.value === "sem_necessidade"){ tr.classList.add("prog-row-semnec"); }
-        // adiado muda as ligações (a linha deixa de contar) → repinta a tela inteira
-        if (sel.value === "adiado" || sel.dataset.antes === "adiado"){ sel.dataset.antes = sel.value; paintBlocks(); return; }
-        sel.dataset.antes = sel.value;
-      });
-    });
-    el("progBlocks").querySelectorAll("select.status-select").forEach(function(sel){ sel.dataset.antes = sel.value; });
     el("progBlocks").querySelectorAll(".prog-block[data-iso]").forEach(function(block){
       block.addEventListener("change", function(){
         var box = block.querySelector(".prog-day-stats"); if (box) box.innerHTML = progDayStatsHtml(progDayCounts(block.dataset.iso));
@@ -2441,6 +2423,51 @@
       xlEnhance(block, "prog-" + block.dataset.iso);
     });
     if (typeof progDecorar === "function") progDecorar();
+  }
+
+  // Status da Programação: uma caixa por padrão; o "+" abre mais caixas (uma por carga/pedido, na mesma ordem
+  // de Carretas / Fábrica / Pedido), porque cargas da mesma usina podem estar em situações diferentes.
+  // e.status continua sendo o status da LINHA (usado nas contagens, cores e ligações); com mais de uma caixa,
+  // e.statusCg guarda cada uma ("ok / conferir") e e.status vira o resumo delas (progStatusAgreg).
+  var PROG_ST_OPTS = [["", "—"], ["ok", "Tudo OK"], ["conferir", "Conferir"], ["adiado", "Adiado"], ["sem_necessidade", "Sem necessidade"]];
+  function progStatusLista(e){ var l = multiListFrom(e.statusCg); return l.length > 1 ? l : [e.status || ""]; }
+  function progStatusAgreg(l){
+    if (!l.length) return "";
+    if (l.every(function(v){ return v === l[0]; })) return l[0];
+    if (l.indexOf("conferir") !== -1) return "conferir";          // alguma carga para conferir: a linha pede atenção
+    if (l.indexOf("") !== -1) return "";                          // alguma ainda sem status
+    if (l.some(function(v){ return v === "ok"; })) return "ok";   // o resto adiado / sem necessidade
+    return "adiado";
+  }
+  // status de uma carga (posição idx): a caixa dela, se houver várias; senão o da linha
+  function progStatusCarga(e, idx){ var l = multiListFrom(e.statusCg); return l.length > 1 ? (l[idx] || "") : (e.status || ""); }
+  function progStatusCell(iso, key, e){
+    var vals = progStatusLista(e);
+    var rows = vals.map(function(v, idx){
+      var opts = PROG_ST_OPTS.map(function(o){ return '<option value="' + o[0] + '"' + (o[0] === v ? " selected" : "") + '>' + o[1] + '</option>'; }).join("");
+      return '<div class="multi-row"><select data-field="status" class="status-select" data-v="' + esc(v) + '"' + (vals.length > 1 ? ' title="Status da ' + (idx + 1) + 'ª carga"' : '') + '>' + opts + '</select>' +
+        (idx === vals.length - 1 ? '<button type="button" class="multi-add-btn" title="Mais uma caixa de status (uma por carga)">+</button>' : '') +
+        '<button type="button" class="multi-remove-btn" title="Apagar">×</button></div>';
+    }).join("");
+    return '<td style="padding:4px 6px;"><div class="multi-field st-multi" data-iso="' + iso + '" data-key="' + esc(key) + '" data-field="statusCg" data-max="99">' + rows + '</div></td>';
+  }
+  function progStatusSync(container, entry, vals){
+    var antes = entry.status || "";
+    entry.statusCg = vals.length > 1 ? multiJoin(vals) : "";
+    entry.status = progStatusAgreg(vals);
+    container.querySelectorAll("select").forEach(function(sl, i){ sl.dataset.v = sl.value; sl.title = vals.length > 1 ? "Status da " + (i + 1) + "ª carga" : ""; });
+    var tr = container.closest("tr"); if (!tr) return;
+    var usinaTd = tr.querySelector("td:first-child"), st = entry.status;
+    usinaTd.classList.remove("usina-ok", "usina-conferir");
+    tr.classList.remove("prog-row-ok", "prog-row-conferir", "prog-row-adiado", "prog-row-semnec");
+    if (st === "ok"){ usinaTd.classList.add("usina-ok"); tr.classList.add("prog-row-ok"); }
+    else if (st === "conferir"){ usinaTd.classList.add("usina-conferir"); tr.classList.add("prog-row-conferir"); }
+    else if (st === "adiado"){ usinaTd.classList.add("usina-conferir"); tr.classList.add("prog-row-adiado"); }
+    else if (st === "sem_necessidade"){ tr.classList.add("prog-row-semnec"); }
+    var blk = container.closest(".prog-block[data-iso]"), box = blk && blk.querySelector(".prog-day-stats");
+    if (box) box.innerHTML = progDayStatsHtml(progDayCounts(blk.dataset.iso));
+    // adiado muda as ligações (a linha deixa de contar) → repinta a tela inteira
+    if ((st === "adiado") !== (antes === "adiado")) paintBlocks();
   }
 
   // Identificador estável por linha: nome da usina para linhas da lista mestre
@@ -2598,6 +2625,7 @@
   function syncMultiField(container){
     var entry = getOrCreateEntry(container.dataset.iso, container.dataset.key);
     var vals = Array.prototype.map.call(container.querySelectorAll("input, select"), function(el){ return el.value; });
+    if (container.dataset.field === "statusCg"){ progStatusSync(container, entry, vals); return; }
     entry[container.dataset.field] = multiJoin(vals);
     if (container.dataset.field === "carretas" && container.closest("#progBlocks") && typeof progAutoFabrica === "function") progAutoFabrica(container);
   }
@@ -4442,10 +4470,11 @@
           if (!String(c.fabrica || "").trim()) return;     // sem fábrica/material: fica só na Programação, não vai pro Controle
           var r = res && res.find(function(x){ return x.carga.idx === c.idx; });
           var nfs = r ? r.nfs.map(function(x){ return x.nf; }) : [];
-          var status = adiado ? "adiado" : (r && r.status === "confirmada" ? "descarregada" : (r && r.status === "emitida" ? "emitida" : "sem_nota"));
+          var cst = progStatusCarga(e, c.idx), adC = adiado || cst === "adiado";
+          var status = adC ? "adiado" : (r && r.status === "confirmada" ? "descarregada" : (r && r.status === "emitida" ? "emitida" : "sem_nota"));
           var descarga = "", desvio = r && r.desvio ? r.desvio : null;
           nfs.forEach(function(nf){ var en = nfEntradaMatch(nf); if (en && en.data && en.data > descarga) descarga = en.data; });
-          if (!adiado){
+          if (!adC){
             (entPorLinha.get(e) || []).forEach(function(en){
               var daCarga = (c.pedido && en.pedido) ? normalizePedidoNum(en.pedido) === normalizePedidoNum(c.pedido) : cs.length === 1;
               if (!daCarga) return;
@@ -4456,11 +4485,11 @@
             });
           }
           var canc = cancAll.filter(function(nf){ var cn = cargaDaNota(nf, e); return cn ? cn.idx === c.idx : cs.length === 1; });
-          if (status === "sem_nota" && canc.length) status = "cancelada";
+          if (status === "sem_nota" && canc.length && !adC) status = "cancelada";
           var atraso = "";
           if (status === "descarregada" && descarga){ var d = diasEntre(iso, descarga); atraso = d === 0 ? "no dia" : (d > 0 ? "+" + d + " dia(s)" : Math.abs(d) + " dia(s) antes"); }
           else if ((status === "sem_nota" || status === "emitida") && iso < hoje){ var a2 = diasEntre(iso, hoje); atraso = "atrasada " + a2 + " dia(s)"; }
-          out.push({iso: iso, e: e, c: c, status: status, progSt: e.status || "", nfs: nfs, canc: canc, descarga: descarga, atraso: atraso, atrasada: /^atrasada/.test(atraso), desvio: status === "descarregada" ? desvio : null});
+          out.push({iso: iso, e: e, c: c, status: status, progSt: cst, nfs: nfs, canc: canc, descarga: descarga, atraso: atraso, atrasada: /^atrasada/.test(atraso), desvio: status === "descarregada" ? desvio : null});
         });
       });
     });
@@ -5812,7 +5841,7 @@
       fetchAll(function(){ return live("notas_sefaz", "*")().order("seq"); }),
       fetchAll(function(){ return live("lancamentos_puzl", "*")().order("seq"); }),
       fetchAll(function(){ return live("programacao_dias", "id,data,referencia,excecao")().order("data"); }),
-      fetchAll(function(){ return live("programacao_itens", "dia_id,ordem,usina_nome,obs,status,programacao_cargas(ordem,placa,fabrica_nome,pedido)")().is("programacao_cargas.deleted_at", null).order("dia_id").order("ordem"); }),
+      fetchAll(function(){ return live("programacao_itens", "dia_id,ordem,usina_nome,obs,status,programacao_cargas(ordem,placa,fabrica_nome,pedido,status)")().is("programacao_cargas.deleted_at", null).order("dia_id").order("ordem"); }),
       fetchAll(function(){ return live("vpo_dias", "id,data,excecao")().order("data"); }),
       fetchAll(function(){ return live("vpo_entradas", "dia_id,ordem,rota1_usina,rota1_fabrica,rota2_usina,rota2_fabrica,obs,status,extra,frota(codigo)")().order("dia_id").order("ordem"); }),
       fetchAll(function(){ return sb.from("catalogo_cimento").select("termo,excluir").order("termo"); }),
@@ -5860,6 +5889,8 @@
       var e = { usina: nz(it.usina_nome), carretas: joinTrim(cg.map(function(c){ return c.placa; }), cg), fabrica: joinTrim(cg.map(function(c){ return c.fabrica_nome; }), cg),
         pedido: joinTrim(cg.map(function(c){ return c.pedido || (comPedido && cg.length > 1 ? "—" : ""); }), cg), obs: nz(it.obs) };
       if (it.status) e.status = it.status;
+      var stc = cg.map(function(c){ return c.status || ""; });
+      if (cg.length > 1 && stc.some(Boolean)) e.statusCg = multiJoin(stc);   // uma caixa de status por carga
       if (!e.usina) e.__key = "extra-db-" + it.dia_id.slice(0, 6) + "-" + it.ordem;
       dia.entries.push(e);
     });
@@ -5901,12 +5932,12 @@
   /* ---------- retrato do que está na tela, para saber o que mudou ---------- */
   function splitPos(s){ s = String(s == null ? "" : s); if (!s.trim()) return []; return s.split("/").map(function(x){ return x.trim(); }); }
   function dbItem(e){
-    var pl = splitPos(e.carretas), fb = splitPos(e.fabrica), pd = splitPos(e.pedido);
-    var n = Math.max(pl.length, fb.length, pd.length), cargas = [];
-    var temBarra = /\//.test(String(e.carretas || "") + String(e.fabrica || "") + String(e.pedido || ""));   // campo vazio de propósito: guarda a posição
+    var pl = splitPos(e.carretas), fb = splitPos(e.fabrica), pd = splitPos(e.pedido), sc = splitPos(e.statusCg);
+    var n = Math.max(pl.length, fb.length, pd.length, sc.length), cargas = [];
+    var temBarra = /\//.test(String(e.carretas || "") + String(e.fabrica || "") + String(e.pedido || "") + String(e.statusCg || ""));   // campo vazio de propósito: guarda a posição
     for (var k = 0; k < n; k++){
       var ped = pd[k] || ""; if (/^[—–-]+$/.test(ped)) ped = "";
-      if (pl[k] || fb[k] || ped || temBarra) cargas.push({ placa: pl[k] || "", fabrica: fb[k] || "", pedido: ped });
+      if (pl[k] || fb[k] || ped || sc[k] || temBarra){ var cgo = { placa: pl[k] || "", fabrica: fb[k] || "", pedido: ped }; if (sc.length > 1) cgo.status = sc[k] || ""; cargas.push(cgo); }
     }
     return { usina: String(e.usina || "").trim(), status: e.status || "", obs: e.obs || "", cargas: cargas };
   }
@@ -6770,13 +6801,15 @@
     var e = { usina: nz(it.usina_nome), carretas: joinTrim(cg.map(function(c){ return c.placa; }), cg), fabrica: joinTrim(cg.map(function(c){ return c.fabrica_nome; }), cg),
       pedido: joinTrim(cg.map(function(c){ return c.pedido || (comPedido && cg.length > 1 ? "—" : ""); }), cg), obs: nz(it.obs) };
     if (it.status) e.status = it.status;
+    var stc = cg.map(function(c){ return c.status || ""; });
+    if (cg.length > 1 && stc.some(Boolean)) e.statusCg = multiJoin(stc);
     return e;
   }
   async function fetchProgRemoto(){
     var live = function(t, cols){ return sb.from(t).select(cols).is("deleted_at", null); };
     var r = await Promise.all([
       fetchAll(function(){ return live("programacao_dias", "id,data,referencia,excecao").order("data"); }),
-      fetchAll(function(){ return live("programacao_itens", "dia_id,ordem,usina_nome,obs,status,editado_por,editado_em,programacao_cargas(ordem,placa,fabrica_nome,pedido)").is("programacao_cargas.deleted_at", null).order("dia_id").order("ordem"); })
+      fetchAll(function(){ return live("programacao_itens", "dia_id,ordem,usina_nome,obs,status,editado_por,editado_em,programacao_cargas(ordem,placa,fabrica_nome,pedido,status)").is("programacao_cargas.deleted_at", null).order("dia_id").order("ordem"); })
     ]);
     var data = {}, out = {};
     r[0].forEach(function(d){ data[d.id] = d.data; out[d.data] = { ref: nz(d.referencia), exc: !!d.excecao, rows: [] }; });
@@ -6834,7 +6867,7 @@
       adotar.forEach(function(f){
         if (f === "status") { if (src.status) ent.status = src.status; else delete ent.status; }
         else if (f === "obs") ent.obs = src.obs || "";
-        else { ent.carretas = src.carretas || ""; ent.fabrica = src.fabrica || ""; ent.pedido = src.pedido || ""; }
+        else { ent.carretas = src.carretas || ""; ent.fabrica = src.fabrica || ""; ent.pedido = src.pedido || ""; ent.statusCg = src.statusCg || ""; }
       });
       mud.push({ iso: iso, key: entryKey(ent), por: rr ? rr.por : "", campos: adotar });
     });
