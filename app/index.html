@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-26-2">
+<meta name="app-versao" content="2026-10-26-3">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -643,6 +643,15 @@
   .multi-add-btn:hover{color:var(--accent-strong); border-color:var(--accent);}
   .multi-remove-btn{flex:0 0 auto; width:20px; height:20px; line-height:1; border:1px solid transparent; border-radius:5px; background:transparent; color:var(--text-faint); cursor:pointer; font-size:13px; font-weight:700; padding:0;}
   .multi-remove-btn:hover{color:#e05555; border-color:#e05555;}
+  .ped-compl-sep{flex:0 0 auto; font-weight:800; color:var(--info); font-size:13px;}
+  .multi-row input.ped-compl{border:1px dashed var(--info) !important; color:var(--info);}
+  .ped-compl-x{flex:0 0 auto; width:16px; height:20px; border:0; background:transparent; color:var(--info); cursor:pointer; font-size:12px; padding:0;}
+  .ped-compl-x:hover{color:#e05555;}
+  .ped-menu{position:absolute; z-index:60; min-width:230px; background:var(--surface); border:1px solid var(--border-strong); border-radius:10px; box-shadow:0 12px 30px rgba(0,0,0,.35); padding:6px; display:flex; flex-direction:column; gap:2px;}
+  .ped-menu button{display:flex; flex-direction:column; align-items:flex-start; gap:1px; text-align:left; border:0; background:transparent; color:var(--text); padding:7px 10px; border-radius:7px; cursor:pointer; font-size:12.5px;}
+  .ped-menu button span{font-size:11px; color:var(--text-faint);}
+  .ped-menu button:hover, .ped-menu button:focus{background:var(--accent-soft); outline:none;}
+  .ped-menu-t{font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-faint); padding:8px 10px 3px; border-top:1px solid var(--border); margin-top:3px;}
   td.usina-ok{background:var(--success-soft) !important;}
   td.usina-conferir{background:var(--warning-soft) !important;}
   td.usina-info{background:var(--info-soft) !important;}
@@ -1500,7 +1509,7 @@
     return false;
   }
   function pedidoListFrom(str){
-    return String(str||"").split("/").map(function(s){ return s.trim(); }).filter(function(s){ return s && s!=="—"; });
+    return String(str||"").split(/[\/+]/).map(function(s){ return s.trim(); }).filter(function(s){ return s && !/^[—–-]+$/.test(s); });
   }
   // Compara pedidos ignorando zeros à esquerda: a Programação às vezes guarda
   // o número "cheio" (ex: "0009011287", como vem de alguma planilha/sistema
@@ -1633,6 +1642,11 @@
   // valor atual deles (é o que o usuário está vendo/editando); senão, o texto.
   function xlCellValue(td){
     if (!td) return "";
+    var mrows = td.querySelectorAll(".multi-row");
+    if (mrows.length > 1 || (mrows.length === 1 && mrows[0].querySelectorAll("input, select").length > 1)){
+      var ctl = function(c){ if (c.tagName === "SELECT") return c.value === "" ? "" : (c.options[c.selectedIndex] ? c.options[c.selectedIndex].text : ""); return String(c.value || "").trim(); };
+      return Array.prototype.map.call(mrows, function(r){ return Array.prototype.map.call(r.querySelectorAll("input, select"), ctl).filter(Boolean).join(" + "); }).filter(Boolean).join(" / ");
+    }
     var inputs = td.querySelectorAll("input");
     // Célula com múltiplos campos (ex: até 3 placas/fábricas/pedidos numa só
     // coluna) — junta os valores preenchidos, igual ao que é salvo no dado.
@@ -2535,10 +2549,48 @@
       var isLast = idx === vals.length - 1;
       var addBtn = (isLast && vals.length < max) ? '<button type="button" class="multi-add-btn" title="Adicionar mais um">+</button>' : "";
       var removeBtn = '<button type="button" class="multi-remove-btn" title="Apagar">×</button>';
+      var compl = null;
+      if (field === "pedido" && /\+/.test(v)){ var pp = v.split("+"); v = pp[0].trim(); compl = pp.slice(1).map(function(x){ return x.trim(); }).join(" + "); }
       return '<div class="multi-row"><input value="'+esc(v)+'" placeholder="'+esc(placeholder||"")+'" style="'+MULTI_INPUT_STYLE+'" ' +
-        'onfocus="this.style.borderColor=\'var(--accent)\'" onblur="this.style.borderColor=\'transparent\'"/>' + addBtn + removeBtn + '</div>';
+        'onfocus="this.style.borderColor=\'var(--accent)\'" onblur="this.style.borderColor=\'transparent\'"/>' + (compl !== null ? pedComplHtml(compl) : "") + addBtn + removeBtn + '</div>';
     }).join("");
     return '<td class="'+(tdClass||"")+'" style="padding:4px 6px;"><div class="multi-field" data-iso="'+iso+'" data-key="'+esc(key)+'" data-field="'+field+'" data-max="'+max+'" data-placeholder="'+esc(placeholder||"")+'">' + rows + '</div></td>';
+  }
+  // Pedido complementar: 2 pedidos na MESMA viagem (mesma carreta). Fica na mesma linha do pedido principal,
+  // guardado como "principal + complementar" naquela posição (no banco: programacao_cargas.pedido_compl).
+  function pedComplHtml(v){
+    return '<span class="ped-compl-sep" title="Pedido complementar (mesma viagem)">+</span><input class="ped-compl" value="' + esc(v || "") + '" placeholder="complementar" title="Pedido complementar desta mesma viagem" style="' + MULTI_INPUT_STYLE + '"/>' +
+      '<button type="button" class="ped-compl-x" title="Tirar o pedido complementar">×</button>';
+  }
+  function pedMenuFechar(){ document.querySelectorAll(".ped-menu").forEach(function(m){ m.remove(); }); }
+  document.addEventListener("click", function(e){ if (!e.target.closest || !e.target.closest(".ped-menu")) pedMenuFechar(); });
+  document.addEventListener("keydown", function(e){ if (e.key === "Escape") pedMenuFechar(); });
+  // "+" do Pedido: escolher entre um pedido novo (outra viagem / outro material) ou complementar de um pedido já lançado
+  function pedMenuAbrir(container, addBtn){
+    pedMenuFechar();
+    var rows = Array.prototype.slice.call(container.querySelectorAll(".multi-row"));
+    var opc = rows.map(function(r, i){ var inp = r.querySelector("input"); return { r: r, i: i, v: inp ? inp.value.trim() : "" }; })
+      .filter(function(o){ return o.v && !/^[—–-]+$/.test(o.v) && !o.r.querySelector(".ped-compl"); });
+    if (!opc.length) return false;
+    var m = document.createElement("div"); m.className = "ped-menu";
+    m.innerHTML = '<button type="button" data-op="novo"><b>＋ Novo pedido</b><span>outra viagem ou outro material</span></button>' +
+      '<div class="ped-menu-t">Pedido complementar (mesma viagem) de:</div>' +
+      opc.map(function(o){ return '<button type="button" data-op="compl" data-i="' + o.i + '"><b>↳ ' + esc(o.v) + '</b><span>' + (o.i + 1) + 'ª carga</span></button>'; }).join("");
+    document.body.appendChild(m);
+    var rc = addBtn.getBoundingClientRect();
+    m.style.top = (rc.bottom + window.scrollY + 4) + "px";
+    m.style.left = Math.max(8, Math.min(rc.left + window.scrollX - 120, window.scrollX + document.documentElement.clientWidth - m.offsetWidth - 8)) + "px";
+    m.addEventListener("click", function(ev){
+      var b = ev.target.closest("button"); if (!b) return;
+      ev.stopPropagation(); pedMenuFechar();
+      if (b.dataset.op === "novo"){ addBtn.dataset.direto = "1"; addBtn.click(); return; }
+      var row = rows[+b.dataset.i]; if (!row || row.querySelector(".ped-compl")) return;
+      row.querySelector("input").insertAdjacentHTML("afterend", pedComplHtml(""));
+      var ci = row.querySelector(".ped-compl"); ci.focus();
+      syncMultiField(container);
+    });
+    var f = m.querySelector("button"); if (f) f.focus();
+    return true;
   }
   var MULTI_SELECT_STYLE = 'flex:1;min-width:0;height:30px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface);color:var(--text);font-size:11.5px;padding:0 6px;';
   // Campo Fábrica: até 3 seleções de "Fornecedor — Material", vindas da Base
@@ -2571,9 +2623,18 @@
       syncMultiField(container);
     });
     container.addEventListener("click", function(e){
+      var cx = e.target.closest(".ped-compl-x");
+      if (cx){
+        e.preventDefault();
+        var rw = cx.closest(".multi-row");
+        rw.querySelectorAll(".ped-compl-sep, .ped-compl, .ped-compl-x").forEach(function(x){ x.remove(); });
+        syncMultiField(container); return;
+      }
       var addBtn = e.target.closest(".multi-add-btn");
       if (addBtn){
         e.preventDefault();
+        if (container.dataset.field === "pedido" && !addBtn.dataset.direto){ if (pedMenuAbrir(container, addBtn)){ e.stopPropagation(); return; } }
+        delete addBtn.dataset.direto;
         var max = parseInt(container.dataset.max, 10) || 99;
         var rows = container.querySelectorAll(".multi-row");
         if (rows.length >= max) return;
@@ -2624,7 +2685,12 @@
   }
   function syncMultiField(container){
     var entry = getOrCreateEntry(container.dataset.iso, container.dataset.key);
-    var vals = Array.prototype.map.call(container.querySelectorAll("input, select"), function(el){ return el.value; });
+    var vals = Array.prototype.map.call(container.querySelectorAll(".multi-row"), function(r){
+      var cs = r.querySelectorAll("input, select"); if (!cs.length) return "";
+      var v = cs[0].value;
+      if (cs.length > 1) v = String(v).trim() + " + " + Array.prototype.slice.call(cs, 1).map(function(c){ return String(c.value).trim(); }).join(" + ");
+      return v;
+    });
     if (container.dataset.field === "statusCg"){ progStatusSync(container, entry, vals); return; }
     entry[container.dataset.field] = multiJoin(vals);
     if (container.dataset.field === "carretas" && container.closest("#progBlocks") && typeof progAutoFabrica === "function") progAutoFabrica(container);
@@ -3234,17 +3300,20 @@
     var pl = sp(e.carretas), fb = sp(e.fabrica), pd = sp(e.pedido);
     var n = Math.max(pl.length, fb.length, pd.length), out = [];
     for (var k = 0; k < n; k++){
-      var ped = pd[k] || ""; if (/^[—–-]+$/.test(ped)) ped = "";
-      if (pl[k] || fb[k] || ped) out.push({placa: pl[k] || "", fabrica: fb[k] || "", pedido: ped, idx: k});
+      var pp = String(pd[k] || "").split("+").map(function(x){ return x.trim(); }).filter(function(x){ return x && !/^[—–-]+$/.test(x); });
+      var ped = /^[—–-]*$/.test(String(pd[k] || "").split("+")[0].trim()) ? "" : String(pd[k]).split("+")[0].trim();
+      if (pl[k] || fb[k] || pp.length) out.push({placa: pl[k] || "", fabrica: fb[k] || "", pedido: ped, pedidos: pp, idx: k});
     }
     return out;
   }
+  // a carga tem este pedido (o principal ou um complementar — 2 pedidos na mesma viagem)?
+  function cargaTemPedido(c, p){ var n = normalizePedidoNum(p); return !!n && (c.pedidos || [c.pedido]).some(function(x){ return x && normalizePedidoNum(x) === n; }); }
   // Carga da linha a que esta nota pertence: pelo pedido; sem pedido, pela placa.
   function cargaDaNota(nf, entry){
     if (!entry) return null;
     var cs = cargasDaLinha(entry);
     var pn = normalizePedidoNum(pedidoEfetivo(nf));
-    var c = pn && cs.find(function(x){ return x.pedido && normalizePedidoNum(x.pedido) === pn; });
+    var c = pn && cs.find(function(x){ return cargaTemPedido(x, pn); });
     if (!c && nf.placa) c = cs.find(function(x){ return x.placa && x.placa.toUpperCase() === String(nf.placa).trim().toUpperCase(); });
     return c || null;
   }
@@ -3273,7 +3342,7 @@
       if (nfSoRegistro(nf)) return;
       var np = pedidoEfetivo(nf);
       if (!np && String(nf.usina || "").trim().toUpperCase() !== usinaProg) return;
-      if (np && !cs.some(function(c){ return c.pedido && normalizePedidoNum(c.pedido) === normalizePedidoNum(np); })) return;
+      if (np && !cs.some(function(c){ return cargaTemPedido(c, np); })) return;
       var s = nfSituacao(nf);
       if (s.entry !== progEntry || s.situacao !== "confere") return;
       var carga = cargaDaNota(nf, progEntry);
@@ -4476,7 +4545,7 @@
           nfs.forEach(function(nf){ var en = nfEntradaMatch(nf); if (en && en.data && en.data > descarga) descarga = en.data; });
           if (!adC){
             (entPorLinha.get(e) || []).forEach(function(en){
-              var daCarga = (c.pedido && en.pedido) ? normalizePedidoNum(en.pedido) === normalizePedidoNum(c.pedido) : cs.length === 1;
+              var daCarga = (c.pedido && en.pedido) ? cargaTemPedido(c, en.pedido) : cs.length === 1;
               if (!daCarga) return;
               var est = entradaNFStatus(en).status;
               if (est === "cancelada") return;
@@ -4542,7 +4611,7 @@
         '<td style="white-space:nowrap;">'+esc(brDate(l.iso))+'</td>' +
         '<td class="cell-strong">'+esc(l.e.usina)+'</td>' +
         '<td>'+esc(l.c.fabrica)+'</td>' +
-        '<td>'+esc(l.c.pedido)+'</td>' +
+        '<td>'+esc((l.c.pedidos && l.c.pedidos.length ? l.c.pedidos : [l.c.pedido]).join(" + "))+'</td>' +
         '<td>'+esc(l.c.placa)+'</td>' +
         '<td>'+progBadge(l.progSt)+'</td>' +
         '<td style="white-space:nowrap;">'+nfTxt+'</td>' +
@@ -5841,7 +5910,7 @@
       fetchAll(function(){ return live("notas_sefaz", "*")().order("seq"); }),
       fetchAll(function(){ return live("lancamentos_puzl", "*")().order("seq"); }),
       fetchAll(function(){ return live("programacao_dias", "id,data,referencia,excecao")().order("data"); }),
-      fetchAll(function(){ return live("programacao_itens", "dia_id,ordem,usina_nome,obs,status,programacao_cargas(ordem,placa,fabrica_nome,pedido,status)")().is("programacao_cargas.deleted_at", null).order("dia_id").order("ordem"); }),
+      fetchAll(function(){ return live("programacao_itens", "dia_id,ordem,usina_nome,obs,status,programacao_cargas(ordem,placa,fabrica_nome,pedido,pedido_compl,status)")().is("programacao_cargas.deleted_at", null).order("dia_id").order("ordem"); }),
       fetchAll(function(){ return live("vpo_dias", "id,data,excecao")().order("data"); }),
       fetchAll(function(){ return live("vpo_entradas", "dia_id,ordem,rota1_usina,rota1_fabrica,rota2_usina,rota2_fabrica,obs,status,extra,frota(codigo)")().order("dia_id").order("ordem"); }),
       fetchAll(function(){ return sb.from("catalogo_cimento").select("termo,excluir").order("termo"); }),
@@ -5885,9 +5954,9 @@
     piRows.forEach(function(it){
       var dia = cementScheduleByDate[dataDoDia[it.dia_id]]; if (!dia) return;
       var cg = (it.programacao_cargas || []).slice().sort(function(a, b){ return a.ordem - b.ordem; });
-      var comPedido = cg.some(function(c){ return c.pedido; });
+      var comPedido = cg.some(function(c){ return c.pedido || c.pedido_compl; });
       var e = { usina: nz(it.usina_nome), carretas: joinTrim(cg.map(function(c){ return c.placa; }), cg), fabrica: joinTrim(cg.map(function(c){ return c.fabrica_nome; }), cg),
-        pedido: joinTrim(cg.map(function(c){ return c.pedido || (comPedido && cg.length > 1 ? "—" : ""); }), cg), obs: nz(it.obs) };
+        pedido: joinTrim(cg.map(function(c){ return (c.pedido || (comPedido && cg.length > 1 ? "—" : "")) + (c.pedido_compl ? " + " + c.pedido_compl : ""); }), cg), obs: nz(it.obs) };
       if (it.status) e.status = it.status;
       var stc = cg.map(function(c){ return c.status || ""; });
       if (cg.length > 1 && stc.some(Boolean)) e.statusCg = multiJoin(stc);   // uma caixa de status por carga
@@ -5936,8 +6005,9 @@
     var n = Math.max(pl.length, fb.length, pd.length, sc.length), cargas = [];
     var temBarra = /\//.test(String(e.carretas || "") + String(e.fabrica || "") + String(e.pedido || "") + String(e.statusCg || ""));   // campo vazio de propósito: guarda a posição
     for (var k = 0; k < n; k++){
-      var ped = pd[k] || ""; if (/^[—–-]+$/.test(ped)) ped = "";
-      if (pl[k] || fb[k] || ped || sc[k] || temBarra){ var cgo = { placa: pl[k] || "", fabrica: fb[k] || "", pedido: ped }; if (sc.length > 1) cgo.status = sc[k] || ""; cargas.push(cgo); }
+      var pp = String(pd[k] || "").split("+"), ped = pp[0].trim(), pc = pp.slice(1).map(function(x){ return x.trim(); }).filter(Boolean).join(" + ");
+      if (/^[—–-]+$/.test(ped)) ped = "";
+      if (pl[k] || fb[k] || ped || pc || sc[k] || temBarra){ var cgo = { placa: pl[k] || "", fabrica: fb[k] || "", pedido: ped }; if (pc) cgo.pedido_compl = pc; if (sc.length > 1) cgo.status = sc[k] || ""; cargas.push(cgo); }
     }
     return { usina: String(e.usina || "").trim(), status: e.status || "", obs: e.obs || "", cargas: cargas };
   }
@@ -6797,9 +6867,9 @@
   }
   function entradaDeLinha(it){
     var cg = (it.programacao_cargas || []).slice().sort(function(a, b){ return a.ordem - b.ordem; });
-    var comPedido = cg.some(function(c){ return c.pedido; });
+    var comPedido = cg.some(function(c){ return c.pedido || c.pedido_compl; });
     var e = { usina: nz(it.usina_nome), carretas: joinTrim(cg.map(function(c){ return c.placa; }), cg), fabrica: joinTrim(cg.map(function(c){ return c.fabrica_nome; }), cg),
-      pedido: joinTrim(cg.map(function(c){ return c.pedido || (comPedido && cg.length > 1 ? "—" : ""); }), cg), obs: nz(it.obs) };
+      pedido: joinTrim(cg.map(function(c){ return (c.pedido || (comPedido && cg.length > 1 ? "—" : "")) + (c.pedido_compl ? " + " + c.pedido_compl : ""); }), cg), obs: nz(it.obs) };
     if (it.status) e.status = it.status;
     var stc = cg.map(function(c){ return c.status || ""; });
     if (cg.length > 1 && stc.some(Boolean)) e.statusCg = multiJoin(stc);
@@ -6809,7 +6879,7 @@
     var live = function(t, cols){ return sb.from(t).select(cols).is("deleted_at", null); };
     var r = await Promise.all([
       fetchAll(function(){ return live("programacao_dias", "id,data,referencia,excecao").order("data"); }),
-      fetchAll(function(){ return live("programacao_itens", "dia_id,ordem,usina_nome,obs,status,editado_por,editado_em,programacao_cargas(ordem,placa,fabrica_nome,pedido,status)").is("programacao_cargas.deleted_at", null).order("dia_id").order("ordem"); })
+      fetchAll(function(){ return live("programacao_itens", "dia_id,ordem,usina_nome,obs,status,editado_por,editado_em,programacao_cargas(ordem,placa,fabrica_nome,pedido,pedido_compl,status)").is("programacao_cargas.deleted_at", null).order("dia_id").order("ordem"); })
     ]);
     var data = {}, out = {};
     r[0].forEach(function(d){ data[d.id] = d.data; out[d.data] = { ref: nz(d.referencia), exc: !!d.excecao, rows: [] }; });
@@ -8291,7 +8361,7 @@
     }
     var vistos = new Set(), out = [];
     var add = function(l){ (l || []).forEach(function(nf){ if (!vistos.has(nf)){ vistos.add(nf); out.push(nf); } }); };
-    String(progEntry.pedido || "").split("/").forEach(function(p){ p = p.trim(); if (p) add(ix.porPedido.get(normalizePedidoNum(p))); });
+    pedidoListFrom(progEntry.pedido).forEach(function(p){ add(ix.porPedido.get(normalizePedidoNum(p))); });
     add(ix.porUsina.get(String(progEntry.usina || "").trim().toUpperCase()));
     out.sort(function(a, b){ return ix.pos.get(a) - ix.pos.get(b); });
     return out;
