@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-26-4">
+<meta name="app-versao" content="2026-10-26-5">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -768,6 +768,7 @@
   tr.prog-row-conferir .status-select, tr.prog-row-adiado .status-select{border-color:var(--warning); color:var(--warning); font-weight:700;}
   .status-select{height:32px; font-weight:600;}
   .st-multi .status-select{flex:1; min-width:118px; width:auto;}
+  tr.prog-row-semnec .multi-field input::placeholder{color:var(--roxo); opacity:.85; letter-spacing:1px;}
   .st-multi .status-select[data-v="ok"]{border-color:var(--success); color:var(--success); font-weight:700;}
   .st-multi .status-select[data-v="conferir"], .st-multi .status-select[data-v="adiado"]{border-color:var(--warning); color:var(--warning); font-weight:700;}
   .st-multi .status-select[data-v="sem_necessidade"]{border-color:var(--roxo); color:var(--roxo); font-weight:700;}
@@ -2420,6 +2421,7 @@
       });
     });
     el("progBlocks").querySelectorAll(".multi-field").forEach(wireMultiField);
+    el("progBlocks").querySelectorAll("tr.prog-row-semnec").forEach(progSemNecAsteriscos);
     el("progBlocks").querySelectorAll(".prog-block[data-iso]").forEach(function(block){
       block.addEventListener("change", function(){
         var box = block.querySelector(".prog-day-stats"); if (box) box.innerHTML = progDayStatsHtml(progDayCounts(block.dataset.iso));
@@ -2465,6 +2467,13 @@
     }).join("");
     return '<td style="padding:4px 6px;"><div class="multi-field st-multi" data-iso="' + iso + '" data-key="' + esc(key) + '" data-field="statusCg" data-max="99">' + rows + '</div></td>';
   }
+  // Linha "Sem necessidade": Carretas e Pedido vazios mostram asteriscos (só na tela — nada é gravado),
+  // como era marcado na planilha antiga.
+  var SEMNEC_AST = "****************************";
+  function progSemNecAsteriscos(tr){
+    var on = tr.classList.contains("prog-row-semnec");
+    tr.querySelectorAll('.multi-field[data-field="carretas"] input, .multi-field[data-field="pedido"] input:not(.ped-compl)').forEach(function(i){ i.placeholder = on ? SEMNEC_AST : ""; });
+  }
   function progStatusSync(container, entry, vals){
     var antes = entry.status || "";
     entry.statusCg = vals.length > 1 ? multiJoin(vals) : "";
@@ -2478,6 +2487,7 @@
     else if (st === "conferir"){ usinaTd.classList.add("usina-conferir"); tr.classList.add("prog-row-conferir"); }
     else if (st === "adiado"){ usinaTd.classList.add("usina-conferir"); tr.classList.add("prog-row-adiado"); }
     else if (st === "sem_necessidade"){ tr.classList.add("prog-row-semnec"); }
+    progSemNecAsteriscos(tr);
     var blk = container.closest(".prog-block[data-iso]"), box = blk && blk.querySelector(".prog-day-stats");
     if (box) box.innerHTML = progDayStatsHtml(progDayCounts(blk.dataset.iso));
     // adiado muda as ligações (a linha deixa de contar) → repinta a tela inteira
