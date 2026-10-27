@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-27-3">
+<meta name="app-versao" content="2026-10-27-4">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -1709,7 +1709,8 @@
 
     // Filtro: uma linha some se, pra QUALQUER coluna com filtro ativo, o
     // valor dela não estiver marcado.
-    rows.forEach(function(tr){ tr.style.display = xlLinhaPassa(tr, state, -1) ? "" : "none"; });
+    // data-xlfixa: linha que está sendo alterada fica à vista mesmo que deixe de bater com o filtro (até trocar de aba)
+    rows.forEach(function(tr){ tr.style.display = (tr.dataset.xlfixa || (!tr.dataset.xlapos && xlLinhaPassa(tr, state, -1))) ? "" : "none"; });
 
     // Ordenação: reordena os <tr> dentro do tbody (mantém os elementos vivos,
     // então inputs/listeners continuam funcionando).
@@ -1727,6 +1728,8 @@
     } else {
       rows.slice().sort(function(a, b){ return a.__xlIdx - b.__xlIdx; }).forEach(function(tr){ tbody.appendChild(tr); });
     }
+    // linha anexa (ex.: formulário aberto embaixo de uma linha) acompanha a sua linha
+    tbody.querySelectorAll("tr[data-xlapos]").forEach(function(r){ var a = tbody.querySelector('tr[data-xlid="' + r.dataset.xlapos + '"]'); if (a) a.after(r); });
 
     // Indicador visual (funil colorido) nas colunas com filtro ativo.
     table.querySelectorAll(".xl-filter-btn").forEach(function(btn){
@@ -1758,7 +1761,7 @@
     // O filtro desta mesma coluna é ignorado aqui, para dar para reabrir e trocar.
     var counts = {};
     rows.forEach(function(tr){
-      if (!xlLinhaPassa(tr, state, colIdx)) return;
+      if (tr.dataset.xlapos || !xlLinhaPassa(tr, state, colIdx)) return;
       var v = xlCellValue(tr.children[colIdx]);
       if (v === "") v = "(vazio)";
       counts[v] = (counts[v] || 0) + 1;
@@ -4539,6 +4542,7 @@
   // entrada é, em tese, uma nota do SEFAZ que já foi lançada na usina.
   var pedidosPicker;
   function renderControlePedidos(){
+    if (typeof PED_CONF !== "undefined"){ PED_CONF.fixas = {}; PED_CONF.aberto = -1; }
     el("view-controle-pedidos-cimento").innerHTML =
       '<div class="card banner" id="pedBanner" style="margin-bottom:16px;">Cada nota importada em <b>Base de Dados &gt; Notas Fiscais (SEFAZ)</b> é ligada à Programação de Cimento pelo nº do pedido (conferida pela placa, quando informada); sem pedido na nota, a ligação cai pra Usina + Placa + Data. O caminho é: <b>Programação → nota emitida (SEFAZ) → descarregada (entrada da PUZL, pelo nº da nota)</b>. Pra importar notas ou entradas, use a aba <b>Base de Dados</b>.</div>' +
       '<div class="card" style="margin-bottom:16px;"><div class="filters" style="align-items:center;">' +
@@ -4688,7 +4692,8 @@
     }
     return n || 1;
   }
-  var PED_CONF = { lista: [], aberto: -1, erro: "" };
+  var PED_CONF = { lista: [], aberto: -1, erro: "", fixas: {} };   // fixas: cargas mexidas nesta aba (continuam à vista até trocar de aba)
+  function pedConfChave(l){ return l.iso + "|" + entryKey(l.e) + "|" + l.c.idx; }
   var PED_PROG_ABAS = [
     ["acomp", "Acompanhamento", function(l){ return l.status !== "adiado" && !(l.progSt === "ok" && l.status === "sem_nota"); }],
     ["descarregada", "Descarregadas", function(l){ return l.status === "descarregada" && !l.desvio; }],
@@ -4721,7 +4726,7 @@
     var tabs = PED_PROG_ABAS.map(function(a){
       return '<button data-aba="'+a[0]+'" class="'+(a[0] === aba[0] ? "active" : "")+'">'+a[1]+' ('+cnt(a[2])+')</button>';
     }).join("");
-    var lista = linhas.filter(aba[2]);
+    var lista = linhas.filter(function(l){ return aba[2](l) || PED_CONF.fixas[pedConfChave(l)]; });
     var statusBadge = function(l){
       return l.desvio ? badgeDesvio(l.desvio) : l.status === "descarregada" ? '<span class="badge success">✅ Descarregada</span>'
         : l.status === "conferida" ? BADGE_CONF(l.conf)
@@ -4738,7 +4743,8 @@
       var nfTxt = l.nfs.length ? l.nfs.map(function(nf){ return '<button type="button" class="nf-rastro-link xl-ignore" data-rastronum="' + esc(nf.numero) + '" title="Ver a ligação desta nota">' + esc(nf.numero) + '</button><span style="display:none">' + esc(nf.numero) + '</span>'; }).join(", ") : (l.conf && l.conf.nf ? '<span title="NF informada na conferência manual">✋ ' + esc(l.conf.nf) + '</span>' : '<span class="faint">—</span>');
       if (l.canc.length) nfTxt += ' <span class="badge danger" title="Nota cancelada no SEFAZ">🚫 '+l.canc.map(function(nf){ return esc(nf.numero); }).join(", ")+'</span>';
       var emis = l.nfs.length ? esc(brDate(l.nfs.map(function(nf){ return nf.emissao; }).sort()[0])) : '<span class="faint">—</span>';
-      return '<tr' + (l.status === "adiado" ? ' class="prog-row-adiado"' : '') + '>' +
+      var fixa = PED_CONF.fixas[pedConfChave(l)] || PED_CONF.aberto === i;
+      return '<tr data-xlid="pc' + i + '"' + (fixa ? ' data-xlfixa="1"' : '') + (l.status === "adiado" ? ' class="prog-row-adiado"' : '') + '>' +
         '<td style="white-space:nowrap;">'+esc(brDate(l.iso))+'</td>' +
         '<td class="cell-strong">'+esc(l.e.usina)+'</td>' +
         '<td>'+esc(l.c.fabrica)+'</td>' +
@@ -4759,7 +4765,7 @@
         ? '<div class="table-wrap"><table><thead><tr><th>Dia programado</th><th>Usina</th><th>Fábrica</th><th>Pedido</th><th>Placa</th><th>Status prog.</th><th>NF (SEFAZ)</th><th>Emissão NF</th><th>Situação</th><th>Data de descarga</th><th>Prazo</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
         : '<p class="prog-empty">Nenhuma carga nesta aba, no período selecionado.</p>');
     el("pedProgCard").querySelectorAll(".pedidos-tabs button").forEach(function(b){
-      b.addEventListener("click", function(){ pedProgFiltro = b.dataset.aba; PED_CONF.aberto = -1; paintPedidosProg(); });
+      b.addEventListener("click", function(){ pedProgFiltro = b.dataset.aba; PED_CONF.aberto = -1; PED_CONF.fixas = {}; paintPedidosProg(); });
     });
     el("pedProgCard").querySelectorAll("[data-conf]").forEach(function(b){
       b.addEventListener("click", function(ev){ ev.stopPropagation(); var i = +b.dataset.conf; PED_CONF.aberto = PED_CONF.aberto === i ? -1 : i; PED_CONF.erro = ""; paintPedidosProg();
@@ -4853,7 +4859,7 @@
   }
   function pedConfFormHtml(l, i){
     var cf = l.conf || {}, nf0 = cf.nf || (l.nfs[0] ? l.nfs[0].numero : "");
-    return '<tr class="ped-conf-row"><td colspan="11"><div class="ped-conf-form">' +
+    return '<tr class="ped-conf-row" data-xlfixa="1" data-xlapos="pc' + i + '"><td colspan="11"><div class="ped-conf-form">' +
       '<b>✋ Conferência manual — ' + esc(l.e.usina) + ' · ' + esc(brDate(l.iso)) + ' · ' + esc(l.c.pedido || l.c.placa || "carga") + '</b>' +
       '<label>Descarregou em <input type="date" id="pedConfData" value="' + esc(cf.descarga || toISO(TODAY)) + '"></label>' +
       '<label>Nº da NF <input id="pedConfNF" value="' + esc(nf0) + '" placeholder="ex.: 1123505"></label>' +
@@ -4877,6 +4883,7 @@
     if (!l.e.conf) l.e.conf = [];
     l.e.conf[l.c.idx] = desfazer ? null : { descarga: data, nf: nf, obs: obs, por: (ME && ME.nome) || "", em: new Date().toISOString() };
     if (!l.e.conf.some(Boolean)) delete l.e.conf;
+    PED_CONF.fixas[pedConfChave(l)] = 1;
     PED_CONF.aberto = -1; PED_CONF.erro = "";
     paintPedidosProg();
   }
