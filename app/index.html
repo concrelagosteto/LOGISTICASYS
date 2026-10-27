@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-26-7">
+<meta name="app-versao" content="2026-10-27-1">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -4650,6 +4650,7 @@
     ["descarregada", "Descarregadas", function(l){ return l.status === "descarregada" && !l.desvio; }],
     ["desviada", "🔀 Desviadas", function(l){ return !!l.desvio; }],
     ["emitida", "Emitidas — falta descarregar", function(l){ return l.status === "emitida"; }],
+    ["semnota", "Sem nota", function(l){ return l.status === "sem_nota" || l.status === "cancelada"; }],
     ["oksem", "Tudo OK sem nota", function(l){ return l.progSt === "ok" && l.status === "sem_nota"; }],
     ["adiado", "Adiadas", function(l){ return l.status === "adiado"; }],
     ["todas", "Todas", function(){ return true; }]
@@ -4665,7 +4666,7 @@
        ["Descarregadas", cnt(function(l){ return l.status === "descarregada" && !l.desvio; }), "success"],
        ["Desviadas", cnt(function(l){ return !!l.desvio; }), "info"],
        ["Emitidas (falta descarregar)", cnt(function(l){ return l.status === "emitida"; }), "warning"],
-       ["Sem nota", cnt(function(l){ return l.status === "sem_nota"; }), "neutral"],
+       ["Sem nota", cnt(function(l){ return l.status === "sem_nota" || l.status === "cancelada"; }), "neutral"],
        ["Atrasadas", cnt(function(l){ return l.atrasada; }), "danger"],
        ["Adiadas", cnt(function(l){ return l.status === "adiado"; }), "warning"]
       ].map(function(s){ return '<div class="stat" style="--stat-accent:var(--'+s[2]+');"><div class="stat-top"><span>'+s[0]+'</span></div><div class="stat-val">'+s[1]+'</div></div>'; }).join("") +
