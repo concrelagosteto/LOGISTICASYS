@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-27-1">
+<meta name="app-versao" content="2026-10-27-2">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -186,6 +186,10 @@
   .vpo-placa{font-weight:700; letter-spacing:.02em; cursor:copy; min-width:96px;} td.usina-ok .vpo-placa, td.usina-conferir .vpo-placa{background:transparent;}
   .vpo-conf{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:-4px 0 14px; padding:10px 14px; background:var(--warning-soft); border:1px solid var(--warning); border-radius:var(--radius); font-size:13px;} .vpo-conf .grow{flex:1;}
   .vpo-erro{color:var(--danger); font-size:12.5px; font-weight:600;}
+  .ped-conf-form{position:sticky; left:8px; max-width:min(1150px, calc(100vw - 340px)); display:flex; flex-wrap:wrap; gap:10px 14px; align-items:center; padding:10px 12px; border:1px dashed var(--info); border-radius:8px; background:var(--info-soft);}
+  .ped-conf-form label{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted);} .ped-conf-form label.grow{flex:1; min-width:220px;}
+  .ped-conf-form input{height:30px; border-radius:6px; border:1px solid var(--border-strong); background:var(--surface); color:var(--text); padding:0 8px; font-size:12.5px;} .ped-conf-form label.grow input{flex:1;}
+  .btn-xs{padding:3px 8px !important; font-size:11.5px !important;}
   .vpo-sync-msg{margin:0 0 12px; padding:10px 14px; border:1px solid var(--success); background:var(--success-soft); border-radius:var(--radius); font-size:12.5px; display:flex; gap:12px; align-items:center; justify-content:space-between;}
   .xl-pop-chips{display:flex; flex-wrap:wrap; gap:4px; margin:2px 0 6px;} .xl-pop-chips:empty{display:none;}
   .xl-chips-tit{font-size:11px; color:var(--text-muted); align-self:center;}
@@ -3379,10 +3383,12 @@
   var BADGE_PENDENTE = '<span class="badge danger" title="Programação completa, mas ainda sem nota no SEFAZ nem lançamento na PUZL">⏳ Pendente</span>';
   function progNFCelulaMulti(progEntry, nfCanc, nfStLinha){
     var cs = cargasDaLinha(progEntry);
-    if (cs.length < 2) return null;
+    var temConf = progEntry.status !== "adiado" && cs.some(function(c){ return progConfDe(progEntry, c.idx); });
+    if (cs.length < 2 && !temConf) return null;
     var res = progNFPorCarga(progEntry);
+    res.forEach(function(r){ if (r.status !== "confirmada" && progEntry.status !== "adiado") r.conf = progConfDe(progEntry, r.carga.idx); });
     var algumaCompleta = progEntry.status !== "adiado" && res.some(function(r){ return cargaCompleta(r.carga); });
-    if (res.every(function(r){ return r.status === "none"; }) && !algumaCompleta) return null;      // nada pela cadeia da nota e nada a sinalizar: segue o selo único
+    if (res.every(function(r){ return r.status === "none"; }) && !algumaCompleta && !temConf) return null;      // nada pela cadeia da nota e nada a sinalizar: segue o selo único
     var badge = function(st, cargaOk, desv){
       return st === "confirmada" && desv ? badgeDesvio(desv) : st === "confirmada" ? '<span class="badge success">✅ Descarregada</span>'
            : st === "emitida" ? '<span class="badge warning">Emitida</span>'
@@ -3391,7 +3397,7 @@
     var linhas = res.map(function(r, i){
       var nome = r.carga.pedido || r.carga.placa || ("carga " + (i + 1));
       var dica = [r.carga.placa, r.carga.fabrica].filter(Boolean).join(" · ") + (r.nfs.length ? " — NF " + r.nfs.map(function(x){ return x.nf.numero; }).join(", ") : "");
-      return '<div style="display:flex;align-items:center;gap:6px;white-space:nowrap;" title="'+esc(dica)+'"><span class="faint" style="font-size:10.5px;min-width:64px;">'+esc(nome)+'</span>'+badge(r.status, r.status === "none" && r.carga.placa && r.carga.fabrica && r.carga.pedido && progEntry.status !== "adiado", r.desvio)+'</div>';
+      return '<div style="display:flex;align-items:center;gap:6px;white-space:nowrap;" title="'+esc(dica)+'"><span class="faint" style="font-size:10.5px;min-width:64px;">'+esc(nome)+'</span>'+(r.conf ? BADGE_CONF(r.conf) : badge(r.status, r.status === "none" && r.carga.placa && r.carga.fabrica && r.carga.pedido && progEntry.status !== "adiado", r.desvio))+'</div>';
     }).join("");
     return '<td style="padding:4px 6px;">' + nfCanc + '<div style="display:flex;flex-direction:column;gap:3px;">' + linhas + '</div></td>';
   }
@@ -4635,20 +4641,45 @@
           }
           var canc = cancAll.filter(function(nf){ var cn = cargaDaNota(nf, e); return cn ? cn.idx === c.idx : cs.length === 1; });
           if (status === "sem_nota" && canc.length && !adC) status = "cancelada";
+          var conf = adC ? null : progConfDe(e, c.idx);
+          if (conf && status !== "descarregada"){ status = "conferida"; descarga = conf.descarga || descarga; }
           var atraso = "";
-          if (status === "descarregada" && descarga){ var d = diasEntre(iso, descarga); atraso = d === 0 ? "no dia" : (d > 0 ? "+" + d + " dia(s)" : Math.abs(d) + " dia(s) antes"); }
+          if ((status === "descarregada" || status === "conferida") && descarga){ var d = diasEntre(iso, descarga); atraso = d === 0 ? "no dia" : (d > 0 ? "+" + d + " dia(s)" : Math.abs(d) + " dia(s) antes"); }
           else if ((status === "sem_nota" || status === "emitida") && iso < hoje){ var a2 = diasEntre(iso, hoje); atraso = "atrasada " + a2 + " dia(s)"; }
-          out.push({iso: iso, e: e, c: c, status: status, progSt: cst, nfs: nfs, canc: canc, descarga: descarga, atraso: atraso, atrasada: /^atrasada/.test(atraso), desvio: status === "descarregada" ? desvio : null});
+          out.push({iso: iso, e: e, c: c, status: status, progSt: cst, conf: conf, nfs: nfs, canc: canc, descarga: descarga, atraso: atraso, atrasada: /^atrasada/.test(atraso), desvio: status === "descarregada" ? desvio : null});
         });
       });
     });
     out.sort(function(a, b){ return a.iso < b.iso ? 1 : (a.iso > b.iso ? -1 : 0); });   // dia mais recente primeiro (mantém a ordem da programação dentro do dia)
     return out;
   }
+  // Conferência manual: a Logística confirma que a carga descarregou (e qual NF) mesmo sem nota/entrada no sistema.
+  // Fica em programacao_cargas (conf_*), uma por carga (posição na linha). e.conf = [ {descarga, nf, obs, por, em} | null ].
+  function progConfDasCargas(cg){
+    var cf = cg.map(function(c){ return c.conf_descarga ? { descarga: String(c.conf_descarga).slice(0, 10), nf: c.conf_nf || "", obs: c.conf_obs || "", por: c.conf_por || "", em: c.conf_em || "" } : null; });
+    return cf.some(Boolean) ? cf : null;
+  }
+  function progConfDe(e, idx){ return (e && e.conf && e.conf[idx]) || null; }
+  function progConfDica(cf){ return "Conferência manual" + (cf.por ? " por " + cf.por : "") + (cf.em ? " em " + brDate(String(cf.em).slice(0, 10)) : "") + (cf.nf ? " · NF " + cf.nf : "") + (cf.obs ? " · " + cf.obs : ""); }
+  var BADGE_CONF = function(cf){ return '<span class="badge info" title="' + esc(progConfDica(cf)) + '">✋ Descarregada (conferência)</span>'; };
+  // nº da linha desta usina no dia (mesma contagem do salvamento: só linhas preenchidas, na ordem da tela)
+  function progLinhaN(iso, e){
+    var d = cementScheduleByDate[iso], k = String(e.usina || "").trim().toUpperCase(), n = 0;
+    if (!d) return 1;
+    for (var i = 0; i < d.entries.length; i++){
+      var x = d.entries[i];
+      if (itemVazio(dbItem(x))) continue;
+      if (String(x.usina || "").trim().toUpperCase() === k) n++;
+      if (x === e) return n || 1;
+    }
+    return n || 1;
+  }
+  var PED_CONF = { lista: [], aberto: -1, erro: "" };
   var PED_PROG_ABAS = [
     ["acomp", "Acompanhamento", function(l){ return l.status !== "adiado" && !(l.progSt === "ok" && l.status === "sem_nota"); }],
     ["descarregada", "Descarregadas", function(l){ return l.status === "descarregada" && !l.desvio; }],
     ["desviada", "🔀 Desviadas", function(l){ return !!l.desvio; }],
+    ["conferida", "✋ Conferência manual", function(l){ return l.status === "conferida"; }],
     ["emitida", "Emitidas — falta descarregar", function(l){ return l.status === "emitida"; }],
     ["semnota", "Sem nota", function(l){ return l.status === "sem_nota" || l.status === "cancelada"; }],
     ["oksem", "Tudo OK sem nota", function(l){ return l.progSt === "ok" && l.status === "sem_nota"; }],
@@ -4665,6 +4696,7 @@
       [["Cargas programadas", ativas.length, "accent"],
        ["Descarregadas", cnt(function(l){ return l.status === "descarregada" && !l.desvio; }), "success"],
        ["Desviadas", cnt(function(l){ return !!l.desvio; }), "info"],
+       ["Conferência manual", cnt(function(l){ return l.status === "conferida"; }), "info"],
        ["Emitidas (falta descarregar)", cnt(function(l){ return l.status === "emitida"; }), "warning"],
        ["Sem nota", cnt(function(l){ return l.status === "sem_nota" || l.status === "cancelada"; }), "neutral"],
        ["Atrasadas", cnt(function(l){ return l.atrasada; }), "danger"],
@@ -4678,14 +4710,18 @@
     var lista = linhas.filter(aba[2]);
     var statusBadge = function(l){
       return l.desvio ? badgeDesvio(l.desvio) : l.status === "descarregada" ? '<span class="badge success">✅ Descarregada</span>'
+        : l.status === "conferida" ? BADGE_CONF(l.conf)
         : l.status === "emitida" ? '<span class="badge warning">Emitida</span>'
         : l.status === "cancelada" ? '<span class="badge danger">🚫 NF cancelada</span>'
         : l.status === "adiado" ? '<span class="badge warning">Adiado</span>'
         : '<span class="badge '+(l.atrasada ? 'danger' : 'neutral')+'">Sem nota</span>';
     };
     var progBadge = function(s){ return s === "ok" ? '<span class="badge success">Tudo OK</span>' : (s === "conferir" ? '<span class="badge warning">Conferir</span>' : (s === "adiado" ? '<span class="badge warning">Adiado</span>' : '<span class="faint">—</span>')); };
-    var rows = lista.map(function(l){
-      var nfTxt = l.nfs.length ? l.nfs.map(function(nf){ return esc(nf.numero); }).join(", ") : '<span class="faint">—</span>';
+    var podeConf = modPodeEditar();
+    if (PED_CONF.lista !== lista && PED_CONF.aberto >= 0){ var lAnt = PED_CONF.lista[PED_CONF.aberto]; PED_CONF.aberto = lAnt ? lista.findIndex(function(x){ return x.e === lAnt.e && x.c.idx === lAnt.c.idx && x.iso === lAnt.iso; }) : -1; }
+    PED_CONF.lista = lista;
+    var rows = lista.map(function(l, i){
+      var nfTxt = l.nfs.length ? l.nfs.map(function(nf){ return esc(nf.numero); }).join(", ") : (l.conf && l.conf.nf ? '<span title="NF informada na conferência manual">✋ ' + esc(l.conf.nf) + '</span>' : '<span class="faint">—</span>');
       if (l.canc.length) nfTxt += ' <span class="badge danger" title="Nota cancelada no SEFAZ">🚫 '+l.canc.map(function(nf){ return esc(nf.numero); }).join(", ")+'</span>';
       var emis = l.nfs.length ? esc(brDate(l.nfs.map(function(nf){ return nf.emissao; }).sort()[0])) : '<span class="faint">—</span>';
       return '<tr' + (l.status === "adiado" ? ' class="prog-row-adiado"' : '') + '>' +
@@ -4697,10 +4733,11 @@
         '<td>'+progBadge(l.progSt)+'</td>' +
         '<td style="white-space:nowrap;">'+nfTxt+'</td>' +
         '<td style="white-space:nowrap;">'+emis+'</td>' +
-        '<td>'+statusBadge(l)+'</td>' +
+        '<td><div style="display:flex;align-items:center;gap:6px;white-space:nowrap;">'+statusBadge(l) + (!podeConf ? '' : l.status === "conferida" ? '<button class="btn-ghost btn-xs xl-ignore" data-conf="' + i + '" title="Editar ou desfazer a conferência">✏️</button>'
+          : (["sem_nota", "emitida", "cancelada"].indexOf(l.status) !== -1 ? '<button class="btn-ghost btn-xs xl-ignore" data-conf="' + i + '" title="Marcar como descarregada (conferida pela Logística), com o nº da NF">✋ Conferir</button>' : '')) + '</div></td>' +
         '<td style="white-space:nowrap;">'+(l.descarga ? esc(brDate(l.descarga)) : '<span class="faint">—</span>')+'</td>' +
         '<td style="white-space:nowrap;'+(l.atrasada ? 'color:var(--danger);font-weight:700;' : '')+'">'+(esc(l.atraso) || '<span class="faint">—</span>')+'</td>' +
-        '</tr>';
+        '</tr>' + (podeConf && PED_CONF.aberto === i ? pedConfFormHtml(l, i) : '');
     }).join("");
     el("pedProgCard").innerHTML =
       '<div class="pedidos-tabs">'+tabs+'</div>' +
@@ -4708,9 +4745,45 @@
         ? '<div class="table-wrap"><table><thead><tr><th>Dia programado</th><th>Usina</th><th>Fábrica</th><th>Pedido</th><th>Placa</th><th>Status prog.</th><th>NF (SEFAZ)</th><th>Emissão NF</th><th>Situação</th><th>Data de descarga</th><th>Prazo</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
         : '<p class="prog-empty">Nenhuma carga nesta aba, no período selecionado.</p>');
     el("pedProgCard").querySelectorAll(".pedidos-tabs button").forEach(function(b){
-      b.addEventListener("click", function(){ pedProgFiltro = b.dataset.aba; paintPedidosProg(); });
+      b.addEventListener("click", function(){ pedProgFiltro = b.dataset.aba; PED_CONF.aberto = -1; paintPedidosProg(); });
+    });
+    el("pedProgCard").querySelectorAll("[data-conf]").forEach(function(b){
+      b.addEventListener("click", function(ev){ ev.stopPropagation(); var i = +b.dataset.conf; PED_CONF.aberto = PED_CONF.aberto === i ? -1 : i; PED_CONF.erro = ""; paintPedidosProg();
+        var f = el("pedConfData"); if (f) f.focus(); });
+    });
+    el("pedProgCard").querySelectorAll("[data-confacao]").forEach(function(b){
+      b.addEventListener("click", function(ev){ ev.stopPropagation(); pedConfSalvar(b.dataset.confacao); });
     });
     xlEnhance(el("pedProgCard"), "ped-prog-" + aba[0]);
+  }
+  function pedConfFormHtml(l, i){
+    var cf = l.conf || {}, nf0 = cf.nf || (l.nfs[0] ? l.nfs[0].numero : "");
+    return '<tr class="ped-conf-row"><td colspan="11"><div class="ped-conf-form">' +
+      '<b>✋ Conferência manual — ' + esc(l.e.usina) + ' · ' + esc(brDate(l.iso)) + ' · ' + esc(l.c.pedido || l.c.placa || "carga") + '</b>' +
+      '<label>Descarregou em <input type="date" id="pedConfData" value="' + esc(cf.descarga || toISO(TODAY)) + '"></label>' +
+      '<label>Nº da NF <input id="pedConfNF" value="' + esc(nf0) + '" placeholder="ex.: 1123505"></label>' +
+      '<label class="grow">Observação <input id="pedConfObs" value="' + esc(cf.obs || "") + '" placeholder="ex.: confirmado com o encarregado por telefone"></label>' +
+      '<button class="btn-primary btn-inline" data-confacao="salvar">Salvar</button>' +
+      (l.conf ? '<button class="btn-ghost" data-confacao="desfazer" title="Volta a valer só o que está no sistema">Desfazer conferência</button>' : '') +
+      '<button class="btn-ghost" data-confacao="cancelar">Cancelar</button>' +
+      (PED_CONF.erro ? '<span class="vpo-erro">' + esc(PED_CONF.erro) + '</span>' : '') +
+      (l.conf ? '<div class="faint" style="flex-basis:100%;font-size:11.5px;">' + esc(progConfDica(l.conf)) + '</div>' : '') +
+      '</div></td></tr>';
+  }
+  async function pedConfSalvar(acao){
+    var l = PED_CONF.lista[PED_CONF.aberto]; if (!l) return;
+    if (acao === "cancelar"){ PED_CONF.aberto = -1; PED_CONF.erro = ""; paintPedidosProg(); return; }
+    var desfazer = acao === "desfazer";
+    var data = desfazer ? null : (el("pedConfData").value || ""), nf = desfazer ? "" : el("pedConfNF").value.trim(), obs = desfazer ? "" : el("pedConfObs").value.trim();
+    if (!desfazer && !toIsoDate(data)){ PED_CONF.erro = "Informe a data da descarga."; paintPedidosProg(); return; }
+    var r; try { r = await sb.rpc("programacao_carga_conferir", { p_data: l.iso, p_usina: String(l.e.usina || "").trim(), p_n: progLinhaN(l.iso, l.e), p_ordem: l.c.idx + 1, p_descarga: data, p_nf: nf, p_obs: obs }); } catch (x) { r = { error: x }; }
+    var erro = r.error ? dbErr(r.error) : (r.data && r.data.erro);
+    if (erro){ PED_CONF.erro = erro; paintPedidosProg(); return; }
+    if (!l.e.conf) l.e.conf = [];
+    l.e.conf[l.c.idx] = desfazer ? null : { descarga: data, nf: nf, obs: obs, por: (ME && ME.nome) || "", em: new Date().toISOString() };
+    if (!l.e.conf.some(Boolean)) delete l.e.conf;
+    PED_CONF.aberto = -1; PED_CONF.erro = "";
+    paintPedidosProg();
   }
   function paintPedidosNotas(){
     pedidosPicker.updateLabel();
@@ -5216,10 +5289,10 @@
     var linhas = pedProgLinhas(dashPicker.state);
     var ativas = linhas.filter(function(l){ return l.status !== "adiado"; });
     var adiadas = linhas.length - ativas.length;
-    var entregues = ativas.filter(function(l){ return l.status === "descarregada"; });
+    var entregues = ativas.filter(function(l){ return l.status === "descarregada" || l.status === "conferida"; });
     var emitidas = ativas.filter(function(l){ return l.status === "emitida"; });
     var pendentes = ativas.filter(function(l){ return l.status === "sem_nota" || l.status === "cancelada"; });
-    var atrasadas = ativas.filter(function(l){ return l.status !== "descarregada" && l.atrasada; });
+    var atrasadas = ativas.filter(function(l){ return l.status !== "descarregada" && l.status !== "conferida" && l.atrasada; });
     var P = ativas.length;
     el("dashInfo").textContent = P + " carga(s) programada(s) no período" + (adiadas ? " · " + adiadas + " adiada(s) fora da conta" : "");
 
@@ -5255,7 +5328,7 @@
     ativas.forEach(function(l){
       var k = String(l.c.fabrica || "").split(" — ")[0].trim() || "(sem informação)";
       if (!fm[k]){ fm[k] = {d:0, e:0, p:0}; fk.push(k); }
-      if (l.status === "descarregada") fm[k].d++; else if (l.status === "emitida") fm[k].e++; else fm[k].p++;
+      if (l.status === "descarregada" || l.status === "conferida") fm[k].d++; else if (l.status === "emitida") fm[k].e++; else fm[k].p++;
     });
     var abertas = function(k){ return fm[k].e + fm[k].p; }, totF = function(k){ return fm[k].d + fm[k].e + fm[k].p; };
     fk.sort(function(a, b){ return abertas(b) - abertas(a) || totF(b) - totF(a) || a.localeCompare(b, "pt-BR"); });
@@ -5315,7 +5388,7 @@
       var d = fromISO(l.iso), key = l.iso, lbl = l.iso.slice(8) + "/" + l.iso.slice(5, 7);
       if (semana){ var seg = addDays(d, -((d.getDay() + 6) % 7)); key = toISO(seg); lbl = "sem " + key.slice(8) + "/" + key.slice(5, 7); }
       if (!grupos[key]){ grupos[key] = {lbl:lbl, d:0, e:0, p:0}; ordem.push(key); }
-      var g = grupos[key]; if (l.status === "descarregada") g.d++; else if (l.status === "emitida") g.e++; else g.p++;
+      var g = grupos[key]; if (l.status === "descarregada" || l.status === "conferida") g.d++; else if (l.status === "emitida") g.e++; else g.p++;
     });
     ordem.sort();
     var maxDia = 0; ordem.forEach(function(k){ var g = grupos[k]; maxDia = Math.max(maxDia, g.d + g.e + g.p); });
@@ -5337,7 +5410,7 @@
       lista.forEach(function(l){
         var k = chave(l) || "(sem informação)";
         if (!mapa[k]){ mapa[k] = {d:0, e:0, p:0}; ks.push(k); }
-        if (l.status === "descarregada") mapa[k].d++; else if (l.status === "emitida") mapa[k].e++; else mapa[k].p++;
+        if (l.status === "descarregada" || l.status === "conferida") mapa[k].d++; else if (l.status === "emitida") mapa[k].e++; else mapa[k].p++;
       });
       ks.sort(function(a, b){ var A = mapa[a], B = mapa[b]; return (B.d + B.e + B.p) - (A.d + A.e + A.p) || a.localeCompare(b, "pt-BR"); });
       var cortados = ks.length > limite ? ks.length - limite : 0; ks = ks.slice(0, limite);
@@ -5351,7 +5424,7 @@
       }).join("") + (cortados ? '<p class="dnote">+ '+cortados+' outros não exibidos</p>' : "");
     };
     var porFornecedor = barrasH(function(l){ return String(l.c.fabrica || "").split(" — ")[0].trim(); }, ativas, 10);
-    var comPend = ativas.filter(function(l){ return l.status !== "descarregada"; });
+    var comPend = ativas.filter(function(l){ return l.status !== "descarregada" && l.status !== "conferida"; });
     var porUsina = comPend.length ? barrasH(function(l){ return l.e.usina; }, comPend, 10) : '<p class="dnote">Nada em aberto no período — tudo descarregado.</p>';
 
     // ----- 5) Tempo até descarregar (dias entre o dia programado e a descarga)
@@ -6043,7 +6116,7 @@
       fetchAll(function(){ return live("notas_sefaz", "*")().order("seq"); }),
       fetchAll(function(){ return live("lancamentos_puzl", "*")().order("seq"); }),
       fetchAll(function(){ return live("programacao_dias", "id,data,referencia,excecao")().order("data"); }),
-      fetchAll(function(){ return live("programacao_itens", "dia_id,ordem,usina_nome,obs,status,programacao_cargas(ordem,placa,fabrica_nome,pedido,pedido_compl,status)")().is("programacao_cargas.deleted_at", null).order("dia_id").order("ordem"); }),
+      fetchAll(function(){ return live("programacao_itens", "dia_id,ordem,usina_nome,obs,status,programacao_cargas(ordem,placa,fabrica_nome,pedido,pedido_compl,status,conf_descarga,conf_nf,conf_obs,conf_por,conf_em)")().is("programacao_cargas.deleted_at", null).order("dia_id").order("ordem"); }),
       fetchAll(function(){ return live("vpo_dias", "id,data,excecao")().order("data"); }),
       fetchAll(function(){ return live("vpo_entradas", "dia_id,ordem,rota1_usina,rota1_fabrica,rota2_usina,rota2_fabrica,obs,status,extra,frota(codigo)")().order("dia_id").order("ordem"); }),
       fetchAll(function(){ return sb.from("catalogo_cimento").select("termo,excluir").order("termo"); }),
@@ -6093,6 +6166,7 @@
       if (it.status) e.status = it.status;
       var stc = cg.map(function(c){ return c.status || ""; });
       if (cg.length > 1 && stc.some(Boolean)) e.statusCg = multiJoin(stc);   // uma caixa de status por carga
+      var cfs = progConfDasCargas(cg); if (cfs) e.conf = cfs;
       if (!e.usina) e.__key = "extra-db-" + it.dia_id.slice(0, 6) + "-" + it.ordem;
       dia.entries.push(e);
     });
@@ -7006,13 +7080,14 @@
     if (it.status) e.status = it.status;
     var stc = cg.map(function(c){ return c.status || ""; });
     if (cg.length > 1 && stc.some(Boolean)) e.statusCg = multiJoin(stc);
+    var cfs = progConfDasCargas(cg); if (cfs) e.conf = cfs;
     return e;
   }
   async function fetchProgRemoto(){
     var live = function(t, cols){ return sb.from(t).select(cols).is("deleted_at", null); };
     var r = await Promise.all([
       fetchAll(function(){ return live("programacao_dias", "id,data,referencia,excecao").order("data"); }),
-      fetchAll(function(){ return live("programacao_itens", "dia_id,ordem,usina_nome,obs,status,editado_por,editado_em,programacao_cargas(ordem,placa,fabrica_nome,pedido,pedido_compl,status)").is("programacao_cargas.deleted_at", null).order("dia_id").order("ordem"); })
+      fetchAll(function(){ return live("programacao_itens", "dia_id,ordem,usina_nome,obs,status,editado_por,editado_em,programacao_cargas(ordem,placa,fabrica_nome,pedido,pedido_compl,status,conf_descarga,conf_nf,conf_obs,conf_por,conf_em)").is("programacao_cargas.deleted_at", null).order("dia_id").order("ordem"); })
     ]);
     var data = {}, out = {};
     r[0].forEach(function(d){ data[d.id] = d.data; out[d.data] = { ref: nz(d.referencia), exc: !!d.excecao, rows: [] }; });
@@ -7051,6 +7126,7 @@
     var R = chaveLinhas(rem.rows.map(function(x){ return { it: x.it, e: x.e, por: x.por, em: x.em }; }));
     var loc2 = (loc.entries || []).map(function(e){ return { it: dbItem(e), e: e }; }).filter(function(x){ return !itemVazio(x.it); });
     var L = chaveLinhas(loc2);
+    R.order.forEach(function(kk){ var rr0 = R.map[kk], rl0 = L.map[kk]; if (rl0 && rr0.e) { if (rr0.e.conf) rl0.e.conf = rr0.e.conf; else delete rl0.e.conf; } });
     var sujo = false, uniao = {};
     B.order.concat(R.order, L.order).forEach(function(kk){ uniao[kk] = 1; });
     Object.keys(uniao).forEach(function(kk){
