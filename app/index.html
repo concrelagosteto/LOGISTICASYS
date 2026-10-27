@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-27-2">
+<meta name="app-versao" content="2026-10-27-3">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -186,6 +186,18 @@
   .vpo-placa{font-weight:700; letter-spacing:.02em; cursor:copy; min-width:96px;} td.usina-ok .vpo-placa, td.usina-conferir .vpo-placa{background:transparent;}
   .vpo-conf{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:-4px 0 14px; padding:10px 14px; background:var(--warning-soft); border:1px solid var(--warning); border-radius:var(--radius); font-size:13px;} .vpo-conf .grow{flex:1;}
   .vpo-erro{color:var(--danger); font-size:12.5px; font-weight:600;}
+  .nf-rastro-btn{border:0; background:transparent; padding:0; cursor:pointer; display:inline-flex; align-items:center; gap:4px;} .nf-rastro-btn:hover .badge{filter:brightness(1.15); outline:1px solid currentColor;}
+  .nf-rastro-i{font-size:12px; color:var(--text-faint);}
+  .nf-rastro-link{border:0; background:transparent; padding:0; color:var(--accent-strong); text-decoration:underline dotted; cursor:pointer; font:inherit;}
+  .rz-box{max-width:560px;} .rz-head{display:flex; justify-content:space-between; align-items:center;}
+  .rz-passo{display:flex; gap:12px; padding:12px; border:1px solid var(--border); border-radius:10px; background:var(--surface-2);} .rz-passo.falta{border-style:dashed; opacity:.9;}
+  .rz-num{flex:0 0 26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12.5px; background:var(--success-soft); color:var(--success);} .rz-passo.falta .rz-num{background:var(--warning-soft); color:var(--warning);}
+  .rz-corpo{flex:1; min-width:0; display:flex; flex-direction:column; gap:4px;} .rz-t{font-weight:700; font-size:13.5px; margin-bottom:2px;}
+  .rz-ok{color:var(--success);} .rz-falta{font-size:11px; color:var(--warning); font-weight:600;}
+  .rz-l{display:flex; gap:10px; font-size:12.5px;} .rz-l span{flex:0 0 118px; color:var(--text-muted);} .rz-l b{font-weight:600; min-width:0;}
+  .rz-aviso{font-size:12.5px; padding:6px 9px; border-radius:6px; background:var(--warning-soft); color:var(--text);} .rz-aviso.info{background:var(--info-soft);}
+  .rz-pe{display:flex; gap:8px; justify-content:flex-end;}
+  tr.rz-flash td{animation:rzFlash 2.4s ease;} @keyframes rzFlash{0%,60%{background:var(--accent-soft);} 100%{background:transparent;}}
   .ped-conf-form{position:sticky; left:8px; max-width:min(1150px, calc(100vw - 340px)); display:flex; flex-wrap:wrap; gap:10px 14px; align-items:center; padding:10px 12px; border:1px dashed var(--info); border-radius:8px; background:var(--info-soft);}
   .ped-conf-form label{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted);} .ped-conf-form label.grow{flex:1; min-width:220px;}
   .ped-conf-form input{height:30px; border-radius:6px; border:1px solid var(--border-strong); background:var(--surface); color:var(--text); padding:0 8px; font-size:12.5px;} .ped-conf-form label.grow input{flex:1;}
@@ -4405,6 +4417,7 @@
         : confirmada
         ? '<span class="badge success">✅ Descarregada</span>'
         : '<span class="badge warning">🕒 Aguardando entrada</span>';
+      statusBadge = '<button type="button" class="nf-rastro-btn" data-rastro="' + nf.id + '" title="Ver onde esta nota se liga: Programação, carga e entrada na usina">' + statusBadge + ' <span class="nf-rastro-i">ⓘ</span></button>';
       var msgNf = nfCancelada(nf) ? '<span class="nf-msg">⚠ NOTA CANCELADA</span>' : (nfTransf(nf) ? '<span class="nf-msg info">TRANSFERÊNCIA</span>' : '');
       var puzlMatch = puzlMatchParaNF(nf);
       var materialPuzlCell = puzlMatch
@@ -4451,6 +4464,7 @@
         paintBaseDados();
       });
     });
+    el3.querySelectorAll("[data-rastro]").forEach(function(b){ b.addEventListener("click", function(ev){ ev.stopPropagation(); var nf = cementNFes.find(function(x){ return x.id === parseInt(b.dataset.rastro, 10); }); if (nf) nfRastroAbrir(nf); }); });
     xlEnhance(el3, "nfes", [10]);
   }
 
@@ -4721,7 +4735,7 @@
     if (PED_CONF.lista !== lista && PED_CONF.aberto >= 0){ var lAnt = PED_CONF.lista[PED_CONF.aberto]; PED_CONF.aberto = lAnt ? lista.findIndex(function(x){ return x.e === lAnt.e && x.c.idx === lAnt.c.idx && x.iso === lAnt.iso; }) : -1; }
     PED_CONF.lista = lista;
     var rows = lista.map(function(l, i){
-      var nfTxt = l.nfs.length ? l.nfs.map(function(nf){ return esc(nf.numero); }).join(", ") : (l.conf && l.conf.nf ? '<span title="NF informada na conferência manual">✋ ' + esc(l.conf.nf) + '</span>' : '<span class="faint">—</span>');
+      var nfTxt = l.nfs.length ? l.nfs.map(function(nf){ return '<button type="button" class="nf-rastro-link xl-ignore" data-rastronum="' + esc(nf.numero) + '" title="Ver a ligação desta nota">' + esc(nf.numero) + '</button><span style="display:none">' + esc(nf.numero) + '</span>'; }).join(", ") : (l.conf && l.conf.nf ? '<span title="NF informada na conferência manual">✋ ' + esc(l.conf.nf) + '</span>' : '<span class="faint">—</span>');
       if (l.canc.length) nfTxt += ' <span class="badge danger" title="Nota cancelada no SEFAZ">🚫 '+l.canc.map(function(nf){ return esc(nf.numero); }).join(", ")+'</span>';
       var emis = l.nfs.length ? esc(brDate(l.nfs.map(function(nf){ return nf.emissao; }).sort()[0])) : '<span class="faint">—</span>';
       return '<tr' + (l.status === "adiado" ? ' class="prog-row-adiado"' : '') + '>' +
@@ -4751,10 +4765,91 @@
       b.addEventListener("click", function(ev){ ev.stopPropagation(); var i = +b.dataset.conf; PED_CONF.aberto = PED_CONF.aberto === i ? -1 : i; PED_CONF.erro = ""; paintPedidosProg();
         var f = el("pedConfData"); if (f) f.focus(); });
     });
+    el("pedProgCard").querySelectorAll("[data-rastronum]").forEach(function(b){ b.addEventListener("click", function(ev){ ev.stopPropagation(); var nf = nfByNumero(b.dataset.rastronum); if (nf) nfRastroAbrir(nf); }); });
     el("pedProgCard").querySelectorAll("[data-confacao]").forEach(function(b){
       b.addEventListener("click", function(ev){ ev.stopPropagation(); pedConfSalvar(b.dataset.confacao); });
     });
     xlEnhance(el("pedProgCard"), "ped-prog-" + aba[0]);
+  }
+  // Rastro de uma nota: em que ordem o sistema liga Nota (SEFAZ) → Programação (dia, usina, carga) → Entrada na usina (PUZL).
+  function nfRastroAbrir(nf){
+    var velho = el("nfRastro"); if (velho) velho.remove();
+    var linha = function(rot, val){ return '<div class="rz-l"><span>' + rot + '</span><b>' + val + '</b></div>'; };
+    var pedNota = String(nf.pedido || "").trim(), pedEf = pedidoEfetivo(nf);
+    var s = nfSituacao(nf), m = nfProgMatch(nf), en = nfEntradaMatch(nf);
+    var passos = [];
+    // 1. nota
+    passos.push({ ic: "🧾", t: "Nota fiscal (SEFAZ)", ok: !nfSoRegistro(nf), corpo:
+      linha("Número", esc(nf.numero)) + linha("Emissão", esc(brDate(nf.emissao)) || "—") + linha("Fornecedor", esc(nf.fornecedor) || "—") +
+      linha("Material", esc(materialEfetivo ? materialEfetivo(nf) : nf.material) || "—") +
+      linha("Pedido", pedEf ? esc(pedEf) + (pedNota ? "" : ' <span class="faint">(veio da PUZL — a nota não trouxe)</span>') : '<span class="faint">sem pedido</span>') +
+      linha("Placa", esc(nf.placa) || '<span class="faint">—</span>') + linha("Usina (destino)", esc(nf.usina) || '<span class="faint">—</span>') +
+      (nfCancelada(nf) ? '<div class="rz-aviso">🚫 Nota CANCELADA: fica só como registro, não liga em nada.</div>' : nfTransf(nf) ? '<div class="rz-aviso">🔁 Transferência da própria Concrelagos: só registro.</div>' : "") });
+    // 2. programação
+    if (!nfSoRegistro(nf)){
+      if (m && m.entry){
+        var c = cargaDaNota(nf, m.entry), cs = cargasDaLinha(m.entry), pos = c ? c.idx : -1;
+        var por = m.matchedBy === "pedido" ? (m.viaPuzl ? "nº do pedido (o pedido veio da PUZL)" : "nº do pedido da nota") : m.matchedBy === "usina_placa_data" ? "usina + placa + dia (a nota não tem pedido)" : "usina + dia — a placa não bate ou não veio";
+        var dist = distPedidos().get(nf), qtdMesmoPed = 0;
+        if (dist){ Object.keys(cementScheduleByDate).forEach(function(iso){ progAtivos(cementScheduleByDate[iso]).forEach(function(e){ cargasDaLinha(e).forEach(function(x){ if (cargaTemPedido(x, pedEf)) qtdMesmoPed++; }); }); }); }
+        var placaTxt = s.placaOk === true ? '✅ confere' : s.placaOk === false ? '⚠️ diferente da programada (' + esc(c ? c.placa : m.entry.carretas) + ') — por isso fica "Sem certeza"' : '<span class="faint">não comparada' + (nf.placa ? " (a Programação não tem placa nessa carga)" : " (a nota não trouxe placa)") + '</span>';
+        var cf = c ? progConfDe(m.entry, c.idx) : null;
+        passos.push({ ic: "📋", t: "Programação de Cimento", ok: s.situacao === "confere", corpo:
+          linha("Dia programado", esc(brDate(m.iso)) + ' <span class="faint">(' + esc(weekdayLong(fromISO(m.iso))) + ')</span>') +
+          linha("Usina", esc(m.entry.usina)) +
+          (c ? linha("Carga", (pos + 1) + 'ª de ' + cs.length + ' — ' + esc([c.placa, c.fabrica, (c.pedidos && c.pedidos.length ? c.pedidos.join(" + ") : c.pedido)].filter(Boolean).join(" · "))) : "") +
+          linha("Ligada por", por) +
+          (dist ? linha("Pedido aberto", "o pedido " + esc(pedEf) + " está em " + qtdMesmoPed + " cargas; esta nota foi para a do dia mais próximo da " + (en && en.data ? "entrada na usina (" + esc(brDate(en.data)) + ")" : "emissão") ) : "") +
+          linha("Placa", placaTxt) +
+          linha("Situação", s.situacao === "confere" ? '<span class="badge success">Confere</span>' : '<span class="badge warning">Sem certeza</span>') +
+          (cf ? '<div class="rz-aviso info">' + esc(progConfDica(cf)) + '</div>' : "") });
+      } else {
+        passos.push({ ic: "📋", t: "Programação de Cimento", ok: false, corpo:
+          '<div class="rz-aviso">' + (pedEf ? "O pedido " + esc(pedEf) + " não está em nenhuma carga da Programação" + (distPedidos().has(nf) ? " perto da data desta nota (mais de 3 dias de distância)" : "") + "." : "A nota não tem pedido e não há carga da usina " + esc(nf.usina || "?") + " no dia " + esc(brDate(nf.emissao)) + ".") + "</div>" });
+      }
+    }
+    // 3. entrada na usina
+    if (!nfSoRegistro(nf)){
+      if (en){
+        var ck = soDigitos(nf.chave), viaChave = String(en.documento || "").trim().toUpperCase() !== nfKey(nf);
+        var dv = m && m.entry ? desvioDaEntrada(en, m.entry) : null;
+        passos.push({ ic: "🏭", t: "Entrada na usina (PUZL)", ok: true, corpo:
+          linha("Data de entrada", esc(brDate(en.data)) || "—") + linha("Usina (central)", esc(en.usina) || "—") +
+          linha("Documento", esc(en.documento)) + linha("Quantidade", esc(en.quantidade) || "—") +
+          linha("Ligada por", viaChave ? "chave de acesso da nota" : "nº do documento = nº da nota") +
+          (dv ? '<div class="rz-aviso info">🔀 Desviada: programada para ' + esc(m.entry.usina) + ', descarregou em ' + esc(dv.para) + '.</div>' : "") });
+      } else {
+        passos.push({ ic: "🏭", t: "Entrada na usina (PUZL)", ok: false, corpo: '<div class="rz-aviso">Ainda não há lançamento da PUZL com o documento ' + esc(nf.numero) + '. Fica como "Aguardando entrada" até a usina lançar (ou até a conferência manual no Controle de Pedidos).</div>' });
+      }
+    }
+    var html = '<div id="nfRastro" class="pw-modal" role="dialog" aria-modal="true"><div class="pw-box rz-box">' +
+      '<div class="rz-head"><h2>Ligação da nota ' + esc(nf.numero) + '</h2><button class="btn-ghost" data-rz="x">✕</button></div>' +
+      '<p class="pw-sub">A ordem em que o sistema liga esta nota: nota → programação → entrada na usina.</p>' +
+      passos.map(function(p, i){ return '<div class="rz-passo ' + (p.ok ? "ok" : "falta") + '"><div class="rz-num">' + (i + 1) + '</div><div class="rz-corpo"><div class="rz-t">' + p.ic + ' ' + p.t + (p.ok ? ' <span class="rz-ok">✓</span>' : ' <span class="rz-falta">pendente</span>') + '</div>' + p.corpo + '</div></div>'; }).join("") +
+      '<div class="rz-pe">' + (m && m.entry && !nfSoRegistro(nf) ? '<button class="btn-primary btn-inline" data-rz="prog">Abrir na Programação</button>' : '') + '<button class="btn-ghost" data-rz="x">Fechar</button></div>' +
+      '</div></div>';
+    document.body.insertAdjacentHTML("beforeend", html);
+    var box = el("nfRastro");
+    var fechar = function(){ box.remove(); document.removeEventListener("keydown", esc_); };
+    var esc_ = function(e){ if (e.key === "Escape") fechar(); };
+    document.addEventListener("keydown", esc_);
+    box.addEventListener("click", function(e){
+      if (e.target === box) return fechar();
+      var b = e.target.closest("[data-rz]"); if (!b) return;
+      if (b.dataset.rz === "x") return fechar();
+      if (b.dataset.rz === "prog"){ fechar(); progIrPara(m.iso, m.entry); }
+    });
+  }
+  // abre a Programação no dia e destaca a linha
+  function progIrPara(iso, entry){
+    showView("programacao-cimento");
+    setTimeout(function(){
+      if (!progPicker) return;
+      var d = fromISO(iso); progPicker.state.rangeStart = new Date(d); progPicker.state.rangeEnd = new Date(d); progPicker.state.calViewMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+      paintBlocks();
+      var tr = document.querySelector('#progBlocks tr[data-pk="' + iso + "|" + String(entryKey(entry)).replace(/"/g, '\\"') + '"]');
+      if (tr){ tr.scrollIntoView({ block: "center" }); tr.classList.add("rz-flash"); setTimeout(function(){ tr.classList.remove("rz-flash"); }, 2600); }
+    }, 60);
   }
   function pedConfFormHtml(l, i){
     var cf = l.conf || {}, nf0 = cf.nf || (l.nfs[0] ? l.nfs[0].numero : "");
