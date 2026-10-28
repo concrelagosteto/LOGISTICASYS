@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-27-4">
+<meta name="app-versao" content="2026-10-28-2">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -186,6 +186,21 @@
   .vpo-placa{font-weight:700; letter-spacing:.02em; cursor:copy; min-width:96px;} td.usina-ok .vpo-placa, td.usina-conferir .vpo-placa{background:transparent;}
   .vpo-conf{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:-4px 0 14px; padding:10px 14px; background:var(--warning-soft); border:1px solid var(--warning); border-radius:var(--radius); font-size:13px;} .vpo-conf .grow{flex:1;}
   .vpo-erro{color:var(--danger); font-size:12.5px; font-weight:600;}
+  .aba-bloq{display:none !important;}
+  .adm-abas{display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:14px; margin-top:10px;} .adm-abas-g{display:flex; flex-direction:column; gap:5px;}
+  .adm-abas-t{font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-faint); font-weight:700;} .adm-abas label, .adm-abas-todas{display:flex; align-items:center; gap:7px; font-size:13px;}
+  .cons-resumo{grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); margin-bottom:12px;}
+  .cons-tile{cursor:pointer; text-align:left; font:inherit; color:inherit;}
+  .cons-resumo .stat{display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-start; gap:2px;} .cons-resumo .stat-top{order:0;} .cons-resumo .stat-val{order:1; margin-top:0;} .cons-resumo .stat-sub{order:2; font-size:11px; color:var(--text-muted);}
+  .cons-tab th, .cons-tab td{white-space:nowrap; font-size:12px; padding:6px 9px;} .cons-tile.on{outline:2px solid var(--stat-accent); outline-offset:-2px;}
+  .cons-grupos{display:flex; gap:8px; margin-bottom:8px; font-size:11.5px; font-weight:700;} .cons-grupos .g{padding:3px 10px; border-radius:20px; border:1px solid currentColor;}
+  .cons-grupos .g-nota, .cons-tab th.g-nota{color:var(--accent-strong);} .cons-grupos .g-transp, .cons-tab th.g-transp{color:var(--warning);} .cons-grupos .g-custo, .cons-tab th.g-custo{color:var(--success);}
+  .cons-tab th.g-nota, .cons-tab td.g-nota{box-shadow:inset 3px 0 0 var(--accent);} .cons-tab th.g-transp, .cons-tab td.g-transp{box-shadow:inset 3px 0 0 var(--warning);} .cons-tab th.g-custo, .cons-tab td.g-custo{box-shadow:inset 3px 0 0 var(--success);}
+  .cons-tab td.num, table td.num{text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums;}
+  .cons-tab tr.cons-acima td{background:color-mix(in srgb, var(--danger) 9%, transparent);}
+  .fb-hist{flex-basis:100%; display:flex; flex-direction:column; gap:4px; margin-top:4px;} .fb-hist-t{font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-faint);}
+  .fb-reg{font-size:12.5px;} .fb-reg.atual{font-weight:600;} .fb-mais{color:var(--danger); font-size:11.5px;} .fb-menos{color:var(--info); font-size:11.5px;}
+  tr.fb-aberta td{background:var(--accent-soft);}
   .nf-rastro-btn{border:0; background:transparent; padding:0; cursor:pointer; display:inline-flex; align-items:center; gap:4px;} .nf-rastro-btn:hover .badge{filter:brightness(1.15); outline:1px solid currentColor;}
   .nf-rastro-i{font-size:12px; color:var(--text-faint);}
   .nf-rastro-link{border:0; background:transparent; padding:0; color:var(--accent-strong); text-decoration:underline dotted; cursor:pointer; font:inherit;}
@@ -1339,7 +1354,7 @@
   //
   // IMPORTANTE (revisado depois que você apontou que a versão anterior tinha
   // CP I e CP IV "inventados" pra fornecedor que não tem): esta lista só traz
-  // o material que REALMENTE apareceu numa nota do SEFAZ real (arquivo
+  // o material que REALMENTE apareceu numa nota do Efit real (arquivo
   // SEFAZ_CMENTOS.xlsx, 615 notas de cimento, coluna "Nome" = fornecedor,
   // "Material" = o que foi extraído aqui, um por um). Fornecedor sem nenhuma
   // nota de cimento vista ainda fica com a lista de materiais VAZIA — ex:
@@ -1348,10 +1363,10 @@
   // (nada inventado). Confirmado no arquivo: a CSN, por exemplo, não tem CP I
   // nem CP IV/Pozolânico — só CP II-E, CP II-F, CP III e CP V (em duas
   // variantes). Os nomes de fornecedor abaixo já vêm padronizados (o texto
-  // como aparece na nota do SEFAZ é mais longo, ex: "CSN CIMENTOS BRASIL
+  // como aparece na nota do Efit é mais longo, ex: "CSN CIMENTOS BRASIL
   // S.A." — ver fabricaEntryForFornecedor, que faz essa ligação por nome).
-  // Atualizado com o cruzamento SEFAZ x PUZL (RESUMO_DE_ENTRADAS_50.xlsx,
-  // coluna ITEM — texto bem mais limpo que o do SEFAZ, inclusive pra
+  // Atualizado com o cruzamento Efit x PUZL (RESUMO_DE_ENTRADAS_50.xlsx,
+  // coluna ITEM — texto bem mais limpo que o do Efit, inclusive pra
   // pozolana): CCA, CNC, Circlua e Vittoria Cimentos, que não tinham nenhum
   // material confirmado ainda, ganharam os materiais reais vistos na PUZL.
   // "Polimix Concreto" é fornecedor novo, visto só na PUZL (fornece
@@ -1359,21 +1374,21 @@
   // reais e confirmação sua: a razão social ligada a "Nassau" é "ITABIRA
   // AGRO INDUSTRIAL S/A." (confirmado via PUZL, que grava
   // "ITABIRA AGRO INDUSTRIAL S/A. (NASSAU)" — por isso o alias abaixo); e
-  // "ITABIRA - FABRICA" (nome parecido, mas rótulo separado no SEFAZ, sem
+  // "ITABIRA - FABRICA" (nome parecido, mas rótulo separado no Efit, sem
   // CNPJ nem endereço no texto da nota) também É a Nassau — confirmado pelo
   // CNPJ da nota (27.175.959/0001-14, igual ao da Itabira Agro Industrial) e
   // por você — por isso entra como alias da Nassau, não da CSN nem como
   // fornecedor à parte (uma correção inicial tinha ligado à CSN por engano).
   // Desde que Entradas passou a ser derivada da PUZL (materialEfetivo prefere
-  // o item da PUZL, mais limpo, ao texto cru do SEFAZ — ver recomputeEntradasFromPuzl
+  // o item da PUZL, mais limpo, ao texto cru do Efit — ver recomputeEntradasFromPuzl
   // mais abaixo), alguns fornecedores ganharam aqui a forma "limpa" do mesmo
   // material JÁ cadastrado (ex: CSN tem "CIMENTO CP III RS 40 GRANEL" — texto
-  // do SEFAZ — e "CP III 40 RS" — mesmo material, texto da PUZL): sem isso, o
+  // do Efit — e "CP III 40 RS" — mesmo material, texto da PUZL): sem isso, o
   // alerta de material novo dispararia pra notas antigas só por causa da
   // troca de fonte do texto, não por ser um material realmente novo.
   var FABRICAS_CATALOGO = [
     // "ITABIRA - FABRICA" (fábrica própria, notas de transferência interna,
-    // sem CNPJ/endereço no texto da nota do SEFAZ) — CORRIGIDO em 26/09: é a
+    // sem CNPJ/endereço no texto da nota do Efit) — CORRIGIDO em 26/09: é a
     // própria Nassau (Itabira Agro Industrial), não a CSN. A confirmação
     // inicial ("Itabira = csn") tinha ficado errada; o próprio CNPJ da nota
     // já apontava pra isso (27.175.959/0001-14 — igual ao da Nassau, nada a
@@ -1382,7 +1397,7 @@
     // (formatação "CIMENTO//PORTLAND*CPIII*40*RS*GRANEL", com barras/
     // asteriscos em vez de espaço — normaliza igual ao texto plano abaixo) e
     // o CNPJ ficam todos aqui na Nassau, não mais na CSN.
-    // cnpjs: [Razão social como aparece na nota, CNPJ] — cruzado do SEFAZ
+    // cnpjs: [Razão social como aparece na nota, CNPJ] — cruzado do Efit
     // (efit.xlsx) e da PUZL (RESUMO_DE_ENTRADAS), mesmo CNPJ que já aparece
     // nas notas fiscais reais desse fornecedor (uma linha por filial/planta,
     // quando o fornecedor tem mais de uma). Editável abaixo, ao lado de
@@ -1402,7 +1417,7 @@
     {fornecedor:"Polimix Concreto", materiais:["POZOLANA PLX"], cnpjs:[["POLIMIX CONCRETO LTDA","29.067.113/0404-90"],["POLIMIX CONCRETO LTDA.","29.067.113/0235-60"]]},
     {fornecedor:"Concrelagos (transferência entre filiais)", materiais:["CIMENTO","CIMENTO CP-V RS","CIMENTO PLUS","CIMENTO BLEND"], aliases:["CONCRELAGOS"], cnpjs:[["CONCRELAGOS CONCRETO S/A MATRIZ","07.015.016/0001-17"],["CONCRELAGOS CONCRETO S/A FILIAL","07.015.016/0055-00"],["CONCRELAGOS CONCRETO S/A FILIAL","07.015.016/0074-72"],["CONCRELAGOS CONCRETO S/A FILIAL","07.015.016/0063-10"],["CONCRELAGOS CONCRETO S/A FILIAL","07.015.016/0005-40"],["CONCRELAGOS CONCRETO S/A FILIAL","07.015.016/0083-63"],["CONCRELAGOS CONCRETO S/A FILIAL","07.015.016/0014-31"]]}
   ];
-  // Liga o nome do fornecedor como ele aparece na nota do SEFAZ (coluna
+  // Liga o nome do fornecedor como ele aparece na nota do Efit (coluna
   // "Nome", ex: "CSN CIMENTOS BRASIL S.A.") ao fornecedor já cadastrado aqui
   // (ex: "CSN") — por aproximação de texto (contém o nome curto), a mesma
   // lógica que SEFAZ_PARSERS já usa pra identificar o fornecedor.
@@ -1531,7 +1546,7 @@
   }
   // Compara pedidos ignorando zeros à esquerda: a Programação às vezes guarda
   // o número "cheio" (ex: "0009011287", como vem de alguma planilha/sistema
-  // interno) e o SEFAZ traz o mesmo pedido sem os zeros (ex: "9011287") — pra
+  // interno) e o Efit traz o mesmo pedido sem os zeros (ex: "9011287") — pra
   // não perder o vínculo por causa disso, os dois lados são normalizados
   // antes de comparar. Pedido não-numérico (raro) fica como está.
   function normalizePedidoNum(s){
@@ -1593,8 +1608,8 @@
     {sub:"Importação"},
     {id:"base-dados-cimento", label:"Importar arquivos", icon:"📥"},
     {sub:"Notas"},
-    {id:"notas-sefaz", label:"Notas SEFAZ", icon:"🧾"},
-    {id:"lancamentos-puzl", label:"Lançamentos PUZL", icon:"📋"},
+    {id:"notas-sefaz", label:"Efit", icon:"🧾"},
+    {id:"lancamentos-puzl", label:"Notas Puzl", icon:"📋"},
     {sub:"Registros"},
     {id:"bd-usinas", label:"Usinas e encarregados", icon:"🏭"},
     {id:"bd-fabricas", label:"Fábricas e cimentos", icon:"🏗️"},
@@ -1611,7 +1626,7 @@
   ];
   var TITLES = {
     "solicitacoes":"Solicitações de Cimento", "programacao-cimento":"Programação de Cimento", "base-dados-cimento":"Importar arquivos", "bd-usinas":"Usinas e encarregados", "bd-fabricas":"Fábricas e cimentos",
-    "notas-sefaz":"Notas Fiscais (SEFAZ)", "lancamentos-puzl":"Lançamentos (PUZL)", "silos":"Controle de cimento",
+    "notas-sefaz":"Efit", "lancamentos-puzl":"Notas Puzl", "silos":"Controle de cimento",
     "controle-pedidos-cimento":"Controle de Pedidos de Cimento", "consultas":"Consultas",
     dashboard:"Dashboard", operacoes:"Operação do dia", vpo:"VPO — Vale Pedágio Obrigatório", exececoes:"Fila de Exceções",
     dados:"Transportadoras e frota", relatorios:"Relatórios", auditoria:"Auditoria", configuracoes:"Configurações", adm:"Administração"
@@ -1619,15 +1634,15 @@
   var CRUMBS = {
     "solicitacoes":"Cimento <b>›</b> Programação <b>›</b> Solicitações — o que cada usina precisa",
     "programacao-cimento":"Cimento <b>›</b> Programação <b>›</b> Programação de Cimento — envio diário por usina",
-    "base-dados-cimento":"Base de Dados <b>›</b> Importar arquivos — SEFAZ, PUZL, Inbound e Programação antiga, com o histórico",
+    "base-dados-cimento":"Base de Dados <b>›</b> Importar arquivos — Efit, Efit completo, Notas Puzl, Fretes e Programação antiga, com o histórico",
     "bd-usinas":"Base de Dados <b>›</b> Usinas e encarregados — cada usina e quem responde por ela",
     "bd-fabricas":"Base de Dados <b>›</b> Fábricas e cimentos — fornecedores, materiais, catálogo e códigos",
-    "notas-sefaz":"Base de Dados <b>›</b> Notas Fiscais (SEFAZ) — todas as notas importadas",
-    "lancamentos-puzl":"Base de Dados <b>›</b> Lançamentos (PUZL) — todos os lançamentos importados",
+    "notas-sefaz":"Base de Dados <b>›</b> Efit — todas as notas importadas",
+    "lancamentos-puzl":"Base de Dados <b>›</b> Notas Puzl — todos os lançamentos importados",
     "silos":"Cimento <b>›</b> Controle <b>›</b> Controle de cimento — cimento atual e trocas de cada usina",
     "controle-pedidos-cimento":"Cimento <b>›</b> Controle <b>›</b> Controle de Pedidos — conferência automática",
     "vpo":"Cimento <b>›</b> VPO — pedágio por roteiro",
-    "consultas":"Outros <b>›</b> Consulta geral e consulta de pedágio",
+    "consultas":"Outros <b>›</b> Consulta geral (nota, frete e custos), frete base e pedágio",
     dashboard:"Outros <b>›</b> Dashboard — programado × emitido × descarregado",
     operacoes:"Cimento <b>›</b> Controle <b>›</b> Operação do dia — pedido, programação, nota e descarga de cada carga",
     exececoes:"Em breve <b>›</b> Itens que exigem intervenção humana (exemplo)",
@@ -2071,6 +2086,7 @@
   applyNavCollapse();
 
   function showView(id){
+    if (typeof podeVerAba === "function" && !podeVerAba(id)){ var alt = primeiraAbaPermitida(); if (alt && alt !== id) return showView(alt); }
     document.querySelectorAll(".nav-item").forEach(function(n){ n.classList.toggle("active", n.dataset.view === id); });
     if (typeof navAbrirSubDe === "function") navAbrirSubDe(id);
     document.querySelectorAll(".view").forEach(function(v){ v.classList.remove("active"); });
@@ -2078,7 +2094,7 @@
     el("viewTitle").textContent = TITLES[id];
     el("viewCrumb").innerHTML = CRUMBS[id] || "";
     // As 3 telas (Programação, Base de Dados, Controle de Pedidos) se cruzam:
-    // Programação mostra o status SEFAZ (progEntryNFStatus) de cada linha, e
+    // Programação mostra o status Efit (progEntryNFStatus) de cada linha, e
     // Base de Dados/Controle de Pedidos mostram a conferência contra a
     // Programação (matchProgramacao). Cada tela só é montada uma vez no
     // carregamento — sem repintar ao entrar, editar numa tela não aparecia
@@ -2106,7 +2122,7 @@
   function weekdayLong(d){ return d.toLocaleDateString("pt-BR", {weekday:"long"}); }
   function addDays(d, n){ var r = new Date(d); r.setDate(r.getDate()+n); return r; }
   function isSunday(d){ return d.getDay() === 0; }
-  // Datas que chegam de importação (EFIT/SEFAZ, PUZL) podem vir em formatos
+  // Datas que chegam de importação (EFIT/Efit, PUZL) podem vir em formatos
   // bem diferentes — "2026-09-22" (ISO, já no padrão interno), "22/09/2026"
   // (BR, o mais comum ao copiar do Excel com célula formatada como data) ou
   // até o número de série do Excel como texto puro (célula sem formatação
@@ -2240,7 +2256,7 @@
         // Clicar fora também aplica o que já foi selecionado até então (igual
         // clicar em "Aplicar") — sem isso, escolher as datas e clicar fora
         // pra fechar perderia a seleção em vez de confirmá-la.
-        if (el(ids.panel).classList.contains("open")){
+        if (el(ids.panel) && el(ids.panel).classList.contains("open")){
           if (state.pendingStart){ state.rangeStart = state.pendingStart; state.rangeEnd = state.pendingStart; state.pendingStart = null; }
           el(ids.panel).classList.remove("open");
           onApply();
@@ -2314,7 +2330,7 @@
     paintBlocks();
   }
 
-  // Situação de uma linha da Programação na cadeia Programação → nota emitida (SEFAZ) → descarregada (PUZL)
+  // Situação de uma linha da Programação na cadeia Programação → nota emitida (Efit) → descarregada (PUZL)
   function progLinhaSituacao(e){
     if (cargasDaLinha(e).length >= 2){
       var res = progNFPorCarga(e);
@@ -2395,12 +2411,12 @@
           ? '<td class="cell-strong '+statusClass+'" style="white-space:nowrap;">'+esc(e.usina)+'</td>'
           : progInput(iso, key, "usina", e.usina, "Nome da usina", statusClass);
         var statusSelect = progStatusCell(iso, key, e);
-        // NF (SEFAZ): traz a conferência de Controle de Pedidos até aqui —
+        // NF (Efit): traz a conferência de Controle de Pedidos até aqui —
         // se alguma entrada que já bate com essa linha da programação tiver
-        // uma nota confirmada no SEFAZ, mostra "Descarregada"; se tiver
-        // documento lançado mas ainda sem confirmação no SEFAZ, "Emitida".
+        // uma nota confirmada no Efit, mostra "Descarregada"; se tiver
+        // documento lançado mas ainda sem confirmação no Efit, "Emitida".
         var nfSt = progEntryNFStatus(e);
-        var nfCanc = nfCanceladasLigadas(e).map(function(nf){ return '<span class="badge danger" title="Esta nota está CANCELADA no SEFAZ">🚫 NF '+esc(nf.numero)+' CANCELADA</span>'; }).join(" ");
+        var nfCanc = nfCanceladasLigadas(e).map(function(nf){ return '<span class="badge danger" title="Esta nota está CANCELADA no Efit">🚫 NF '+esc(nf.numero)+' CANCELADA</span>'; }).join(" ");
         var nfCell0 = '<td style="padding:4px 6px;">' + nfCanc + (
           nfSt === "cancelada" ? '<span class="badge danger">🚫 NF CANCELADA</span>' :
           nfSt === "confirmada" ? (function(){ var dv = progDesvios(e); return dv.length ? dv.map(badgeDesvio).join(" ") : '<span class="badge success">✅ Descarregada</span>'; })() :
@@ -2423,7 +2439,7 @@
         '<div class="prog-block-head"><div class="ref">'+esc(refText)+'</div><div class="title">PROGRAMAÇÃO PARA O DIA '+esc(fmtBR(day).toUpperCase())+' ('+esc(weekdayLong(day).toUpperCase())+')'+(data.isException?' · EXCEÇÃO':'')+(feriado?' · FERIADO ('+esc(feriado.toUpperCase())+')':'')+'</div></div>' +
         '<div class="prog-day-stats">' + progDayStatsHtml(progDayCounts(iso)) + '</div>' +
         (entries.length
-          ? '<div class="table-wrap"><table><thead><tr><th>Usina</th><th>Carretas</th><th>Fábrica</th><th>Número do Pedido</th><th>Período</th><th>Observação</th><th>NF (SEFAZ)</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+          ? '<div class="table-wrap"><table><thead><tr><th>Usina</th><th>Carretas</th><th>Fábrica</th><th>Número do Pedido</th><th>Período</th><th>Observação</th><th>NF (Efit)</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
           : '<p class="prog-empty">Nenhuma usina registrada para este dia.</p>') +
         '<div class="prog-add" data-iso="'+iso+'">+ adicionar usina</div>' +
         '</div>';
@@ -2728,7 +2744,7 @@
 
   /* ---------------- Base de Dados — importação por módulo ---------------- */
   // Módulos ativos: Entradas (NF) — já funcional, alimenta o Controle de
-  // Pedidos —, Notas Fiscais (SEFAZ) — a exportação de notas EMITIDAS pelos
+  // Pedidos —, Efit — a exportação de notas EMITIDAS pelos
   // fornecedores, usada pra confirmar se uma entrada já lançada realmente
   // descarregou (ver comentário mais abaixo) — e Lançamentos, que fica
   // reservado pra quando definirmos a estrutura (ex: PUZL/estoque). Os demais
@@ -2748,34 +2764,41 @@
     try { entry0.dbId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : null; } catch (e) { entry0.dbId = null; }
     if (entry0.dbId){
       if (/PUZL/i.test(modulo)) puzlEntradas.forEach(function(p){ if (p.impId === undefined) p.impId = entry0.dbId; });
-      if (/SEFAZ/i.test(modulo)) cementNFes.forEach(function(n){ if (n.impId === undefined) n.impId = entry0.dbId; });
+      if (/Efit/i.test(modulo)) cementNFes.forEach(function(n){ if (n.impId === undefined) n.impId = entry0.dbId; });
     }
     if (typeof persistImport === "function") persistImport(entry0);
   }
   // true = pode tirar do histórico (e já apagou os registros ligados a ele)
   function removerImportacao(h){
     var id = h && h.dbId;
+    if (id && /Fretes/i.test(h.modulo || "")){
+      var nF = FRETES.filter(function(f){ return f.importacao_id === id; }).length;
+      if (nF && !window.confirm("Apagar esta importação também apaga as " + nF + " nota(s) de frete que ela trouxe.\n\nContinuar?")) return false;
+      if (nF){ FRETES = FRETES.filter(function(f){ return f.importacao_id !== id; }); sb.rpc("fretes_remover_importacao", { p_importacao: id }).then(function(){}, function(){}); }
+      if (typeof unpersistImport === "function") unpersistImport(h);
+      return true;
+    }
     var nP = id ? puzlEntradas.filter(function(p){ return p.impId === id; }).length : 0;
     var nN = id ? cementNFes.filter(function(n){ return n.impId === id; }).length : 0;
     if (nP + nN){
       var partes = [];
       if (nP) partes.push(nP + " lançamento(s) da PUZL");
-      if (nN) partes.push(nN + " nota(s) do SEFAZ");
+      if (nN) partes.push(nN + " nota(s) do Efit");
       if (!window.confirm("Apagar esta importação também apaga o que ela trouxe: " + partes.join(" e ") + ".\n\nContinuar?")) return false;
       puzlEntradas = puzlEntradas.filter(function(p){ return p.impId !== id; });
       cementNFes = cementNFes.filter(function(n){ return n.impId !== id; });
       recomputeEntradasFromPuzl();
       paintPuzl(); paintNFes(); paintBaseDados(); renderMateriaisNovos();
     }
-    else if (h && h.registros > 0 && /PUZL|SEFAZ/i.test(h.modulo || "")){
+    else if (h && h.registros > 0 && /PUZL|Efit/i.test(h.modulo || "")){
       if (!window.confirm("Esta importação é anterior à ligação com os registros, então os dados dela não podem ser apagados por aqui — só a linha do histórico será apagada.\n\nContinuar?")) return false;
     }
     if (typeof unpersistImport === "function") unpersistImport(h);
     return true;
   }
 
-  // ---- Notas Fiscais (SEFAZ) ----
-  // A exportação do SEFAZ mostra as notas EMITIDAS pelos fornecedores
+  // ---- Efit ----
+  // A exportação do Efit mostra as notas EMITIDAS pelos fornecedores
   // (Número, Emissão, Nome, Material, Descrição Complementar etc.). A
   // conferência de "já descarregou" usa a regra que você deu: pega o
   // "Número" da nota e confere se ele aparece como "Documento/NF" em alguma
@@ -2819,23 +2842,23 @@
   // fornecedor futuro cuja nota inclua um CNPJ cadastrado passa a se
   // beneficiar automaticamente, sem precisar de uma regra nova.
   //
-  // Também: nem toda nota do SEFAZ é cimento (a maioria do arquivo real era
+  // Também: nem toda nota do Efit é cimento (a maioria do arquivo real era
   // areia, brita, diesel etc.). Por isso a importação já filtra pelo
   // Catálogo de Cimentos abaixo — só o que bate com um termo cadastrado ali
   // entra no sistema; o resto é ignorado (nunca "importado pra depois
   // apagar"). O catálogo é editável em Base de Dados, pra quando surgir um
   // tipo de cimento novo.
   // "POZOLANA" foi adicionada depois de cruzar com a PUZL (RESUMO_DE_ENTRADAS):
-  // o texto do SEFAZ pra pozolana nem sempre é óbvio, mas na PUZL o item
+  // o texto do Efit pra pozolana nem sempre é óbvio, mas na PUZL o item
   // aparece claro como "POZOLANA"/"POZOLANA PLX" — ver puzlMatchParaNF abaixo,
   // que também é consultado na importação como um 2º critério pra decidir se
-  // uma nota é cimento, quando o texto puro do SEFAZ não bate com nada aqui.
+  // uma nota é cimento, quando o texto puro do Efit não bate com nada aqui.
   var CEMENTO_CATALOGO = ["CIMENTO", "CP I", "CP II", "CP III", "CP IV", "CP V", "POZOLANA", "ESCORIA MOIDA", "POZOMIX", "ADICAO MINERAL", "BLEND"];
   var CEMENTO_EXCLUIR = ["MANGOTE"];   // exceções: se o material contém um destes termos, NÃO é cimento (mesmo que bata com o catálogo)
   // Remove acentos (á, ã, ç, õ...) sem apagar a letra embaixo deles — usado
-  // antes de comparar textos vindos de fontes diferentes (SEFAZ, PUZL,
+  // antes de comparar textos vindos de fontes diferentes (Efit, PUZL,
   // catálogo cadastrado à mão), que nem sempre grafam acento do mesmo jeito
-  // (ex: "ITABIRA - FABRICA" no SEFAZ real vs. "Itabira (fábrica própria)"
+  // (ex: "ITABIRA - FABRICA" no Efit real vs. "Itabira (fábrica própria)"
   // cadastrado aqui). Sem isso, normalizeMaterial cortava a letra acentuada
   // inteira (ex: "fábrica" virava "FBRICA", não "FABRICA") e quebrava o match.
   function stripAccents(s){ return String(s||"").normalize("NFD").replace(/[̀-ͯ]/g, ""); }
@@ -2879,7 +2902,7 @@
   }
   // Regras de extração por fornecedor, aprendidas do arquivo real que você
   // mandou. "match" identifica o fornecedor pelo nome como ele aparece na
-  // nota do SEFAZ (campo "Nome"); "extract" devolve o que conseguiu achar.
+  // nota do Efit (campo "Nome"); "extract" devolve o que conseguiu achar.
   var SEFAZ_PARSERS = [
     { match:/CSN/i, extract:function(desc){
         var m = /CLIENTE:\s*(\d+)/i.exec(desc);
@@ -2960,7 +2983,7 @@
   // clara; "nomeCadastro" guarda o nome original da planilha, caso divirja
   // (ex.: "SÃO PEDRO DA ALDEIA" no cadastro = "SÃO PEDRO" no resto do app).
   // É essa base que permite reconhecer a usina de descarga pelo CNPJ dentro
-  // do texto livre das notas do SEFAZ (função cnpjEmTexto/usinaByCnpj abaixo).
+  // do texto livre das notas do Efit (função cnpjEmTexto/usinaByCnpj abaixo).
   var usinasCadastro = [];
 
   function normalizeCnpj(s){ return String(s||"").replace(/\D/g, ""); }
@@ -2971,7 +2994,7 @@
     return found ? found.usina : null;
   }
   // Acha um trecho com "cara de CNPJ" (formatado ou não) dentro de um texto
-  // livre — usado pra varrer a Descrição Complementar das notas do SEFAZ.
+  // livre — usado pra varrer a Descrição Complementar das notas do Efit.
   var RE_CNPJ = /(\d{2}[.\s]?\d{3}[.\s]?\d{3}[\s\/]?\d{4}-?\d{2})/;
   function cnpjEmTexto(texto){
     var m = RE_CNPJ.exec(String(texto || ""));
@@ -2982,21 +3005,21 @@
     var cementNFes = [];
   function nfKey(nf){ return String(nf.numero||"").trim().toUpperCase(); }
 
-  // ---- Lançamentos (PUZL) — RESUMO DE ENTRADAS ----
+  // ---- Notas Puzl — RESUMO DE ENTRADAS ----
   // Exportação real da PUZL (RESUMO_DE_ENTRADAS_50.xlsx que você mandou): tem
-  // as mesmas notas do SEFAZ (o nº da nota é a coluna DOCUMENTO), mas o
+  // as mesmas notas do Efit (o nº da nota é a coluna DOCUMENTO), mas o
   // material vem num campo próprio (ITEM) bem mais limpo — é lá que a
   // pozolana aparece de forma clara ("POZOLANA", "POZOLANA PLX"), em vez de
-  // precisar adivinhar pelo texto corrido do SEFAZ. Por isso essa importação
+  // precisar adivinhar pelo texto corrido do Efit. Por isso essa importação
   // serve como uma 2ª fonte pra confirmar/completar o material de uma nota:
-  // ver puzlMatchParaNF/materialEfetivo, usados tanto na importação do SEFAZ
+  // ver puzlMatchParaNF/materialEfetivo, usados tanto na importação do Efit
   // (2º critério pra aceitar uma nota como cimento) quanto na exibição do
   // Controle de Pedidos e no alerta de material novo. Campos financeiros da
   // planilha original (Valor, Preço, Frete, Transportadora, Chave da nota)
   // não entram aqui de propósito — não são necessários pra essa ligação.
   // Semente de demonstração (formato real da PUZL, mesmos documentos das
-  // notas do SEFAZ já importadas em cementNFes acima, pra já nascer com a
-  // ligação Programação ↔ Entradas (PUZL) ↔ NF SEFAZ visível). CNPJ do
+  // notas do Efit já importadas em cementNFes acima, pra já nascer com a
+  // ligação Programação ↔ Entradas (PUZL) ↔ NF Efit visível). CNPJ do
   // fornecedor fica vazio de propósito (dado sensível da planilha real, não
   // copiado pra cá — ver comentário abaixo sobre colunas ignoradas).
   var puzlSeq = 0;
@@ -3095,7 +3118,7 @@
           chaveNota: String(parts[21]||"").replace(/\s+/g, ""), observacoes: ""
         };
       }
-      // Pedido: extraído da Descrição Complementar com a regra do fornecedor (mesma usada nas notas do SEFAZ).
+      // Pedido: extraído da Descrição Complementar com a regra do fornecedor (mesma usada nas notas do Efit).
       try { p.pedido = (p.observacoes ? (extractFromDescricao(p.fornecedor, p.observacoes).pedido || "") : ""); } catch(e){ p.pedido = ""; }
       if (stripAccents(String(p.categoria||"")).trim().toUpperCase() !== "AGLOMERANTE"){ foraCategoria++; ign("Categoria diferente de AGLOMERANTE" + (p.categoria ? " (" + p.categoria + ")" : " (vazia)"), line); return; }
       if (!p.documento || !p.item){ invalid++; ign(!p.documento ? "Sem número de documento" : "Sem item", line); return; }
@@ -3119,7 +3142,7 @@
     return {added:added, skipped:skipped, invalid:invalid, naoCimento:naoCimento, atualizadas:atualizadas, foraCategoria:foraCategoria};
   }
   // Acha o(s) lançamento(s) da PUZL cujo Documento bate com um nº de nota do
-  // SEFAZ (mesma tolerância a zero à esquerda usada em pedidos, via
+  // Efit (mesma tolerância a zero à esquerda usada em pedidos, via
   // normalizePedidoNum). Quando mais de um bate (nº repetido entre
   // fornecedores diferentes — raro, mas possível), desempata pelo nome do
   // fornecedor.
@@ -3152,7 +3175,7 @@
     }
     return __idx;
   }
-  // Pedido da nota: o do SEFAZ; se a nota veio sem pedido, o da PUZL (ligada pelo nº da nota ou pela chave)
+  // Pedido da nota: o do Efit; se a nota veio sem pedido, o da PUZL (ligada pelo nº da nota ou pela chave)
   function pedidoEfetivo(nf){
     var p = String(nf.pedido || "").trim();
     if (p) return p;
@@ -3181,7 +3204,7 @@
     return comFornecedor || candidatos[0];
   }
   // Material "efetivo" de uma nota: o item confirmado via PUZL quando existe
-  // (mais limpo e confiável), senão o texto cru do Material do SEFAZ. É essa
+  // (mais limpo e confiável), senão o texto cru do Material do Efit. É essa
   // função que Controle de Pedidos, Base de Fábricas e o alerta de material
   // novo devem usar pra classificar — nunca nf.material puro.
   function materialEfetivo(nf){
@@ -3193,9 +3216,9 @@
     if (!alvo) return null;
     return cementNFes.find(function(nf){ return nfKey(nf) === alvo; }) || null;
   }
-  // "Inbound Completo" (export tipo reportCompleteInbound, sem Material) —
+  // "Efit completo" (export tipo reportCompleteInbound, sem Material) —
   // não entra como cadastro próprio (sem Material não dá pra saber se é
-  // cimento), só ENRIQUECE uma Notas Fiscais (SEFAZ) já importada, casada
+  // cimento), só ENRIQUECE uma Efit já importada, casada
   // pelo Número. A Chave de Acesso (quando a nota já tem uma gravada de uma
   // importação anterior) é a trava de segurança: se bater um Número mas a
   // Chave vier diferente da já gravada, é sinal de número reaproveitado por
@@ -3237,7 +3260,7 @@
   }
   // Recalcula cementEntradas a partir de puzlEntradas — a única fonte de
   // Entradas agora (a antiga importação manual "Entradas (NF)" foi retirada:
-  // ela e os Lançamentos (PUZL) eram o mesmo arquivo/planilha real, então
+  // ela e os Notas Puzl eram o mesmo arquivo/planilha real, então
   // manter os dois como cadastros separados só duplicava trabalho e podia
   // divergir). Chamada de novo sempre que puzlEntradas muda (importar/excluir
   // um lançamento) e uma vez no boot. Mantém o mesmo formato de campo que
@@ -3250,8 +3273,8 @@
   // ver Base de Usinas). Fábrica: rótulo "Fornecedor — Material" (mesmo
   // padrão da Base de Fábricas), resolvendo o fornecedor cadastrado quando
   // possível. Pedido: a PUZL não traz um nº de pedido próprio — só o
-  // Documento, que É o nº da nota do SEFAZ — então o pedido vem por busca
-  // reversa em cementNFes (mesmo documento); sem essa nota do SEFAZ
+  // Documento, que É o nº da nota do Efit — então o pedido vem por busca
+  // reversa em cementNFes (mesmo documento); sem essa nota do Efit
   // importada ainda, fica vazio (matchProgramacao então cai pro critério de
   // fábrica+usina, igual sempre fez quando faltava pedido).
   function recomputeEntradasFromPuzl(){
@@ -3276,11 +3299,11 @@
     });
   }
   recomputeEntradasFromPuzl();
-  // Status de uma entrada (resumo de entradas) em relação ao SEFAZ:
+  // Status de uma entrada (resumo de entradas) em relação ao Efit:
   // "sem_doc" = a entrada nem tem documento/NF preenchido; "emitida" = tem
-  // documento, mas essa NF ainda não bateu com nenhuma importada do SEFAZ;
+  // documento, mas essa NF ainda não bateu com nenhuma importada do Efit;
   // "confirmada" = o número bateu — a nota está confirmada como descarregada.
-  // Como toda entrada É, por definição, uma nota do SEFAZ já lançada na
+  // Como toda entrada É, por definição, uma nota do Efit já lançada na
   // usina, o caso "emitida" normalmente significa que essa NF específica
   // ainda não foi importada aqui (ou o número foi digitado errado) — por
   // isso ele aparece na conferência individual mais abaixo, não some.
@@ -3296,7 +3319,7 @@
     return nf ? {status:"confirmada", nf:nf} : {status:"emitida", nf:null};
   }
   // Acha a entrada do resumo (Base de Dados > Entradas) cujo Documento/NF bate
-  // com o número dessa nota do SEFAZ — é essa comparação que confirma que a
+  // com o número dessa nota do Efit — é essa comparação que confirma que a
   // nota já chegou e foi lançada na usina ("descarregada").
   function nfEntradaMatch(nf){
     var alvo = nfKey(nf);
@@ -3312,11 +3335,11 @@
   }
   // Traz a conversa até a Programação de Cimento: acha a(s) entrada(s) que já
   // conferem contra esse item da programação (mesma lógica do Controle de
-  // Pedidos, matchProgramacao) e olha o status SEFAZ delas.
+  // Pedidos, matchProgramacao) e olha o status Efit delas.
   function entradasParaProgEntry(progEntry){
     return cementEntradas.filter(function(en){ var m = matchProgramacao(en); return m.entry === progEntry && m.situacao === "confere"; });
   }
-  // Notas CANCELADAS do SEFAZ que se ligam a essa linha da Programação (por pedido ou usina+placa+data)
+  // Notas CANCELADAS do Efit que se ligam a essa linha da Programação (por pedido ou usina+placa+data)
   function nfCanceladasLigadas(progEntry){
     return cementNFes.filter(function(nf){
       if (!nfCancelada(nf)) return false;
@@ -3388,14 +3411,14 @@
     return res;
   }
   // "Pendente": a linha está TODA preenchida (placa, fábrica e pedido em cada carga), não está adiada
-  // e ainda não tem nota emitida no SEFAZ nem correspondência na PUZL.
+  // e ainda não tem nota emitida no Efit nem correspondência na PUZL.
   function cargaCompleta(c){ return !!(c && c.placa && c.fabrica && c.pedido); }
   function linhaCompleta(e){
     if (!e || e.status === "adiado") return false;
     var cs = cargasDaLinha(e);
     return cs.length > 0 && cs.every(cargaCompleta);
   }
-  var BADGE_PENDENTE = '<span class="badge danger" title="Programação completa, mas ainda sem nota no SEFAZ nem lançamento na PUZL">⏳ Pendente</span>';
+  var BADGE_PENDENTE = '<span class="badge danger" title="Programação completa, mas ainda sem nota no Efit nem lançamento na PUZL">⏳ Pendente</span>';
   function progNFCelulaMulti(progEntry, nfCanc, nfStLinha){
     var cs = cargasDaLinha(progEntry);
     var temConf = progEntry.status !== "adiado" && cs.some(function(c){ return progConfDe(progEntry, c.idx); });
@@ -3425,7 +3448,7 @@
       else if (st === "confirmada" && best !== "cancelada") best = "confirmada";
       else if (st === "emitida" && best !== "confirmada" && best !== "cancelada") best = "emitida";
     });
-    // Cadeia pela nota do SEFAZ (ligação firme com ESTA linha da programação)
+    // Cadeia pela nota do Efit (ligação firme com ESTA linha da programação)
     var ped = pedidoListFrom(progEntry.pedido).map(normalizePedidoNum);
     var usinaProg = String(progEntry.usina || "").trim().toUpperCase();
     nfsCandidatas(progEntry).forEach(function(nf){
@@ -3441,7 +3464,7 @@
     });
     return best; // "none" | "emitida" | "confirmada" | "cancelada"
   }
-  // ---- Ligação NF do SEFAZ -> Programação de Cimento ----
+  // ---- Ligação NF do Efit -> Programação de Cimento ----
   // Critério principal: nº do pedido — é o único campo que aparece garantido
   // dos dois lados, por isso é buscado em TODA a Programação (não só no dia
   // da emissão da nota, já que emissão e carregamento programado podem ser
@@ -3593,7 +3616,7 @@
   }
   // Colunas aceitas: Número, Emissão, Fornecedor, Material, Pedido, Placa,
   // Usina, e opcionalmente Descrição Complementar (o texto cru da nota do
-  // SEFAZ). Pedido/Placa/Usina que vierem em branco são preenchidos
+  // Efit). Pedido/Placa/Usina que vierem em branco são preenchidos
   // automaticamente a partir da Descrição Complementar, quando ela vier —
   // sempre editável depois. Linhas cujo Material não bate com o Catálogo de
   // Cimentos são ignoradas (não entram no sistema).
@@ -3645,9 +3668,9 @@
   }
 
   // Layouts aceitos (nesta ordem de preferência):
-  //  1) Com cabeçalho (qualquer ordem de colunas) — o do SEFAZ real: Chave, Número, Emissão,
+  //  1) Com cabeçalho (qualquer ordem de colunas) — o do Efit real: Chave, Número, Emissão,
   //     Status, ..., Nome, ..., Volume, ..., Placa, Material, Descrição Complementar.
-  //  2) Sem cabeçalho, com 23 colunas ou mais — mesmo layout do SEFAZ, em posição fixa.
+  //  2) Sem cabeçalho, com 23 colunas ou mais — mesmo layout do Efit, em posição fixa.
   //  3) Antigo, sem cabeçalho: Número, Emissão, Fornecedor, Material, Pedido, Placa, Usina[, Descrição].
   // "Número" vem como "430652/0" (número/série): a série é descartada pra casar com o Documento da PUZL.
   // Status "Cancelada" e notas emitidas pela própria Concrelagos (transferência) entram só pra registro.
@@ -3787,7 +3810,7 @@
   }
 
   /* Base de Dados: Importar arquivos (com o histórico) / Usinas e encarregados / Fábricas e cimentos
-     / Notas SEFAZ / Lançamentos PUZL — cada um é um módulo do menu. */
+     / Efit / Notas Puzl — cada um é um módulo do menu. */
   function bdAbrir(id){ showView(id === "fabricas" ? "bd-fabricas" : id === "usinas" ? "bd-usinas" : "base-dados-cimento"); }
 
   function renderBaseDados(){
@@ -3806,20 +3829,23 @@
         '</div>';
     }
     el("view-base-dados-cimento").innerHTML =
-      '<div class="imp-intro"><p>Importe aqui os arquivos do SEFAZ e da PUZL. Tudo é salvo no banco e as telas se ligam sozinhas.</p>' +
-      '<details><summary>Como as telas se ligam</summary><p>Área central de importação de dados externos. <b>Entradas</b> é calculada automaticamente a partir dos <b>Lançamentos (PUZL)</b>, com a ligação já cruzada contra Programação e contra Notas Fiscais (SEFAZ) — usada em Controle de Pedidos e na Programação de Cimento. <b>Notas Fiscais (SEFAZ)</b> é a exportação das notas emitidas — é ela quem forma o Controle de Pedidos, ligada à Programação de Cimento por usina/placa/pedido; <b>Lançamentos (PUZL)</b> traz o mesmo universo de notas com o material mais limpo (inclusive pozolana), usado tanto pra confirmar o material de uma nota do SEFAZ quanto pra formar as Entradas. Pra ver e filtrar tudo o que já foi importado, veja os módulos <b>Notas SEFAZ</b> e <b>Lançamentos PUZL</b>, no grupo Base de Dados do menu.</p></details></div>' +
+      '<div class="imp-intro"><p>Importe aqui os arquivos do Efit e da PUZL. Tudo é salvo no banco e as telas se ligam sozinhas.</p>' +
+      '<details><summary>Como as telas se ligam</summary><p>Área central de importação de dados externos. <b>Entradas</b> é calculada automaticamente a partir dos <b>Notas Puzl</b>, com a ligação já cruzada contra Programação e contra Efit — usada em Controle de Pedidos e na Programação de Cimento. <b>Efit</b> é a exportação das notas emitidas — é ela quem forma o Controle de Pedidos, ligada à Programação de Cimento por usina/placa/pedido; <b>Notas Puzl</b> traz o mesmo universo de notas com o material mais limpo (inclusive pozolana), usado tanto pra confirmar o material de uma nota do Efit quanto pra formar as Entradas. Pra ver e filtrar tudo o que já foi importado, veja os módulos <b>Efit</b> e <b>Notas Puzl</b>, no grupo Base de Dados do menu.</p></details></div>' +
       '<div id="materiaisNovosCard"></div>' +
       '<div id="baseDadosStats"></div>' +
       '<div class="imp-grid">' +
-        impCard({id:'nfes', tom:'info', icone:'🧾', titulo:'Notas Fiscais (SEFAZ)', sub:'Notas emitidas', res:'importNFesResult', txt:'importNFesText', btn:'importNFesBtn', ph:'400000/1\t2026-09-22\tCimento Tupi\tCP V-ARI RS GRANEL\t\t\t\tPedido nro 390078 ... VEICULO PLACAS: HGJ4049 - TCM1F78',
+        impCard({id:'nfes', tom:'info', icone:'🧾', titulo:'Efit', sub:'Notas emitidas', res:'importNFesResult', txt:'importNFesText', btn:'importNFesBtn', ph:'400000/1\t2026-09-22\tCimento Tupi\tCP V-ARI RS GRANEL\t\t\t\tPedido nro 390078 ... VEICULO PLACAS: HGJ4049 - TCM1F78',
           lead:'Entram só as notas de cimento (pelo Catálogo). Canceladas e transferências entram apenas como registro.',
-          como:'<ul><li>Aceita o arquivo do SEFAZ como ele vem (com cabeçalho): número, emissão, status, nome, material e descrição complementar.</li><li>O número perde a série (430652/0 vira 430652) para casar com o documento da PUZL.</li><li>Pedido, placa e usina saem da descrição complementar, por fornecedor.</li><li>Nota cancelada aparece em vermelho; transferência da própria Concrelagos aparece em azul. Nenhuma das duas entra nas conferências.</li><li>A nota fica como descarregada quando existe uma entrada da PUZL com o mesmo número de documento.</li></ul>'}) +
-        impCard({id:'puzl', tom:'neutral', icone:'📋', titulo:'Lançamentos (PUZL)', sub:'Resumo de entradas', res:'importPuzlResult', txt:'importPuzlText', btn:'importPuzlBtn', ph:'04 | ROS | RIO DAS OSTRAS\t07.015.016/0004-60\t04 | ROS | RIO DAS OSTRAS\t...\tPOZOLANA\t3561\t1\t...',
+          como:'<ul><li>Aceita o arquivo do Efit como ele vem (com cabeçalho): número, emissão, status, nome, material e descrição complementar.</li><li>O número perde a série (430652/0 vira 430652) para casar com o documento da PUZL.</li><li>Pedido, placa e usina saem da descrição complementar, por fornecedor.</li><li>Nota cancelada aparece em vermelho; transferência da própria Concrelagos aparece em azul. Nenhuma das duas entra nas conferências.</li><li>A nota fica como descarregada quando existe uma entrada da PUZL com o mesmo número de documento.</li></ul>'}) +
+        impCard({id:'puzl', tom:'neutral', icone:'📋', titulo:'Notas Puzl', sub:'Resumo de entradas', res:'importPuzlResult', txt:'importPuzlText', btn:'importPuzlBtn', ph:'04 | ROS | RIO DAS OSTRAS\t07.015.016/0004-60\t04 | ROS | RIO DAS OSTRAS\t...\tPOZOLANA\t3561\t1\t...',
           lead:'Forma as Entradas e confirma o material da nota pelo número do documento.',
           como:'<p>Exportação da PUZL (“Resumo de Entradas”). Só entra a linha cuja <b>Categoria é AGLOMERANTE</b> (as demais, ou sem categoria, são descartadas) e cujo Item bate com o Catálogo de Cimentos (inclusive pozolana). Valores, preço e frete são ignorados de propósito. Linhas de total e rodapé são descartadas.</p>'}) +
-        impCard({id:'inbound', tom:'success', icone:'🚚', titulo:'Inbound completo', sub:'CNPJ e motorista', res:'importInboundResult', txt:'importInboundText', btn:'importInboundBtn', ph:'Cole aqui a planilha inteira do reportCompleteInbound (com cabeçalho)',
+        impCard({id:'inbound', tom:'success', icone:'🚚', titulo:'Efit completo', sub:'CNPJ e motorista', res:'importInboundResult', txt:'importInboundText', btn:'importInboundBtn', ph:'Cole aqui a planilha inteira do reportCompleteInbound (com cabeçalho)',
           lead:'Complementa notas já importadas com usina, motorista e placa.',
-          como:'<p>Export mais completo do SEFAZ, sem material: não cria nota nova, só enriquece uma nota já importada, casada pelo número (a chave de acesso é a trava). A usina vem do CNPJ do destinatário; motorista e placa só preenchem o que estiver vazio. Cole a planilha inteira, com cabeçalho.</p>'}) +
+          como:'<p>Export mais completo do Efit, sem material: não cria nota nova, só enriquece uma nota já importada, casada pelo número (a chave de acesso é a trava). A usina vem do CNPJ do destinatário; motorista e placa só preenchem o que estiver vazio. Cole a planilha inteira, com cabeçalho.</p>'}) +
+        impCard({id:'fretes', tom:'info', icone:'🚛', titulo:'Resumo de entradas (Fretes)', sub:'Nota, valor e frete', res:'importFretesResult', txt:'importFretesText', btn:'importFretesBtn', ph:'Cole aqui a planilha inteira do Resumo de entradas com frete (com cabeçalho)',
+          lead:'Alimenta a Consulta: valor da nota, transportador e frete de cada entrada, para comparar com o frete base.',
+          como:'<p>Exportação da PUZL “Resumo de entradas” com as colunas de frete (TRANSPORTADORA, DATA FRETE, Nº FRETE, TOTAL FRETE…). Só entram as linhas de <b>Categoria AGLOMERANTE</b>. A mesma nota importada de novo é atualizada (não duplica); um arquivo sem frete não apaga o frete que já estava ligado.</p>'}) +
         impCard({id:'programacao', tom:'warning', icone:'🗓️', titulo:'Programação de Cimento', sub:'Planilha antiga, por dia', res:'importProgramacaoResult', txt:'importProgramacaoText', btn:'importProgramacaoBtn', ph:'PROGRAMAÇÃO PARA O DIA 24/09/2026 ( QUINTA-FEIRA )\nUsina\tPLACA\tFÁBRICA\tPEDIDO\nGARDÊNIA\tHGJ4049\tCP 3 CSN SCZ\t9042814',
           lead:'Traz a programação da planilha antiga: usina, placa, fábrica e pedido, por dia.',
           como:'<p>Uma linha “PROGRAMAÇÃO PARA O DIA DD/MM/AAAA (...)” seguida das linhas Usina / Placa / Fábrica / Pedido; pode ter vários dias de uma vez. Usina marcada com *** fica em branco. Usinas da Base de Usinas são casadas sozinhas; as outras entram como linha extra.</p>'}) +
@@ -3838,7 +3864,7 @@
       var r = importInboundCompletoFromText(txt);
       var msg = r.enriquecidas+" nota(s) enriquecida(s) (usina/motorista/placa)"+(r.semMatch?", "+r.semMatch+" não encontrada(s) na base (ignorada(s))":"")+(r.colisao?", "+r.colisao+" ignorada(s) por chave de acesso divergente (nº reaproveitado)":"")+(r.invalid?", "+r.invalid+" linha(s) inválida(s)":"")+".";
       el("importInboundResult").textContent = msg;
-      if (r.enriquecidas) logImport(arquivo, "Inbound Completo (CNPJ/Motorista)", r.enriquecidas, r.enriquecidas + r.semMatch + r.colisao + r.invalid);
+      if (r.enriquecidas) logImport(arquivo, "Efit completo (CNPJ/Motorista)", r.enriquecidas, r.enriquecidas + r.semMatch + r.colisao + r.invalid);
       el("importInboundText").value = "";
       delete el("importInboundText").dataset.arquivo;
       el("inboundFileLabel").textContent = "Arraste ou clique para selecionar";
@@ -3851,7 +3877,7 @@
       var r = importPuzlFromText(txt);
       var msg = r.added+" novo(s) importado(s)"+(r.atualizadas?", "+r.atualizadas+" completado(s) com dados que faltavam":"")+", "+r.skipped+" já cadastrado(s) ignorado(s)"+(r.foraCategoria?", "+r.foraCategoria+" descartado(s) por categoria diferente de AGLOMERANTE":"")+(r.naoCimento?", "+r.naoCimento+" ignorado(s) por não ser cimento (fora do Catálogo)":"")+(r.invalid?", "+r.invalid+" linha(s) inválida(s)":"")+".";
       el("importPuzlResult").textContent = msg; mostrarIgnoradas("importPuzlResult");
-      if (r.added || r.skipped || r.naoCimento || r.atualizadas || r.foraCategoria) logImport(arquivo, "Lançamentos (PUZL)", r.added, r.added + r.skipped + r.invalid + r.naoCimento + r.foraCategoria);
+      if (r.added || r.skipped || r.naoCimento || r.atualizadas || r.foraCategoria) logImport(arquivo, "Notas Puzl", r.added, r.added + r.skipped + r.invalid + r.naoCimento + r.foraCategoria);
       el("importPuzlText").value = "";
       delete el("importPuzlText").dataset.arquivo;
       el("puzlFileLabel").textContent = "Arraste ou clique para selecionar";
@@ -3867,7 +3893,7 @@
       var r = importNFesFromText(txt);
       var msg = r.added+" nova(s) importada(s)"+(r.canceladas?" ("+r.canceladas+" cancelada(s), só registro)":"")+(r.transferencias?" ("+r.transferencias+" transferência(s), só registro)":"")+(r.atualizadas?", "+r.atualizadas+" passou(aram) a cancelada":"")+", "+r.skipped+" já cadastrada(s) ignorada(s)"+(r.naoCimento?", "+r.naoCimento+" ignorada(s) por não ser cimento (fora do Catálogo)":"")+(r.invalid?", "+r.invalid+" linha(s) inválida(s)":"")+(r.materiaisNovos?", "+r.materiaisNovos+" material(is) possivelmente novo(s) — ver alerta acima":"")+".";
       el("importNFesResult").textContent = msg; mostrarIgnoradas("importNFesResult");
-      if (r.added || r.skipped || r.naoCimento || r.atualizadas) logImport(arquivo, "Notas Fiscais (SEFAZ)", r.added, r.added + r.skipped + r.invalid + r.naoCimento);
+      if (r.added || r.skipped || r.naoCimento || r.atualizadas) logImport(arquivo, "Efit", r.added, r.added + r.skipped + r.invalid + r.naoCimento);
       el("importNFesText").value = "";
       delete el("importNFesText").dataset.arquivo;
       el("nfesFileLabel").textContent = "Arraste ou clique para selecionar";
@@ -3887,6 +3913,11 @@
       el("puzlFileLabel").textContent = nome;
       runImportPuzl(tsv, nome);
     }, function(msg){ el("importPuzlResult").textContent = "⚠️ " + msg; });
+    wireFileDropzone("fretesFileLabel", "fretesFileInput", function(tsv, nome){
+      el("fretesFileLabel").textContent = nome;
+      fretesImportar(tsv, nome, el("importFretesResult")).then(function(){ el("fretesFileLabel").textContent = "Arraste ou clique para selecionar"; el("fretesFileInput").value = ""; });
+    }, function(msg){ el("importFretesResult").textContent = "⚠️ " + msg; });
+    el("importFretesBtn").addEventListener("click", function(){ var t = el("importFretesText"); fretesImportar(t.value, "colado manualmente", el("importFretesResult")).then(function(){ t.value = ""; }); });
     wireFileDropzone("inboundFileLabel", "inboundFileInput", function(tsv, nome){
       el("inboundFileLabel").textContent = nome;
       runImportInbound(tsv, nome);
@@ -3945,17 +3976,17 @@
   }
 
   // Módulo próprio (fora de Base de Dados) só pra ver e filtrar TODAS as
-  // Notas Fiscais (SEFAZ) já importadas — mesma tabela que antes vivia
-  // dentro de Base de Dados, promovida a tela própria (menu > Notas SEFAZ),
+  // Efit já importadas — mesma tabela que antes vivia
+  // dentro de Base de Dados, promovida a tela própria (menu > Efit),
   // com filtro por coluna (xlEnhance) já em todas as colunas de dado. A
   // importação continua só em Base de Dados; aqui é só consulta/edição.
   function renderNotasSefaz(){
     el("view-notas-sefaz").innerHTML =
-      '<div class="card banner" style="margin-bottom:16px;">Todas as notas fiscais (SEFAZ) já importadas, com filtro em cada coluna (clique na setinha do cabeçalho). Pra importar notas novas, use <b>Base de Dados</b>.</div>' +
+      '<div class="card banner" style="margin-bottom:16px;">Todas as notas do Efit já importadas, com filtro em cada coluna (clique na setinha do cabeçalho). Pra importar notas novas, use <b>Base de Dados</b>.</div>' +
       '<div id="nfesCard"></div>';
     paintNFes();
   }
-  // Mesma ideia acima, só que pros Lançamentos (PUZL) — essa é a lista que
+  // Mesma ideia acima, só que pros Notas Puzl — essa é a lista que
   // antes aparecia duas vezes em Base de Dados (uma vez como "Entradas",
   // outra como "Lançamentos importados da PUZL", ambas com a mesma
   // contagem): agora só existe aqui, filtrável, sem repetição.
@@ -4107,7 +4138,7 @@
   }
 
   // Catálogo de Cimentos: lista de termos usados pra decidir se uma nota do
-  // SEFAZ é cimento (materialEhCimento) — editável aqui, pra quando surgir
+  // Efit é cimento (materialEhCimento) — editável aqui, pra quando surgir
   // um tipo de cimento novo (ex: "CP II Z"), sem precisar mexer em código.
   function renderCatalogoCimentos(){
     var cardEl = el("catalogoCimentoCard");
@@ -4125,7 +4156,7 @@
       cardEl.innerHTML =
         '<details style="margin-bottom:0;"><summary style="cursor:pointer;padding:12px 18px;font-size:12.5px;font-weight:600;color:var(--accent-strong);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">🏷️ Catálogo de Cimentos — o que conta como cimento na importação ('+CEMENTO_CATALOGO.length+' termos, '+CEMENTO_EXCLUIR.length+' exceção(ões))</summary>' +
         '<div class="card" style="margin-top:8px;">' +
-        '<p class="import-card-desc" style="margin:0 0 10px;">Ao importar Notas Fiscais (SEFAZ) e Lançamentos (PUZL), só entra a linha cujo Material contenha um destes termos (sem diferenciar maiúsculas, acentos, espaços ou pontuação). Adicione aqui quando surgir um cimento novo. As alterações são gravadas no banco automaticamente.</p>' +
+        '<p class="import-card-desc" style="margin:0 0 10px;">Ao importar Efit e Notas Puzl, só entra a linha cujo Material contenha um destes termos (sem diferenciar maiúsculas, acentos, espaços ou pontuação). Adicione aqui quando surgir um cimento novo. As alterações são gravadas no banco automaticamente.</p>' +
         '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">'+(chips || '<span class="faint" style="font-style:italic;">Nenhum termo cadastrado — nada será reconhecido como cimento.</span>')+'</div>' +
         '<div style="display:flex;gap:8px;margin-bottom:16px;">' +
         '<input id="catalogoNovoTermo" type="text" placeholder="ex: CP II Z" style="'+inputCss+'"/>' +
@@ -4175,7 +4206,7 @@
   // "base_cadastro_filiais" usada pela empresa. Código/Filial/Formato PUZL
   // ficam nas colunas finais: não fazem parte do modelo de cadastro da
   // empresa, mas seguem necessários aqui dentro (é o campo "puzl" que bate a
-  // usina no formato "32 | CGL | CARANGOLA" contra os Lançamentos PUZL — ver
+  // usina no formato "32 | CGL | CARANGOLA" contra os Notas Puzl — ver
   // recomputeEntradasFromPuzl). Editável direto na tabela, ou alimentada por
   // arquivo/colar abaixo, igual às outras importações desta tela.
   function importUsinasFromText(text){
@@ -4360,7 +4391,7 @@
       cardEl.innerHTML =
         '<details open style="margin-bottom:0;"><summary style="cursor:pointer;padding:12px 18px;font-size:12.5px;font-weight:600;color:var(--accent-strong);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">🏭 Usinas ('+usinasCadastro.length+')</summary>' +
         '<div class="card" style="margin-top:8px;">' +
-        '<p class="import-card-desc" style="margin:0 0 10px;">Usina, sigla, CNPJ, regional e contatos (WhatsApp/e-mail de usina e de regional) — edite direto nos campos da tabela. Código/Filial/Formato PUZL são internos: é o Formato PUZL (ex: "32 | CGL | CARANGOLA") que liga a usina aos Lançamentos PUZL, e o CNPJ é reconhecido na Descrição Complementar das notas do SEFAZ. Para carregar uma planilha de usinas, use <b>Importar arquivos</b>.</p>' +
+        '<p class="import-card-desc" style="margin:0 0 10px;">Usina, sigla, CNPJ, regional e contatos (WhatsApp/e-mail de usina e de regional) — edite direto nos campos da tabela. Código/Filial/Formato PUZL são internos: é o Formato PUZL (ex: "32 | CGL | CARANGOLA") que liga a usina aos Notas Puzl, e o CNPJ é reconhecido na Descrição Complementar das notas do Efit. Para carregar uma planilha de usinas, use <b>Importar arquivos</b>.</p>' +
         '<div class="table-wrap"><table><thead><tr>' + fields.map(function(f, fi){ return '<th>'+esc(f[1])+'</th>' + (fi === 0 ? '<th>Encarregado</th>' : ""); }).join("") + '<th></th></tr></thead><tbody id="usinasCadastroBody">' +
         (rows || '<tr><td colspan="'+(fields.length+2)+'" style="padding:16px 14px;font-size:12px;font-style:italic;color:var(--text-faint);">Nenhuma usina cadastrada ainda.</td></tr>') +
         '</tbody></table></div>' +
@@ -4389,7 +4420,7 @@
   }
 
   var nfesListOpen = true;
-  /* Edição de uma linha (Notas SEFAZ / Lançamentos PUZL): ✏️ abre os campos na própria linha.
+  /* Edição de uma linha (Efit / Notas Puzl): ✏️ abre os campos na própria linha.
      O número da nota / documento da PUZL não muda (é a chave do registro). Salva sozinho no banco. */
   var NF_ED = null, PZ_ED = null;
   function bdPodeEditar(){ return !!ME && ME.papel !== "leitura"; }
@@ -4441,11 +4472,11 @@
         '</tr>';
     }).join("");
     el3.innerHTML =
-      '<details'+(nfesListOpen?" open":"")+'><summary style="cursor:pointer;padding:12px 18px;font-size:13.5px;font-weight:600;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">Notas fiscais importadas do SEFAZ ('+cementNFes.length+')</summary>' +
+      '<details'+(nfesListOpen?" open":"")+'><summary style="cursor:pointer;padding:12px 18px;font-size:13.5px;font-weight:600;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">Notas fiscais importadas do Efit ('+cementNFes.length+')</summary>' +
       '<div class="card" style="margin-top:8px;">' +
-      '<p class="import-card-desc" style="margin:0 0 10px;">'+(function(){ var c = cementNFes.filter(nfCancelada).length, t = cementNFes.filter(nfTransf).length; return (c ? '<b style="color:var(--danger);">'+c+' nota(s) CANCELADA(S)</b> (vermelho) e ' : '') + (t ? '<b>'+t+' transferência(s)</b> (azul) estão aqui só pra registro — não entram nas conferências. ' : (c ? 'estão aqui só pra registro. ' : '')); })()+'A coluna <b>Material (PUZL)</b> é o item confirmado por cruzamento com Lançamentos (PUZL) pelo nº do Documento/NF — mais confiável que o texto cru do SEFAZ, principalmente pra distinguir pozolana.</p>' +
+      '<p class="import-card-desc" style="margin:0 0 10px;">'+(function(){ var c = cementNFes.filter(nfCancelada).length, t = cementNFes.filter(nfTransf).length; return (c ? '<b style="color:var(--danger);">'+c+' nota(s) CANCELADA(S)</b> (vermelho) e ' : '') + (t ? '<b>'+t+' transferência(s)</b> (azul) estão aqui só pra registro — não entram nas conferências. ' : (c ? 'estão aqui só pra registro. ' : '')); })()+'A coluna <b>Material (PUZL)</b> é o item confirmado por cruzamento com Notas Puzl pelo nº do Documento/NF — mais confiável que o texto cru do Efit, principalmente pra distinguir pozolana.</p>' +
       (cementNFes.length
-        ? '<div class="table-wrap"><table><thead><tr><th>Número</th><th>Emissão</th><th>Fornecedor</th><th>Material (SEFAZ)</th><th>Material (PUZL)</th><th>Pedido</th><th>Placa</th><th>Motorista</th><th>Usina</th><th>Status</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+        ? '<div class="table-wrap"><table><thead><tr><th>Número</th><th>Emissão</th><th>Fornecedor</th><th>Material (Efit)</th><th>Material (PUZL)</th><th>Pedido</th><th>Placa</th><th>Motorista</th><th>Usina</th><th>Status</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>'
         : '<p class="prog-empty">Nenhuma nota importada ainda.</p>') +
       '</div></details>';
     el3.querySelector("details").addEventListener("toggle", function(e){ nfesListOpen = e.target.open; });
@@ -4508,19 +4539,19 @@
     var comDoc = cementEntradas.filter(function(en){ return String(en.documento||"").trim(); }).length;
     var confirmadas = cementEntradas.filter(function(en){ return entradaNFStatus(en).status === "confirmada"; }).length;
     var nCanc = cementNFes.filter(nfCancelada).length, nTr = cementNFes.filter(nfTransf).length;
-    var sub = (nCanc || nTr) ? (nCanc ? nCanc + ' cancelada(s)' : '') + (nCanc && nTr ? ' · ' : '') + (nTr ? nTr + ' transferência(s)' : '') : 'importadas do SEFAZ';
+    var sub = (nCanc || nTr) ? (nCanc ? nCanc + ' cancelada(s)' : '') + (nCanc && nTr ? ' · ' : '') + (nTr ? nTr + ' transferência(s)' : '') : 'importadas do Efit';
     function tile(rotulo, valor, subtxt, cor){ return '<div class="stat" style="--stat-accent:var(--'+cor+');"><div class="stat-top"><span>'+rotulo+'</span></div><div class="stat-val">'+valor+'</div><div class="stat-sub">'+subtxt+'</div></div>'; }
     el2.innerHTML = '<div class="stat-grid">' +
-      tile("Notas SEFAZ", cementNFes.length, sub, "info") +
-      tile("Lançamentos PUZL", puzlEntradas.length, "importados", "neutral") +
+      tile("Efit", cementNFes.length, sub, "info") +
+      tile("Notas Puzl", puzlEntradas.length, "importados", "neutral") +
       tile("Entradas com documento", comDoc, "de " + cementEntradas.length + " entrada(s)", "accent") +
-      tile("Descarregadas", confirmadas, "nota do SEFAZ = entrada da PUZL", "success") +
+      tile("Descarregadas", confirmadas, "nota do Efit = entrada da PUZL", "success") +
       '</div>';
   }
 
-  // "Entradas — derivadas dos Lançamentos (PUZL)" tinha uma tabela própria
+  // "Entradas — derivadas dos Notas Puzl" tinha uma tabela própria
   // aqui, mas ela mostrava a mesma lista (mesma contagem) que o novo módulo
-  // filtrável Lançamentos (PUZL) — repetido sem necessidade. A ligação com
+  // filtrável Notas Puzl — repetido sem necessidade. A ligação com
   // Programação/NF (matchProgramacao, entradaNFStatus) continua existindo e
   // é usada em Controle de Pedidos e na própria Programação — só a tabela
   // duplicada saiu daqui; o que resta em Base de Dados é o resumo (stats).
@@ -4531,26 +4562,26 @@
   /* ---------------- Controle de Pedidos de Cimento ---------------- */
   var pedidosFiltro = "todos";
   var pedidosModo = "prog", pedProgFiltro = "acomp";
-  // Controle de Pedidos passou a ser formado pelas NOTAS DO SEFAZ (cementNFes),
+  // Controle de Pedidos passou a ser formado pelas NOTAS DO Efit (cementNFes),
   // não mais pelas entradas: cada nota puxa usina/fábrica/placa da Programação
   // de Cimento (via nfProgMatch, pelo nº do pedido — combinado com você como a
   // base confiável — conferido pela placa quando ela também vier na nota) e é
   // conferida contra o resumo de entradas (nfEntradaMatch) pra saber se já
-  // descarregou. Entradas que ainda não têm nota do SEFAZ correspondente (a
+  // descarregou. Entradas que ainda não têm nota do Efit correspondente (a
   // nota pode não ter sido importada ainda, ou o número não bateu) não somem:
   // ficam numa área separada, pra conferência individual — já que toda
-  // entrada é, em tese, uma nota do SEFAZ que já foi lançada na usina.
+  // entrada é, em tese, uma nota do Efit que já foi lançada na usina.
   var pedidosPicker;
   function renderControlePedidos(){
     if (typeof PED_CONF !== "undefined"){ PED_CONF.fixas = {}; PED_CONF.aberto = -1; }
     el("view-controle-pedidos-cimento").innerHTML =
-      '<div class="card banner" id="pedBanner" style="margin-bottom:16px;">Cada nota importada em <b>Base de Dados &gt; Notas Fiscais (SEFAZ)</b> é ligada à Programação de Cimento pelo nº do pedido (conferida pela placa, quando informada); sem pedido na nota, a ligação cai pra Usina + Placa + Data. O caminho é: <b>Programação → nota emitida (SEFAZ) → descarregada (entrada da PUZL, pelo nº da nota)</b>. Pra importar notas ou entradas, use a aba <b>Base de Dados</b>.</div>' +
+      '<div class="card banner" id="pedBanner" style="margin-bottom:16px;">Cada nota importada em <b>Base de Dados &gt; Efit</b> é ligada à Programação de Cimento pelo nº do pedido (conferida pela placa, quando informada); sem pedido na nota, a ligação cai pra Usina + Placa + Data. O caminho é: <b>Programação → nota emitida (Efit) → descarregada (entrada da PUZL, pelo nº da nota)</b>. Pra importar notas ou entradas, use a aba <b>Base de Dados</b>.</div>' +
       '<div class="card" style="margin-bottom:16px;"><div class="filters" style="align-items:center;">' +
       '<div class="filter-field"><span id="pedPeriodoLbl">Período (dia programado)</span>' +
       '<div class="daterange"><button class="daterange-btn" id="pedDrBtn">📅 <span id="pedDrLabel"></span> <span style="opacity:.6;">▾</span></button>' +
       '<div class="daterange-panel" id="pedDrPanel"></div></div></div>' +
       '<div class="filter-count" id="pedDayInfo"></div></div></div>' +
-      '<div class="pedidos-tabs" id="pedModo" style="padding:0 0 12px;border:none;"><button data-modo="prog">📋 Por programação</button><button data-modo="nota">🧾 Por nota (SEFAZ)</button></div>' +
+      '<div class="pedidos-tabs" id="pedModo" style="padding:0 0 12px;border:none;"><button data-modo="prog">📋 Por programação</button><button data-modo="nota">🧾 Por nota (Efit)</button></div>' +
       '<div id="pedProgStats"></div><div class="card" id="pedProgCard" style="margin-bottom:16px;"></div>' +
       '<div id="pedidosStats"></div>' +
       '<div class="card" id="pedidosCard" style="margin-bottom:16px;"></div>' +
@@ -4588,7 +4619,7 @@
     nfs = nfs.filter(function(nf){ return !nfSoRegistro(nf); });
     var confirmadas = nfs.filter(function(nf){ return nfEntradaMatch(nf) !== null; }).length;
     el("pedidosStats").innerHTML = '<div class="stat-grid">' +
-      '<div class="stat" style="--stat-accent:var(--accent);"><div class="stat-top"><span>Total de notas (SEFAZ)</span><span class="stat-icn" style="background:var(--accent-soft);color:var(--accent-strong);">🧾</span></div><div class="stat-val">'+nfs.length+'</div></div>' +
+      '<div class="stat" style="--stat-accent:var(--accent);"><div class="stat-top"><span>Total de notas (Efit)</span><span class="stat-icn" style="background:var(--accent-soft);color:var(--accent-strong);">🧾</span></div><div class="stat-val">'+nfs.length+'</div></div>' +
       statMeta.map(function(s){
         return '<div class="stat" style="--stat-accent:var(--'+s[2]+');"><div class="stat-top"><span>'+s[1]+'</span><span class="stat-icn" style="background:var(--'+s[2]+'-soft);color:var(--'+s[2]+');">'+s[3]+'</span></div><div class="stat-val">'+pedidosCount(s[0])+'</div></div>';
       }).join("") +
@@ -4612,13 +4643,13 @@
     var bn = el("pedBanner");
     if (!window.__pedBannerNotas) window.__pedBannerNotas = bn.innerHTML;
     bn.innerHTML = prog
-      ? 'O Controle <b>acompanha a Programação de Cimento</b>: cada carga programada vira uma linha e o sistema mostra se já teve <b>nota emitida (SEFAZ)</b> e se foi <b>descarregada (PUZL)</b> — no prazo ou atrasada. Programações “Tudo OK” que ainda não foram nem emitidas nem descarregadas ficam numa aba separada, e as linhas <b>Adiadas</b> também.'
+      ? 'O Controle <b>acompanha a Programação de Cimento</b>: cada carga programada vira uma linha e o sistema mostra se já teve <b>nota emitida (Efit)</b> e se foi <b>descarregada (PUZL)</b> — no prazo ou atrasada. Programações “Tudo OK” que ainda não foram nem emitidas nem descarregadas ficam numa aba separada, e as linhas <b>Adiadas</b> também.'
       : window.__pedBannerNotas;
     if (prog) paintPedidosProg(); else paintPedidosNotas();
   }
   function diasEntre(isoA, isoB){ return Math.round((fromISO(isoB) - fromISO(isoA)) / 86400000); }
   // Uma linha por CARGA programada (placa/fábrica/pedido), com a situação dela na cadeia
-  // Programação → nota emitida (SEFAZ) → descarregada (PUZL).
+  // Programação → nota emitida (Efit) → descarregada (PUZL).
   function pedProgLinhas(stArg){
     var st = stArg || pedidosPicker.state, hoje = toISO(TODAY), out = [];
     var entPorLinha = new Map();
@@ -4741,7 +4772,7 @@
     PED_CONF.lista = lista;
     var rows = lista.map(function(l, i){
       var nfTxt = l.nfs.length ? l.nfs.map(function(nf){ return '<button type="button" class="nf-rastro-link xl-ignore" data-rastronum="' + esc(nf.numero) + '" title="Ver a ligação desta nota">' + esc(nf.numero) + '</button><span style="display:none">' + esc(nf.numero) + '</span>'; }).join(", ") : (l.conf && l.conf.nf ? '<span title="NF informada na conferência manual">✋ ' + esc(l.conf.nf) + '</span>' : '<span class="faint">—</span>');
-      if (l.canc.length) nfTxt += ' <span class="badge danger" title="Nota cancelada no SEFAZ">🚫 '+l.canc.map(function(nf){ return esc(nf.numero); }).join(", ")+'</span>';
+      if (l.canc.length) nfTxt += ' <span class="badge danger" title="Nota cancelada no Efit">🚫 '+l.canc.map(function(nf){ return esc(nf.numero); }).join(", ")+'</span>';
       var emis = l.nfs.length ? esc(brDate(l.nfs.map(function(nf){ return nf.emissao; }).sort()[0])) : '<span class="faint">—</span>';
       var fixa = PED_CONF.fixas[pedConfChave(l)] || PED_CONF.aberto === i;
       return '<tr data-xlid="pc' + i + '"' + (fixa ? ' data-xlfixa="1"' : '') + (l.status === "adiado" ? ' class="prog-row-adiado"' : '') + '>' +
@@ -4762,7 +4793,7 @@
     el("pedProgCard").innerHTML =
       '<div class="pedidos-tabs">'+tabs+'</div>' +
       (lista.length
-        ? '<div class="table-wrap"><table><thead><tr><th>Dia programado</th><th>Usina</th><th>Fábrica</th><th>Pedido</th><th>Placa</th><th>Status prog.</th><th>NF (SEFAZ)</th><th>Emissão NF</th><th>Situação</th><th>Data de descarga</th><th>Prazo</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+        ? '<div class="table-wrap"><table><thead><tr><th>Dia programado</th><th>Usina</th><th>Fábrica</th><th>Pedido</th><th>Placa</th><th>Status prog.</th><th>NF (Efit)</th><th>Emissão NF</th><th>Situação</th><th>Data de descarga</th><th>Prazo</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
         : '<p class="prog-empty">Nenhuma carga nesta aba, no período selecionado.</p>');
     el("pedProgCard").querySelectorAll(".pedidos-tabs button").forEach(function(b){
       b.addEventListener("click", function(){ pedProgFiltro = b.dataset.aba; PED_CONF.aberto = -1; PED_CONF.fixas = {}; paintPedidosProg(); });
@@ -4777,7 +4808,7 @@
     });
     xlEnhance(el("pedProgCard"), "ped-prog-" + aba[0]);
   }
-  // Rastro de uma nota: em que ordem o sistema liga Nota (SEFAZ) → Programação (dia, usina, carga) → Entrada na usina (PUZL).
+  // Rastro de uma nota: em que ordem o sistema liga Nota (Efit) → Programação (dia, usina, carga) → Entrada na usina (PUZL).
   function nfRastroAbrir(nf){
     var velho = el("nfRastro"); if (velho) velho.remove();
     var linha = function(rot, val){ return '<div class="rz-l"><span>' + rot + '</span><b>' + val + '</b></div>'; };
@@ -4785,7 +4816,7 @@
     var s = nfSituacao(nf), m = nfProgMatch(nf), en = nfEntradaMatch(nf);
     var passos = [];
     // 1. nota
-    passos.push({ ic: "🧾", t: "Nota fiscal (SEFAZ)", ok: !nfSoRegistro(nf), corpo:
+    passos.push({ ic: "🧾", t: "Nota fiscal (Efit)", ok: !nfSoRegistro(nf), corpo:
       linha("Número", esc(nf.numero)) + linha("Emissão", esc(brDate(nf.emissao)) || "—") + linha("Fornecedor", esc(nf.fornecedor) || "—") +
       linha("Material", esc(materialEfetivo ? materialEfetivo(nf) : nf.material) || "—") +
       linha("Pedido", pedEf ? esc(pedEf) + (pedNota ? "" : ' <span class="faint">(veio da PUZL — a nota não trouxe)</span>') : '<span class="faint">sem pedido</span>') +
@@ -4956,7 +4987,7 @@
   }
 
   // Área separada pra conferência individual: entradas do resumo que ainda
-  // não bateram com nenhuma nota do SEFAZ importada (pedido pra criar esse
+  // não bateram com nenhuma nota do Efit importada (pedido pra criar esse
   // campo à parte, em vez de esconder ou misturar com a tabela principal).
   function paintPedidosSemNF(){
     var cardEl = el("pedidosSemNFCard");
@@ -4971,7 +5002,7 @@
       var motivo = !doc
         ? '<span class="faint" style="font-style:italic;font-size:11px;">sem documento</span>'
         : entradaNFStatus(en).status === "cancelada"
-        ? '<span class="badge danger">🚫 NF '+esc(doc)+' CANCELADA no SEFAZ</span>'
+        ? '<span class="badge danger">🚫 NF '+esc(doc)+' CANCELADA no Efit</span>'
         : '<span class="badge warning">NF '+esc(doc)+' não importada</span>';
       return '<tr>' +
         '<td style="padding:8px 10px;font-size:12.5px;">'+esc(brDate(en.data))+'</td>' +
@@ -4985,12 +5016,12 @@
         '</tr>';
     }).join("");
     cardEl.innerHTML =
-      '<details id="semNFDet" style="margin-bottom:16px;"'+(window.__semNFOpen?" open":"")+'><summary style="cursor:pointer;padding:12px 18px;font-size:12.5px;font-weight:600;color:var(--accent-strong);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">🔍 Conferência individual — entradas sem nota do SEFAZ correspondente ('+semNF.length+')</summary>' +
+      '<details id="semNFDet" style="margin-bottom:16px;"'+(window.__semNFOpen?" open":"")+'><summary style="cursor:pointer;padding:12px 18px;font-size:12.5px;font-weight:600;color:var(--accent-strong);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">🔍 Conferência individual — entradas sem nota do Efit correspondente ('+semNF.length+')</summary>' +
       '<div class="card" style="margin-top:8px;">' +
-      '<p class="import-card-desc" style="margin:0 0 10px;">Toda entrada lançada é, em tese, uma nota do SEFAZ que já chegou na usina — as linhas abaixo ainda não bateram com nenhuma nota importada (pode ser que a NF ainda não tenha sido importada em Base de Dados, ou o número tenha sido digitado diferente). Confira uma a uma.</p>' +
+      '<p class="import-card-desc" style="margin:0 0 10px;">Toda entrada lançada é, em tese, uma nota do Efit que já chegou na usina — as linhas abaixo ainda não bateram com nenhuma nota importada (pode ser que a NF ainda não tenha sido importada em Base de Dados, ou o número tenha sido digitado diferente). Confira uma a uma.</p>' +
       (semNF.length
         ? '<div class="table-wrap"><table><thead><tr><th>Data entrada</th><th>Usina</th><th>Fábrica</th><th>Nº pedido</th><th>Documento/NF</th><th>Quantidade</th><th>Motivo</th><th>Programação encontrada</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
-        : '<p class="prog-empty">Todas as entradas já têm nota do SEFAZ correspondente.</p>') +
+        : '<p class="prog-empty">Todas as entradas já têm nota do Efit correspondente.</p>') +
       '</div></details>';
     var detSem = cardEl.querySelector("#semNFDet"); if (detSem) detSem.addEventListener("toggle", function(){ window.__semNFOpen = detSem.open; });
     xlEnhance(cardEl, "pedidos-sem-nf");
@@ -5030,89 +5061,324 @@
     return rotas.find(function(r){ return r.fabrica.toUpperCase().indexOf(alvo) !== -1; }) || null;
   }
 
-  function renderConsultas(){
-    el("view-consultas").innerHTML =
-      '<div class="card banner" style="margin-bottom:16px;">Consulta dos pedidos a partir das entradas cadastradas em <b>Base de Dados</b>. A <b>Consulta Geral</b> mostra a mesma conferência contra a Programação de Cimento usada em Controle de Pedidos; a <b>Consulta Pedágio</b> mostra o status de pedágio da rota (usina → fábrica), reaproveitando a mesma configuração da tela de VPO.</div>' +
-      '<div class="pedidos-tabs" id="consultaAbas">' +
-        '<button data-aba="geral" class="'+(consultaAba==="geral"?"active":"")+'">Consulta Geral</button>' +
-        '<button data-aba="pedagio" class="'+(consultaAba==="pedagio"?"active":"")+'">Consulta Pedágio</button>' +
-      '</div>' +
-      '<div class="card" style="margin-bottom:16px;"><div class="filters" style="align-items:center;">' +
-        '<div class="filter-field" style="min-width:260px;"><span>Buscar</span>' +
-        '<input id="consultaBusca" type="text" placeholder="usina, fábrica, pedido ou documento" value="'+esc(consultaBusca)+'" style="height:32px;border-radius:7px;border:1px solid var(--border-strong);background:var(--surface);color:var(--text);font-size:12.5px;padding:0 10px;min-width:260px;"/></div>' +
-        '<div class="filter-count" id="consultaCount"></div>' +
-      '</div></div>' +
-      '<div class="card" id="consultaCard"></div>';
-
-    el("consultaAbas").querySelectorAll("button").forEach(function(b){
-      b.addEventListener("click", function(){ consultaAba = b.dataset.aba; paintConsulta(); });
+  /* ================== CONSULTA: notas de compra, frete e custos ==================
+     Base: o "Resumo de entradas (Fretes)" da PUZL (nota + valor + CT-e de frete de cada entrada).
+     Cada linha = uma nota: área da nota, área do transporte e área de custos (preço R$/t, frete R$/t,
+     custo R$/t e o FRETE BASE). O frete base é por usina de destino + fábrica (planta do fornecedor),
+     com registros: cada alteração vale a partir de uma data e as anteriores ficam guardadas. */
+  var FRETES = [];        // fretes_entradas (banco)
+  var FRETE_BASE = [];    // frete_base (registros, banco)
+  var CONS = { aba: "geral", busca: "", sit: "", picker: null, baseAberta: "", baseErro: "", baseMsg: "" };
+  var FRETE_TOL = 0.005;  // diferença menor que meio centavo por tonelada = na base
+  function numN(v){ if (v == null || v === "") return null; var n = typeof v === "number" ? v : parseQtd(v); return n == null || !isFinite(n) ? null : n; }
+  function brl(v){ return v == null ? "—" : Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
+  function brl2(v){ return v == null ? "—" : Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function ton(v){ return v == null ? "—" : Number(v).toLocaleString("pt-BR", { maximumFractionDigits: 3 }); }
+  function soDig(s){ return String(s || "").replace(/\D/g, ""); }
+  // "40 | CGN | CONGONHAS" → usina cadastrada (pelo rótulo da PUZL) ou o nome depois da sigla
+  function usinaDaCentral(c){
+    var s = String(c || "").trim(); if (!s) return "";
+    var u = usinasCadastro.find(function(x){ return x.puzl && x.puzl === s; });
+    if (u) return u.usina;
+    var p = s.split("|"); return String(p[p.length - 1] || s).trim().toUpperCase();
+  }
+  // fábrica = fornecedor (nome curto do cadastro) + planta (CNPJ). Chave estável para o frete base.
+  function freteFornecedor(f){ var e = fabricaEntryForFornecedor(f.fornecedor); return e ? e.fornecedor : String(f.fornecedor || "").trim(); }
+  function freteFabKey(f){ var c = soDig(f.cnpj_fornecedor); return freteFornecedor(f) + (c ? "|" + c : ""); }
+  function freteFabRotulo(key, usina){
+    var p = String(key || "").split("|"), forn = p[0], cnpj = p[1] || "";
+    var rotas = (ROTAS_POR_USINA[String(usina || "").toUpperCase()] || []).filter(function(r){ return fornDe(forn) && vptFornRota(r.fabrica) === fornDe(forn); });
+    if (rotas.length === 1) return rotas[0].fabrica;
+    return forn + (cnpj.length >= 12 ? " (filial " + cnpj.slice(8, 12) + ")" : "");
+  }
+  function baseChave(usina, fab){ return String(usina || "").trim().toUpperCase() + "#" + String(fab || "").trim().toUpperCase(); }
+  function baseRegistros(usina, fab){
+    var k = baseChave(usina, fab);
+    return FRETE_BASE.filter(function(b){ return baseChave(b.usina, b.fabrica) === k; })
+      .sort(function(a, b){ return a.desde < b.desde ? 1 : a.desde > b.desde ? -1 : (a.registrada_em < b.registrada_em ? 1 : -1); });
+  }
+  // valor que vale numa data: o último registro com "desde" <= data
+  function baseVigente(usina, fab, iso){
+    var rs = baseRegistros(usina, fab); if (!rs.length) return null;
+    if (!iso) return rs[0];
+    return rs.find(function(r){ return r.desde <= iso; }) || null;
+  }
+  var SIT_FRETE = {
+    acima: ["danger", "▲ Acima da base"], abaixo: ["info", "▼ Abaixo da base"], nabase: ["success", "= Na base"],
+    sembase: ["neutral", "Sem frete base"], semfrete: ["warning", "Frete não vinculado"]
+  };
+  function consultaLinhas(){
+    var nfMap = {}; cementNFes.forEach(function(n){ var k = nfKey(n); if (k && !nfMap[k]) nfMap[k] = n; });
+    return FRETES.map(function(f){
+      var peso = numN(f.quantidade), valor = numN(f.valor_total); if (valor == null) valor = numN(f.valor_final); if (valor == null) valor = numN(f.total);
+      var frete = numN(f.total_frete), temFrete = frete != null && (frete > 0 || String(f.num_frete || "").trim());
+      var preco = peso ? (valor == null ? null : valor / peso) : null;
+      var freteU = peso && temFrete ? frete / peso : null;
+      var usinaC = usinaDaCentral(f.central_compradora), usinaD = usinaDaCentral(f.central_entrada) || usinaC;
+      var fk = freteFabKey(f), emis = toIsoDate(f.emissao_nf) || "";
+      var base = baseVigente(usinaD, fk, emis);
+      var dif = freteU != null && base ? freteU - Number(base.valor) : null;
+      var sit = !temFrete ? "semfrete" : !base ? "sembase" : dif > FRETE_TOL ? "acima" : dif < -FRETE_TOL ? "abaixo" : "nabase";
+      var nf = nfMap[String(f.documento || "").trim().toUpperCase()];
+      return { f: f, emis: emis, entrega: toIsoDate(f.data_entrada) || "", usinaC: usinaC, usinaD: usinaD, fabKey: fk, fab: freteFabRotulo(fk, usinaD), mat: String(f.item || ""),
+        nf: String(f.documento || ""), placa: nf ? (nf.placa || "") : "", peso: peso, valor: valor, transp: String(f.transportadora || ""), emisFrete: toIsoDate(f.data_frete) || "",
+        numFrete: String(f.num_frete || ""), frete: temFrete ? frete : null, preco: preco, freteU: freteU, custo: preco == null ? null : preco + (freteU || 0),
+        base: base, dif: dif, sit: sit, difTotal: dif == null || peso == null ? null : dif * peso };
     });
-    el("consultaBusca").addEventListener("input", function(){ consultaBusca = this.value; paintConsulta(); });
-    paintConsulta();
   }
 
+  function renderConsultas(){
+    el("view-consultas").innerHTML =
+      '<div class="pedidos-tabs" id="consultaAbas" style="padding:0 0 12px;border:none;">' +
+        '<button data-aba="geral">📊 Consulta geral (custos)</button><button data-aba="base">💲 Frete base</button><button data-aba="pedagio">🛣️ Consulta pedágio</button></div>' +
+      '<div id="consultaCorpo"></div>';
+    el("consultaAbas").querySelectorAll("button").forEach(function(b){
+      b.addEventListener("click", function(){ CONS.aba = b.dataset.aba; CONS.baseAberta = ""; paintConsulta(); });
+    });
+    paintConsulta();
+  }
+  function paintConsulta(){
+    if (!el("consultaAbas")) return;
+    el("consultaAbas").querySelectorAll("button").forEach(function(b){ b.classList.toggle("active", b.dataset.aba === CONS.aba); });
+    if (CONS.aba === "base") return paintFreteBase();
+    if (CONS.aba === "pedagio") return paintConsultaPedagio();
+    paintConsultaGeral();
+  }
+
+  function paintConsultaGeral(){
+    var box = el("consultaCorpo");
+    if (!el("consPeriodo")){
+      box.innerHTML =
+        '<div class="card" style="margin-bottom:12px;"><div class="filters" style="align-items:center;">' +
+          '<div class="filter-field"><span>Período (emissão da nota)</span><div class="daterange"><button class="daterange-btn" id="consDrBtn">📅 <span id="consDrLabel"></span> <span style="opacity:.6;">▾</span></button><div class="daterange-panel" id="consDrPanel"></div></div></div>' +
+          '<div class="filter-field" style="min-width:260px;"><span>Buscar</span><input id="consBusca" type="search" placeholder="usina, fábrica, NF, transportador, placa…" style="height:32px;border-radius:7px;border:1px solid var(--border-strong);background:var(--surface);color:var(--text);padding:0 10px;"></div>' +
+          '<div class="filter-count" id="consCount"></div><span id="consPeriodo"></span>' +
+        '</div></div>' +
+        '<div id="consResumo"></div><div class="card" id="consTabela"></div>';
+      var antes = CONS.picker && CONS.picker.state;
+      CONS.picker = makeRangePicker({ btn: "consDrBtn", panel: "consDrPanel", label: "consDrLabel" }, paintConsultaGeral);
+      var st = CONS.picker.state;
+      if (antes){ st.rangeStart = antes.rangeStart; st.rangeEnd = antes.rangeEnd; st.calViewMonth = antes.calViewMonth; }
+      else { st.rangeStart = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1); st.rangeEnd = new Date(TODAY); st.calViewMonth = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1); }
+      el("consBusca").value = CONS.busca;
+      el("consBusca").addEventListener("input", function(){ CONS.busca = this.value; paintConsultaGeral(); });
+    }
+    CONS.picker.updateLabel();
+    var todas = consultaLinhas().filter(function(l){ return dateInPickerRange(l.emis, CONS.picker.state); });
+    var q = solNormBusca(CONS.busca.trim());
+    if (q) todas = todas.filter(function(l){ return solNormBusca([l.usinaC, l.usinaD, l.fab, l.mat, l.nf, l.placa, l.transp, l.numFrete].join(" ")).indexOf(q) !== -1; });
+    // resumo (clicar filtra pela situação do frete)
+    var soma = function(ls, k){ return ls.reduce(function(a, l){ return a + (l[k] || 0); }, 0); };
+    var por = function(s){ return todas.filter(function(l){ return l.sit === s; }); };
+    var pesoF = soma(todas.filter(function(l){ return l.frete != null; }), "peso"), freteT = soma(todas, "frete");
+    var tile = function(sit, rot, val, sub, cor){ return '<button type="button" class="stat cons-tile' + (CONS.sit === sit ? " on" : "") + '" data-sit="' + sit + '" style="--stat-accent:var(--' + cor + ');"><div class="stat-top"><span>' + rot + '</span></div><div class="stat-val">' + val + '</div>' + (sub ? '<div class="stat-sub">' + sub + '</div>' : '') + '</button>'; };
+    var ac = por("acima"), ab = por("abaixo");
+    el("consResumo").innerHTML = '<div class="stat-grid cons-resumo">' +
+      tile("", "Notas", todas.length, ton(soma(todas, "peso")) + " t · " + brl(soma(todas, "valor")), "accent") +
+      tile("", "Frete pago", brl(freteT), pesoF ? "média " + brl2(freteT / pesoF) + " R$/t" : "", "accent") +
+      tile("acima", "Acima da base", ac.length, ac.length ? "+" + brl(soma(ac, "difTotal")) + " no período" : "", "danger") +
+      tile("abaixo", "Abaixo da base", ab.length, ab.length ? brl(soma(ab, "difTotal")) + " no período" : "", "info") +
+      tile("nabase", "Na base", por("nabase").length, "", "success") +
+      tile("sembase", "Sem frete base", por("sembase").length, por("sembase").length ? "cadastre em Frete base" : "", "neutral") +
+      tile("semfrete", "Frete não vinculado", por("semfrete").length, "", "warning") +
+      '</div>';
+    el("consResumo").querySelectorAll("[data-sit]").forEach(function(b){ b.addEventListener("click", function(){ CONS.sit = CONS.sit === b.dataset.sit ? "" : b.dataset.sit; paintConsultaGeral(); }); });
+    var lista = CONS.sit ? todas.filter(function(l){ return l.sit === CONS.sit; }) : todas;
+    lista.sort(function(a, b){ return a.emis < b.emis ? 1 : a.emis > b.emis ? -1 : (a.nf < b.nf ? 1 : -1); });
+    var LIM = 2000, mostra = lista.slice(0, LIM);
+    el("consCount").textContent = lista.length + " nota(s)" + (CONS.sit ? " · filtro: " + SIT_FRETE[CONS.sit][1].replace(/^[▲▼=] /, "") : "") + (FRETES.length ? "" : " · importe o Resumo de entradas (Fretes) em Base de Dados");
+    var td = function(v, cls){ return '<td' + (cls ? ' class="' + cls + '"' : '') + '>' + v + '</td>'; };
+    var rows = mostra.map(function(l){
+      var s = SIT_FRETE[l.sit];
+      var difTxt = l.dif == null ? "" : ' <span class="faint" style="font-size:11px;">(' + (l.dif > 0 ? "+" : "") + brl2(l.dif) + '/t)</span>';
+      return '<tr class="cons-' + l.sit + '">' +
+        td(esc(brDate(l.emis)), "g-nota") + td(esc(brDate(l.entrega))) + td(esc(l.usinaC)) + td('<b>' + esc(l.usinaD) + '</b>') + td(esc(l.fab)) + td(esc(l.mat)) +
+        td('<b>' + esc(l.nf) + '</b>') + td(esc(l.placa) || '<span class="faint">—</span>') + td(ton(l.peso), "num") + td(brl(l.valor), "num") +
+        td(esc(l.transp) || '<span class="faint">—</span>', "g-transp") + td(esc(brDate(l.emisFrete)) || '<span class="faint">—</span>') + td(esc(l.numFrete) || '<span class="faint">—</span>') + td(brl(l.frete), "num") +
+        td(brl2(l.preco), "num g-custo") + td(brl2(l.freteU), "num") + td(brl2(l.custo), "num") +
+        td(l.base ? '<button type="button" class="nf-rastro-link xl-ignore" data-base="' + esc(l.usinaD + "#" + l.fabKey) + '" title="Ver / alterar o frete base desta rota">' + brl2(l.base.valor) + '</button><span style="display:none">' + brl2(l.base.valor) + '</span>' : '<button type="button" class="btn-ghost btn-xs xl-ignore" data-base="' + esc(l.usinaD + "#" + l.fabKey) + '">＋ base</button>', "num") +
+        td('<span class="badge ' + s[0] + '">' + s[1] + '</span>' + difTxt) +
+        '</tr>';
+    }).join("");
+    el("consTabela").innerHTML = lista.length
+      ? '<div class="cons-grupos"><span class="g g-nota">Nota fiscal</span><span class="g g-transp">Transporte / frete</span><span class="g g-custo">Custos (R$/t)</span></div>' +
+        '<div class="table-wrap"><table class="cons-tab"><thead><tr>' +
+        '<th class="g-nota">Emissão</th><th>Entrega</th><th>Usina compra</th><th>Usina destino</th><th>Fábrica</th><th>Material</th><th>NF</th><th>Placa</th><th>Peso (t)</th><th>Valor total</th>' +
+        '<th class="g-transp">Transportador</th><th>Emissão frete</th><th>Nº frete</th><th>Valor frete</th>' +
+        '<th class="g-custo">Preço unit.</th><th>Frete unit.</th><th>Custo (preço + frete)</th><th>Frete base</th><th>Situação do frete</th>' +
+        '</tr></thead><tbody>' + rows + '</tbody></table></div>' +
+        (lista.length > LIM ? '<p class="faint" style="margin:8px 0 0;font-size:12px;">Mostrando ' + LIM + ' de ' + lista.length + ' notas. Diminua o período ou use a busca para ver o resto.</p>' : '')
+      : '<p class="prog-empty">' + (FRETES.length ? "Nenhuma nota neste período / filtro." : "Ainda não há notas. Importe o <b>Resumo de entradas (Fretes)</b> em Base de Dados › Importar arquivos.") + '</p>';
+    el("consTabela").querySelectorAll("[data-base]").forEach(function(b){ b.addEventListener("click", function(ev){ ev.stopPropagation(); CONS.aba = "base"; CONS.baseAberta = b.dataset.base; paintConsulta(); var r = document.querySelector('#consultaCorpo tr[data-fb="' + CSS.escape(b.dataset.base) + '"]'); if (r) r.scrollIntoView({ block: "center" }); var i = el("fbValor"); if (i) i.focus(); }); });
+    if (lista.length) xlEnhance(el("consTabela"), "consulta-custos");
+  }
+
+  // ---------- Frete base (mesmo jeito do Controle de cimento: valor atual + registros anteriores) ----------
+  function paintFreteBase(){
+    var box = el("consultaCorpo");
+    var rotas = {};   // chave usina#fab -> {usina, fab, notas, pesoF, freteT}
+    var add = function(usina, fab){ var k = usina + "#" + fab; return rotas[k] || (rotas[k] = { k: k, usina: usina, fab: fab, notas: 0, peso: 0, frete: 0, acima: 0, abaixo: 0, ult: "" }); };
+    consultaLinhas().forEach(function(l){
+      if (!l.usinaD) return;
+      var r = add(l.usinaD, l.fabKey); r.notas++;
+      if (l.freteU != null){ r.peso += l.peso || 0; r.frete += l.frete || 0; }
+      if (l.sit === "acima") r.acima++; else if (l.sit === "abaixo") r.abaixo++;
+      if (l.emis > r.ult) r.ult = l.emis;
+    });
+    FRETE_BASE.forEach(function(b){ add(String(b.usina).toUpperCase(), b.fabrica); });
+    var lista = Object.keys(rotas).map(function(k){ return rotas[k]; }).sort(function(a, b){ return a.usina.localeCompare(b.usina, "pt-BR") || a.fab.localeCompare(b.fab, "pt-BR"); });
+    var pode = modPodeEditar(), admin = ME && ME.papel === "admin";
+    var rows = lista.map(function(r){
+      var regs = baseRegistros(r.usina, r.fab), atual = baseVigente(r.usina, r.fab, toISO(TODAY)) || regs[0] || null, aberto = CONS.baseAberta === r.k;
+      var media = r.peso ? r.frete / r.peso : null, dif = media != null && atual ? media - Number(atual.valor) : null;
+      var h = '<tr data-fb="' + esc(r.k) + '"' + (aberto ? ' class="fb-aberta"' : '') + '>' +
+        '<td><b>' + esc(r.usina) + '</b></td><td>' + esc(freteFabRotulo(r.fab, r.usina)) + '</td>' +
+        '<td class="num"><b>' + (atual ? brl2(atual.valor) : '<span class="faint">—</span>') + '</b></td>' +
+        '<td>' + (atual ? esc(brDate(atual.desde)) : '<span class="faint">—</span>') + '</td>' +
+        '<td class="faint" style="font-size:11.5px;">' + (atual ? esc(atual.por_nome || "") + (atual.obs ? " · " + esc(atual.obs) : "") : "") + '</td>' +
+        '<td class="num">' + (media == null ? '<span class="faint">—</span>' : brl2(media) + (dif == null ? "" : ' <span class="' + (dif > FRETE_TOL ? "fb-mais" : dif < -FRETE_TOL ? "fb-menos" : "faint") + '">(' + (dif > 0 ? "+" : "") + brl2(dif) + ')</span>')) + '</td>' +
+        '<td class="num">' + r.notas + (r.acima ? ' <span class="badge danger" title="notas acima da base">▲ ' + r.acima + '</span>' : '') + (r.abaixo ? ' <span class="badge info" title="notas abaixo da base">▼ ' + r.abaixo + '</span>' : '') + '</td>' +
+        '<td style="white-space:nowrap;">' + (pode ? '<button class="btn-ghost btn-xs" data-fbabrir="' + esc(r.k) + '">' + (atual ? "✏️ Alterar" : "＋ Definir") + '</button>' : '') +
+          (regs.length > 1 ? ' <span class="faint" style="font-size:11px;">' + (regs.length - 1) + ' anterior(es)</span>' : '') + '</td></tr>';
+      if (aberto){
+        h += '<tr class="fb-edit" data-xlfixa="1" data-xlapos="fb-' + esc(r.k) + '"><td colspan="8"><div class="ped-conf-form">' +
+          (pode ? '<b>' + esc(r.usina) + ' · ' + esc(freteFabRotulo(r.fab, r.usina)) + '</b>' +
+            '<label>Novo frete base (R$/t) <input id="fbValor" inputmode="decimal" placeholder="ex.: 85,00" style="width:110px"></label>' +
+            '<label>Vale a partir de <input id="fbDesde" type="date" value="' + toISO(TODAY) + '"></label>' +
+            '<label class="grow">Observação <input id="fbObs" placeholder="ex.: nova cotação combinada com a transportadora"></label>' +
+            '<button class="btn-primary btn-inline" data-fbacao="salvar">Salvar</button><button class="btn-ghost" data-fbacao="fechar">Fechar</button>' +
+            (CONS.baseErro ? '<span class="vpo-erro">' + esc(CONS.baseErro) + '</span>' : '') : '') +
+          '<div class="fb-hist"><div class="fb-hist-t">Registros' + (regs.length ? '' : ': nenhum ainda') + '</div>' +
+          regs.map(function(b, i){ return '<div class="fb-reg' + (atual && b.id === atual.id ? ' atual' : '') + '"><b>' + brl2(b.valor) + ' R$/t</b> desde ' + esc(brDate(b.desde)) +
+            '<span class="faint"> · ' + esc(b.por_nome || "") + (b.registrada_em ? " em " + esc(brDate(String(b.registrada_em).slice(0, 10))) : "") + (b.obs ? " · " + esc(b.obs) : "") + '</span>' +
+            (atual && b.id === atual.id ? ' <span class="badge success">vale hoje</span>' : '') +
+            (admin ? ' <button class="btn-ghost btn-xs" data-fbdel="' + esc(b.id) + '" title="Apagar este registro (lançado errado)">🗑</button>' : '') + '</div>'; }).join("") +
+          '</div></div></td></tr>';
+      }
+      return h;
+    }).join("");
+    box.innerHTML = '<div class="card banner" style="margin-bottom:12px;">Frete base (R$ por tonelada) de cada <b>usina de destino + fábrica</b>. Cada alteração vale a partir da data informada e as anteriores ficam nos registros: uma nota é comparada com o frete base que valia na <b>data de emissão</b> dela. A coluna <b>Frete real médio</b> é o frete pago nas notas importadas.' + (FRETE_BASE.length ? "" : " Ainda não há nenhum frete base cadastrado.") + '</div>' +
+      (CONS.baseMsg ? '<div class="vpo-sync-msg">' + esc(CONS.baseMsg) + '</div>' : '') +
+      '<div class="card">' + (lista.length ? '<div class="table-wrap"><table><thead><tr><th>Usina destino</th><th>Fábrica</th><th>Frete base atual (R$/t)</th><th>Desde</th><th>Por</th><th>Frete real médio (R$/t)</th><th>Notas</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>'
+        : '<p class="prog-empty">Nenhuma rota ainda: importe o Resumo de entradas (Fretes) para aparecerem as combinações de usina e fábrica.</p>') + '</div>';
+    CONS.baseMsg = "";
+    box.querySelectorAll("tr[data-fb]").forEach(function(tr){ tr.setAttribute("data-xlid", "fb-" + tr.dataset.fb); if (CONS.baseAberta === tr.dataset.fb) tr.setAttribute("data-xlfixa", "1"); });
+    box.querySelectorAll("[data-fbabrir]").forEach(function(b){ b.addEventListener("click", function(){ CONS.baseAberta = CONS.baseAberta === b.dataset.fbabrir ? "" : b.dataset.fbabrir; CONS.baseErro = ""; paintFreteBase(); var i = el("fbValor"); if (i) i.focus(); }); });
+    box.querySelectorAll("[data-fbacao]").forEach(function(b){ b.addEventListener("click", function(){ if (b.dataset.fbacao === "fechar"){ CONS.baseAberta = ""; CONS.baseErro = ""; paintFreteBase(); } else freteBaseSalvar(); }); });
+    box.querySelectorAll("[data-fbdel]").forEach(function(b){ b.addEventListener("click", function(){ freteBaseApagar(b.dataset.fbdel); }); });
+    var vi = el("fbValor"); if (vi) vi.addEventListener("keydown", function(e){ if (e.key === "Enter") freteBaseSalvar(); });
+    if (lista.length) xlEnhance(box.querySelector(".card:last-child"), "frete-base", [7]);
+  }
+  async function freteBaseSalvar(){
+    var k = CONS.baseAberta, i = k.indexOf("#"); if (i < 0) return;
+    var usina = k.slice(0, i), fab = k.slice(i + 1), valor = parseQtd(el("fbValor").value), desde = el("fbDesde").value, obs = el("fbObs").value.trim();
+    if (valor == null || valor < 0){ CONS.baseErro = "Informe o valor (R$ por tonelada)."; return paintFreteBase(); }
+    if (!toIsoDate(desde)){ CONS.baseErro = "Informe a partir de quando vale."; return paintFreteBase(); }
+    var r; try { r = await sb.rpc("frete_base_registrar", { p_usina: usina, p_fabrica: fab, p_valor: valor, p_desde: desde, p_obs: obs }); } catch (x) { r = { error: x }; }
+    var erro = r.error ? dbErr(r.error) : (r.data && r.data.erro);
+    if (erro){ CONS.baseErro = erro; return paintFreteBase(); }
+    FRETE_BASE.push({ id: (r.data && r.data.id) || ("tmp" + Date.now()), usina: usina.toUpperCase(), fabrica: fab, valor: Math.round(valor * 10000) / 10000, desde: desde, obs: obs, por_nome: (r.data && r.data.por) || (ME && ME.nome) || "", registrada_em: new Date().toISOString() });
+    CONS.baseErro = ""; CONS.baseMsg = "✅ Frete base de " + usina + " · " + freteFabRotulo(fab, usina) + " registrado: " + brl2(valor) + " R$/t a partir de " + brDate(desde) + ".";
+    paintFreteBase();
+  }
+  async function freteBaseApagar(id){
+    if (!window.confirm("Apagar este registro de frete base? As notas passam a ser comparadas com o registro anterior.")) return;
+    var r; try { r = await sb.rpc("frete_base_apagar", { p_id: id }); } catch (x) { r = { error: x }; }
+    if (r.error){ CONS.baseErro = dbErr(r.error); return paintFreteBase(); }
+    FRETE_BASE = FRETE_BASE.filter(function(b){ return b.id !== id; });
+    paintFreteBase();
+  }
+
+  // ---------- Consulta pedágio (a de antes) ----------
+  function paintConsultaPedagio(){
+    var box = el("consultaCorpo");
+    if (!el("consultaPedBusca")){
+      box.innerHTML = '<div class="card" style="margin-bottom:12px;"><div class="filters" style="align-items:center;"><div class="filter-field" style="min-width:260px;"><span>Buscar</span><input id="consultaPedBusca" type="search" placeholder="usina, fábrica ou documento" style="height:32px;border-radius:7px;border:1px solid var(--border-strong);background:var(--surface);color:var(--text);padding:0 10px;"></div><div class="filter-count" id="consultaCount"></div></div></div><div class="card" id="consultaCard"></div>';
+      el("consultaPedBusca").value = consultaBusca;
+      el("consultaPedBusca").addEventListener("input", function(){ consultaBusca = this.value; paintConsultaPedagio(); });
+    }
+    var list = cementEntradas.filter(function(en){ return consultaMatches(en, consultaBusca); });
+    var rowsP = list.map(function(en){
+      var rota = resolveRotaPedagio(en);
+      var statusBadge = rota ? '<span class="badge '+(PEDAGIO_TONE[rota.pedagio]||"neutral")+'">'+esc(PEDAGIO_LABEL[rota.pedagio]||"—")+'</span>' : '<span class="badge neutral">Não identificado</span>';
+      return '<tr><td class="cell-strong">#'+esc(en.id)+'</td><td class="muted">'+esc(brDate(en.data))+'</td><td>'+esc(en.usina)+'</td><td><span class="badge neutral">'+esc(en.fabrica)+'</span></td><td class="muted">'+esc(rota ? rota.fabrica : "—")+'</td><td>'+esc(en.documento||en.pedido||"—")+'</td><td class="muted">'+esc(en.quantidade)+'</td><td>'+statusBadge+'</td></tr>';
+    }).join("");
+    el("consultaCard").innerHTML = list.length
+      ? '<div class="table-wrap"><table><thead><tr><th>Cód</th><th>Data entrada</th><th>Usina</th><th>Fábrica</th><th>Rota identificada</th><th>Documento/NF</th><th>Quantidade</th><th>Pedágio</th></tr></thead><tbody>'+rowsP+'</tbody></table></div>'
+      : '<p class="prog-empty">Nenhum registro encontrado pra essa busca.</p>';
+    el("consultaCount").textContent = list.length + " de " + cementEntradas.length + " registro(s)";
+    xlEnhance(el("consultaCard"), "consulta-pedagio");
+  }
   function consultaMatches(en, q){
     if (!q) return true;
     q = q.trim().toLowerCase();
-    return [en.usina, en.fabrica, en.pedido, en.documento, en.id].some(function(v){
-      return String(v||"").toLowerCase().indexOf(q) !== -1;
-    });
+    return [en.usina, en.fabrica, en.pedido, en.documento, en.id].some(function(v){ return String(v||"").toLowerCase().indexOf(q) !== -1; });
   }
 
-  function paintConsulta(){
-    el("consultaAbas").querySelectorAll("button").forEach(function(b){ b.classList.toggle("active", b.dataset.aba === consultaAba); });
-    var toneToBadge = {"usina-ok":"success","usina-conferir":"warning","usina-info":"info","usina-danger":"danger"};
-    var list = cementEntradas.filter(function(en){ return consultaMatches(en, consultaBusca); });
-
-    if (consultaAba === "geral"){
-      var rows = list.map(function(en){
-        var m = matchProgramacao(en);
-        var meta = SITUACAO_OPTS.find(function(s){ return s.value === m.situacao; });
-        var toneClass = meta ? meta.tone : "";
-        var progInfo = m.entry
-          ? esc(m.entry.usina) + ' · ' + esc(m.entry.fabrica) + (m.dataProgramada && m.dataProgramada !== en.data ? ' (programado '+esc(brDate(m.dataProgramada))+')' : '')
-          : '<span class="faint" style="font-style:italic;">sem correspondência</span>';
-        return '<tr>' +
-          '<td class="cell-strong">#'+esc(en.id)+'</td>' +
-          '<td class="muted">'+esc(brDate(en.data))+'</td>' +
-          '<td>'+esc(en.usina)+'</td>' +
-          '<td><span class="badge neutral">'+esc(en.fabrica)+'</span></td>' +
-          '<td>'+esc(en.pedido||"—")+'</td>' +
-          '<td>'+esc(en.documento||"—")+'</td>' +
-          '<td class="muted">'+esc(en.quantidade)+'</td>' +
-          '<td><span class="badge '+(toneToBadge[toneClass]||"neutral")+'">'+esc(meta?meta.label:"—")+'</span></td>' +
-          '<td class="muted" style="font-size:11.5px;">'+progInfo+'</td>' +
-          '<td class="muted">'+esc(en.obs||"")+'</td>' +
-          '</tr>';
-      }).join("");
-      el("consultaCard").innerHTML = list.length
-        ? '<div class="table-wrap"><table><thead><tr><th>Cód</th><th>Data entrada</th><th>Usina</th><th>Fábrica</th><th>Nº pedido</th><th>Documento/NF</th><th>Quantidade</th><th>Situação</th><th>Programação encontrada</th><th>Observação</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
-        : '<p class="prog-empty">Nenhum pedido encontrado pra essa busca.</p>';
-      el("consultaCount").textContent = list.length + " de " + cementEntradas.length + " pedido(s)";
-      xlEnhance(el("consultaCard"), "consulta-geral");
-    } else {
-      var rowsP = list.map(function(en){
-        var rota = resolveRotaPedagio(en);
-        var statusBadge = rota
-          ? '<span class="badge '+(PEDAGIO_TONE[rota.pedagio]||"neutral")+'">'+esc(PEDAGIO_LABEL[rota.pedagio]||"—")+'</span>'
-          : '<span class="badge neutral">Não identificado</span>';
-        return '<tr>' +
-          '<td class="cell-strong">#'+esc(en.id)+'</td>' +
-          '<td class="muted">'+esc(brDate(en.data))+'</td>' +
-          '<td>'+esc(en.usina)+'</td>' +
-          '<td><span class="badge neutral">'+esc(en.fabrica)+'</span></td>' +
-          '<td class="muted">'+esc(rota ? rota.fabrica : "—")+'</td>' +
-          '<td>'+esc(en.documento||en.pedido||"—")+'</td>' +
-          '<td class="muted">'+esc(en.quantidade)+'</td>' +
-          '<td>'+statusBadge+'</td>' +
-          '</tr>';
-      }).join("");
-      el("consultaCard").innerHTML = list.length
-        ? '<div class="table-wrap"><table><thead><tr><th>Cód</th><th>Data entrada</th><th>Usina</th><th>Fábrica</th><th>Rota identificada</th><th>Documento/NF</th><th>Quantidade</th><th>Pedágio</th></tr></thead><tbody>'+rowsP+'</tbody></table></div>'
-        : '<p class="prog-empty">Nenhum registro encontrado pra essa busca.</p>';
-      el("consultaCount").textContent = list.length + " de " + cementEntradas.length + " registro(s)";
-      xlEnhance(el("consultaCard"), "consulta-pedagio");
+  // ---------- Importação: Resumo de entradas (FRETES) ----------
+  var FRT_COLS = {
+    central_compradora: ["central compradora"], cnpj_comprador: ["cnpj comprador"], central_entrada: ["central entrada", "central de entrada"], data_entrada: ["data de entrada", "data entrada"],
+    fornecedor: ["fornecedor"], cnpj_fornecedor: ["cnpj fornecedor", "cnpj do fornecedor", "cpf cnpj"], tipo: ["tipo"], grupo: ["grupo", "plano de contas"], tipo_compra: ["tipo de compra"],
+    categoria: ["categoria"], item: ["item"], documento: ["documento"], emissao_nf: ["emissao nf", "emissao"], valor_total: ["valor total"], valor_final: ["valor final"], desconto: ["desconto"],
+    un_compra: ["un de compra", "und compra", "un compra", "unidade de compra"], quantidade: ["quantidade"], preco: ["preco"], total: ["total"], chave_nota: ["chave da nota", "chave de acesso"],
+    tipo_frete: ["tipo de frete"], transportadora: ["transportadora"], cnpj_transportadora: ["cnpj transportadora"], data_frete: ["data frete", "data do frete"], num_frete: ["n frete", "no frete", "numero frete", "n do frete"],
+    total_frete: ["total frete", "valor frete"], chave_frete: ["chave frete"], nota_mae: ["top nota mae", "nota mae"]
+  };
+  function fretesLerTexto(text){
+    var linhas = String(text || "").split(/\r?\n/), mapa = null, out = [], fora = 0, invalid = 0, vistos = {};
+    for (var li = 0; li < linhas.length; li++){
+      var parts = linhas[li].split("\t");
+      if (!mapa){
+        var nomes = parts.map(puzlNomeCol), m = {};
+        Object.keys(FRT_COLS).forEach(function(c){ var i = nomes.findIndex(function(n){ return FRT_COLS[c].indexOf(n) !== -1; }); if (i >= 0) m[c] = i; });
+        if (m.documento == null || m.quantidade == null) continue;
+        var series = []; nomes.forEach(function(n, i){ if (n === "serie") series.push(i); });
+        m.serie = series[0]; if (series.length > 1) m.serie_frete = series[series.length - 1];
+        mapa = m; continue;
+      }
+      var g = function(c){ var i = mapa[c]; return i == null ? "" : String(parts[i] == null ? "" : parts[i]).trim(); };
+      var doc = g("documento"); if (!doc){ if (parts.join("").trim()) invalid++; continue; }
+      var cat = g("categoria");
+      if (mapa.categoria != null && cat && puzlNomeCol(cat) !== "aglomerante"){ fora++; continue; }
+      var dt = function(c){ var v = g(c); if (!v) return null; var x = normalizeDateToISO(v); return toIsoDate(x); };
+      var r = { central_compradora: g("central_compradora"), cnpj_comprador: g("cnpj_comprador"), central_entrada: g("central_entrada"), data_entrada: dt("data_entrada"),
+        fornecedor: g("fornecedor"), cnpj_fornecedor: g("cnpj_fornecedor"), tipo: g("tipo"), grupo: g("grupo"), tipo_compra: g("tipo_compra"), categoria: cat, item: g("item"), documento: doc,
+        serie: g("serie"), emissao_nf: dt("emissao_nf"), valor_total: numN(g("valor_total")), valor_final: numN(g("valor_final")), desconto: numN(g("desconto")), un_compra: g("un_compra"),
+        quantidade: numN(g("quantidade")), preco: numN(g("preco")), total: numN(g("total")), chave_nota: g("chave_nota"), tipo_frete: g("tipo_frete"), transportadora: g("transportadora"),
+        cnpj_transportadora: g("cnpj_transportadora"), data_frete: dt("data_frete"), num_frete: g("num_frete"), serie_frete: g("serie_frete"), total_frete: numN(g("total_frete")),
+        chave_frete: g("chave_frete"), nota_mae: g("nota_mae") };
+      r.chave = [doc, r.serie, soDig(r.cnpj_fornecedor), r.item, r.emissao_nf || "", r.data_entrada || ""].join("|").toUpperCase();
+      if (vistos[r.chave]) out[vistos[r.chave] - 1] = r; else { out.push(r); vistos[r.chave] = out.length; }
     }
+    return { linhas: out, fora: fora, invalid: invalid, semCabecalho: !mapa };
+  }
+  async function fretesCarregar(){
+    try {
+      var rs = await Promise.all([
+        fetchAll(function(){ return sb.from("fretes_entradas").select("*").is("deleted_at", null).order("emissao_nf"); }),
+        fetchAll(function(){ return sb.from("frete_base").select("id,usina,fabrica,valor,desde,obs,por_nome,registrada_em").is("deleted_at", null).order("desde"); })
+      ]);
+      FRETES = rs[0] || []; FRETE_BASE = (rs[1] || []).map(function(b){ b.valor = Number(b.valor); b.desde = String(b.desde).slice(0, 10); return b; });
+    } catch (e) { /* tabela ainda não existe ou sem rede: a Consulta fica vazia */ }
+  }
+  async function fretesImportar(txt, arquivo, resEl){
+    var r = fretesLerTexto(txt);
+    if (r.semCabecalho){ resEl.textContent = "⚠️ Não achei o cabeçalho (precisa ter pelo menos DOCUMENTO e QUANTIDADE)."; return; }
+    if (!r.linhas.length){ resEl.textContent = "Nenhuma nota de aglomerante no arquivo" + (r.fora ? " (" + r.fora + " linha(s) de outra categoria)." : "."); return; }
+    var comFrete = r.linhas.filter(function(x){ return x.total_frete != null || x.num_frete; }).length;
+    logImport(arquivo, "Fretes (Resumo de entradas)", r.linhas.length, r.linhas.length + r.fora + r.invalid);
+    var imp = importHistorico[0] && importHistorico[0].dbId || null;
+    r.linhas.forEach(function(x){ x.importacao_id = imp; });
+    resEl.textContent = "Gravando " + r.linhas.length + " nota(s)…";
+    var ok = 0;
+    for (var i = 0; i < r.linhas.length; i += 500){
+      var q; try { q = await sb.rpc("fretes_importar", { p_rows: r.linhas.slice(i, i + 500) }); } catch (x) { q = { error: x }; }
+      if (q.error){ resEl.textContent = "⚠️ Erro ao gravar: " + dbErr(q.error) + (ok ? " (" + ok + " já gravadas)" : ""); return; }
+      ok += Math.min(500, r.linhas.length - i);
+    }
+    await fretesCarregar();
+    resEl.textContent = ok + " nota(s) gravada(s), " + comFrete + " com frete" + (r.fora ? ", " + r.fora + " descartada(s) por categoria diferente de AGLOMERANTE" : "") + (r.invalid ? ", " + r.invalid + " linha(s) sem documento" : "") + ". Veja em Consultas › Consulta geral.";
+    paintHistorico();
   }
 
   /* ---------------- Códigos por Fornecedor ----------------
@@ -5476,7 +5742,7 @@
 
     // ----- 1) Funil: programadas -> com nota emitida -> descarregadas
     var comNota = emitidas.length + entregues.length;
-    var funil = [["Programadas", P, "info"], ["Nota emitida (SEFAZ)", comNota, "warning"], ["Descarregadas (PUZL)", entregues.length, "success"]].map(function(f, i, a){
+    var funil = [["Programadas", P, "info"], ["Nota emitida (Efit)", comNota, "warning"], ["Descarregadas (PUZL)", entregues.length, "success"]].map(function(f, i, a){
       var prev = i ? a[i-1][1] : P;
       var conv = i ? '<span class="dfun-conv">' + dashPct(f[1], prev) + '% da etapa anterior</span>' : '<span class="dfun-conv">base 100%</span>';
       return '<div class="dfun-row" data-tip="'+esc(f[0]+": "+f[1]+" ("+dashPct(f[1], P)+"% das programadas)")+'"><div class="dfun-lbl">'+esc(f[0])+conv+'</div>' +
@@ -6161,7 +6427,7 @@
      ----------------------------------------------------------------------
      O visual e as regras do protótipo continuam os mesmos. O que mudou:
      - o login agora é de verdade (usuário + senha);
-     - os dados (usinas, notas SEFAZ, PUZL, Programação, VPO) vêm do banco
+     - os dados (usinas, notas Efit, PUZL, Programação, VPO) vêm do banco
        ao entrar e são salvos sozinhos, um instante depois de cada alteração;
      - quem protege os dados é o login + as regras (RLS) do próprio banco.
      ====================================================================== */
@@ -6535,14 +6801,14 @@
     if (!bootJa) { el("viewCrumb").innerHTML = CRUMBS["programacao-cimento"]; bootJa = true; }
   }
   async function entrar(user){
-    var r = await sb.from("membros").select("empresa_id,papel,nome").eq("user_id", user.id).maybeSingle();
+    var r = await sb.from("membros").select("empresa_id,papel,nome,abas").eq("user_id", user.id).maybeSingle();
     if (r.error || !r.data){
       await sb.auth.signOut();
       el("login").style.display = "flex"; el("app").classList.remove("active");
       loginMsg(r.error ? dbErr(r.error) : "Este usuário não tem acesso. Fale com o administrador.", true);
       return false;
     }
-    ME = { id: user.id, nome: r.data.nome || user.email, papel: r.data.papel, empresa_id: r.data.empresa_id, login: String(user.email || "").split("@")[0] };
+    ME = { id: user.id, nome: r.data.nome || user.email, papel: r.data.papel, empresa_id: r.data.empresa_id, login: String(user.email || "").split("@")[0], abas: Array.isArray(r.data.abas) ? r.data.abas : null };
     el("whoName").textContent = ME.nome;
     el("whoRole").textContent = { admin: "Administrador", operador: "Operador", leitura: "Somente leitura" }[ME.papel] || ME.papel;
     el("whoAvatar").textContent = ME.nome.slice(0, 2).toUpperCase();
@@ -6556,6 +6822,7 @@
     document.body.classList.toggle("somente-leitura", ME.papel === "leitura");
     setSyncState(ME.papel === "leitura" ? "leitura" : "salvo");
     admInit(); idleIniciar(); presIniciar(); progAgenda(); solInit(); solProgCarregar().then(progDecorar);
+    fretesCarregar().then(function(){ if (el("consultaAbas")) paintConsulta(); });
     overlay(false);
     return true;
   }
@@ -6669,7 +6936,7 @@
     if (syncState === "pendente" || syncState === "salvando"){ await syncNow(); }
     if (syncState === "erro"){ alert_("Há alterações que não foram salvas. Resolva isso antes de atualizar."); return; }
     overlay(true, "Atualizando…");
-    try { await hydrate(); bootRender(); } catch (e) { alert_("Não foi possível atualizar: " + dbErr(e)); }
+    try { await hydrate(); await fretesCarregar(); bootRender(); } catch (e) { alert_("Não foi possível atualizar: " + dbErr(e)); }
     overlay(false);
   });
   function alert_(t){ var c = el("syncChip"); var old = c.textContent; c.textContent = t; setTimeout(function(){ setSyncState(syncState, syncErro); }, 4000); }
@@ -6688,12 +6955,41 @@
     ["um símbolo (! ? # @ % & * - _ …)", function(s){ return /[^A-Za-z0-9]/.test(s); }],
     ["sem “concrelagos”, “senha” ou sequências (123456, qwerty…)", function(s){ return !/(concrelagos|senha|password|123456|qwerty|abcdef)/i.test(s); }]
   ];
+  // Abas que cada usuário interno pode ver (o administrador escolhe no Adm). null = todas. O administrador vê tudo.
+  var ABAS_SEMPRE = ["configuracoes"];
+  function abasGrupos(){
+    var g = [["Cimento — em foco", NAV_CIMENTO], ["Base de Dados", NAV_DADOS], ["Administração", [{ id: "relatorios", label: "Relatórios", icon: "📈" }, { id: "auditoria", label: "Auditoria", icon: "🔍" }]], ["Outros", NAV], ["Em breve", NAV_BREVE]];
+    return g.map(function(x){ return { nome: x[0], itens: x[1].filter(function(i){ return i.id && ABAS_SEMPRE.indexOf(i.id) === -1; }) }; });
+  }
+  function podeVerAba(id){
+    if (!ME || ME.papel === "admin" || !Array.isArray(ME.abas)) return true;
+    if (id === "adm") return false;
+    return ABAS_SEMPRE.indexOf(id) !== -1 || ME.abas.indexOf(id) !== -1;
+  }
+  function primeiraAbaPermitida(){
+    var b = Array.prototype.find.call(document.querySelectorAll(".nav-item[data-view]"), function(x){ return podeVerAba(x.dataset.view) && x.style.display !== "none" && !x.closest("[hidden]"); });
+    return b ? b.dataset.view : "configuracoes";
+  }
+  function aplicarAbasPermitidas(){
+    document.querySelectorAll(".nav-item[data-view]").forEach(function(b){ if (b.id === "navItemAdm") return; b.classList.toggle("aba-bloq", !podeVerAba(b.dataset.view)); });
+    document.querySelectorAll(".nav-sub").forEach(function(d){
+      var g = d.parentElement, vis = g.querySelectorAll('.nav-item[data-sub="' + d.dataset.sub + '"]:not(.aba-bloq)').length;
+      d.classList.toggle("aba-bloq", !vis);
+    });
+    document.querySelectorAll(".nav-group[data-group]").forEach(function(g){
+      if (g.id === "navAdm") return;
+      g.classList.toggle("aba-bloq", !g.querySelectorAll(".nav-item:not(.aba-bloq)").length);
+    });
+    var ativa = document.querySelector(".view.active"), id = ativa ? ativa.id.replace(/^view-/, "") : "";
+    if (id && !podeVerAba(id)) showView(primeiraAbaPermitida());
+  }
   function admInit(){
     // Administração: Adm só para o administrador; Relatórios e Auditoria para administrador e operadores da Logística
     var ehAdm = !!ME && ME.papel === "admin", ehLog = ehAdm || (!!ME && ME.papel === "operador");
     el("navAdm").hidden = !ehLog; el("navItemAdm").style.display = ehAdm ? "" : "none";
     var ativa = ["adm", "relatorios", "auditoria"].filter(function(v){ return el("view-" + v).classList.contains("active"); })[0];
     if ((ativa === "adm" && !ehAdm) || (ativa && !ehLog)) showView("programacao-cimento");
+    aplicarAbasPermitidas();
   }
   document.querySelectorAll("#navAdm .nav-item").forEach(function(b){ b.addEventListener("click", function(){ showView(b.dataset.view); }); });
   function admSenhaAleatoria(){
@@ -6716,6 +7012,8 @@
     if (!r.error){
       var re = await sb.rpc("admin_usuarios_emails");
       if (!re.error) (re.data || []).forEach(function(x){ var u = ADM.usuarios.find(function(k){ return k.user_id === x.user_id; }); if (u){ u.email = x.email; u.email_real = x.email_real; } });
+      var ra = await sb.rpc("admin_abas_listar");
+      if (!ra.error) (ra.data || []).forEach(function(x){ var u = ADM.usuarios.find(function(k){ return k.user_id === x.user_id; }); if (u) u.abas = Array.isArray(x.abas) ? x.abas : null; });
     }
     await admChavesRecarregar();
     var hb = await sb.from("historico_alteracoes").select("em").eq("tabela", "backup").order("em", { ascending: false }).limit(1);
@@ -6765,7 +7063,7 @@
           '<td><select class="adm-papel" ' + (eu ? "disabled" : "") + '>' + ["admin", "operador", "leitura"].map(function(p){ return '<option value="' + p + '"' + (p === u.papel ? " selected" : "") + ">" + ({ admin: "Administrador", operador: "Operador", leitura: "Somente leitura" })[p] + "</option>"; }).join("") + '</select></td>' +
           '<td class="muted">' + esc(admFmt(u.ultimo_acesso)) + '</td>' +
           '<td><span class="badge ' + (u.ativo ? "success" : "danger") + '">' + (u.ativo ? "Ativo" : "Desativado") + '</span></td>' +
-          '<td><div class="adm-acoes"><button class="btn-ghost" data-act="email">' + (u.email_real ? "Trocar e-mail" : "Cadastrar e-mail") + '</button><button class="btn-ghost" data-act="senha">Redefinir senha</button>' + (eu ? "" : ' <button class="btn-ghost" data-act="ativo">' + (u.ativo ? "Desativar" : "Ativar") + '</button>') + '</div></td></tr>';
+          '<td><div class="adm-acoes">' + (u.papel === "admin" ? '' : '<button class="btn-ghost" data-act="abas" title="Escolher as abas que esta pessoa vê">🗂️ Abas' + (Array.isArray(u.abas) ? ' <span class="badge info">' + u.abas.length + '</span>' : '') + '</button>') + '<button class="btn-ghost" data-act="email">' + (u.email_real ? "Trocar e-mail" : "Cadastrar e-mail") + '</button><button class="btn-ghost" data-act="senha">Redefinir senha</button>' + (eu ? "" : ' <button class="btn-ghost" data-act="ativo">' + (u.ativo ? "Desativar" : "Ativar") + '</button>') + '</div></td></tr>';
       });
       hU += '</tbody></table></div>';
       h += admDet("usr", "Usuários (" + ADM.usuarios.length + ")", hU);
@@ -6776,6 +7074,17 @@
       h += '<div class="card" id="admEmailCard" style="margin-bottom:16px;"><div class="card-head"><div><h2>E-mail de login de ' + esc(alvoE.nome || alvoE.usuario) + '</h2><p>A pessoa passa a entrar com este e-mail (a senha não muda). É também para onde vai o código do “Esqueci minha senha”. Confira bem: um e-mail errado deixa a pessoa sem conseguir recuperar a senha.</p></div><button class="btn-ghost" data-act="cancelar">Cancelar</button></div>' +
         '<div class="adm-pad adm-form"><label>E-mail<input type="email" id="admEmail" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="nome@empresa.com" value="' + esc(alvoE.email_real ? alvoE.email : "") + '"></label>' +
         '<div><button class="btn-primary" id="admEmailSalvar" style="width:auto;padding:10px 18px;">Salvar e-mail</button></div></div></div>';
+    }
+    var alvoA = ADM.alvoAbas && ADM.usuarios.find(function(u){ return u.user_id === ADM.alvoAbas; });
+    if (alvoA){
+      var marc = Array.isArray(alvoA.abas) ? alvoA.abas : null;
+      h += '<div class="card" id="admAbasCard" style="margin-bottom:16px;"><div class="card-head"><div><h2>🗂️ Abas que ' + esc(alvoA.nome || alvoA.usuario) + ' vê</h2><p>Marque as telas que esta pessoa pode abrir. As desmarcadas somem do menu dela. Configurações fica sempre disponível.</p></div><button class="btn-ghost" data-act="cancelar">Cancelar</button></div>' +
+        '<div class="adm-pad"><label class="adm-abas-todas"><input type="checkbox" id="admAbasTodas"' + (marc ? '' : ' checked') + '> Todas as abas (inclusive as que forem criadas depois)</label>' +
+        '<div class="adm-abas">' + abasGrupos().map(function(g){
+          return '<div class="adm-abas-g"><div class="adm-abas-t">' + esc(g.nome) + '</div>' + g.itens.map(function(i){
+            return '<label><input type="checkbox" data-aba="' + esc(i.id) + '"' + (!marc || marc.indexOf(i.id) !== -1 ? ' checked' : '') + (marc ? '' : ' disabled') + '> ' + i.icon + ' ' + esc(i.label) + '</label>'; }).join("") + '</div>';
+        }).join("") + '</div>' +
+        '<div style="margin-top:12px;"><button class="btn-primary" id="admAbasSalvar" style="width:auto;padding:10px 18px;">Salvar abas</button></div></div></div>';
     }
     var alvo = ADM.alvo && ADM.usuarios.find(function(u){ return u.user_id === ADM.alvo; });
     if (alvo){
@@ -6819,6 +7128,9 @@
     var r = await sb.rpc("admin_alterar_papel", { p_user_id: uid, p_papel: novo });
     ADM.msg = r.error ? dbErr(r.error) : "Papel atualizado."; ADM.ruim = !!r.error; await paintAdm();
   });
+  el("view-adm").addEventListener("change", function(ev){
+    if (ev.target && ev.target.id === "admAbasTodas") document.querySelectorAll('#admAbasCard input[data-aba]').forEach(function(i){ i.disabled = ev.target.checked; if (ev.target.checked) i.checked = true; });
+  });
   el("view-adm").addEventListener("click", async function(ev){
     var b = ev.target.closest && ev.target.closest("button"); if (!b) return;
     var tr = b.closest("tr"), uid = tr && tr.dataset.uid;
@@ -6834,7 +7146,17 @@
       ADM.msg = "E-mail de " + nm + " salvo: " + em + ". A partir de agora essa pessoa entra com este e-mail." + (ADM.alvoEmail === ME.id ? " (Vale no próximo login.)" : ""); ADM.ruim = false; ADM.alvoEmail = null; await paintAdm();
     }
     else if (b.dataset.act === "senha"){ ADM.alvo = uid; ADM.alvoEmail = null; ADM.msg = ""; admRender(); var c = el("admSenhaCard"); if (c) c.scrollIntoView({ block: "nearest" }); var p = el("admPw1"); if (p) p.focus(); }
-    else if (b.dataset.act === "cancelar"){ ADM.alvo = null; ADM.alvoEmail = null; admRender(); }
+    else if (b.dataset.act === "cancelar"){ ADM.alvo = null; ADM.alvoEmail = null; ADM.alvoAbas = null; admRender(); }
+    else if (b.dataset.act === "abas"){ ADM.alvoAbas = uid; ADM.alvo = null; ADM.alvoEmail = null; ADM.msg = ""; admRender(); var ca = el("admAbasCard"); if (ca) ca.scrollIntoView({ block: "nearest" }); }
+    else if (b.id === "admAbasSalvar"){
+      var todas = el("admAbasTodas").checked;
+      var lista = todas ? null : Array.prototype.map.call(document.querySelectorAll('#admAbasCard input[data-aba]:checked'), function(i){ return i.dataset.aba; });
+      if (lista && !lista.length){ ADM.msg = "Marque pelo menos uma aba (ou “Todas as abas”)."; ADM.ruim = true; admRender(); return; }
+      var rb = await sb.rpc("admin_definir_abas", { p_user_id: ADM.alvoAbas, p_abas: lista });
+      var eb = rb.error ? dbErr(rb.error) : (rb.data && rb.data.erro);
+      if (eb){ ADM.msg = eb; ADM.ruim = true; admRender(); return; }
+      ADM.msg = "Abas de " + admNome(ADM.alvoAbas) + " salvas: " + (lista ? lista.length + " aba(s)" : "todas") + ". Vale a partir do próximo login (ou ao atualizar a página)."; ADM.ruim = false; ADM.alvoAbas = null; await paintAdm();
+    }
     else if (b.dataset.act === "ativo"){
       var u = ADM.usuarios.find(function(x){ return x.user_id === uid; }); if (!u) return;
       if (u.ativo && !b.dataset.sure){ b.dataset.sure = "1"; b.textContent = "Confirmar desativar"; return; }
@@ -6855,7 +7177,7 @@
   /* ---------- Cópia de segurança (Excel, só administrador) ---------- */
   var BACKUP_TABELAS = [["usinas", "Usinas"], ["membros", "Usuários"], ["fornecedores", "Fornecedores"], ["fornecedor_codigos", "Códigos fornecedor"], ["fabricas", "Fábricas"],
     ["catalogo_cimento", "Catálogo cimentos"], ["rotas_pedagio", "Rotas e pedágio"], ["frota", "Frota"], ["programacao_dias", "Programação - dias"],
-    ["programacao_itens", "Programação - linhas"], ["programacao_cargas", "Programação - cargas"], ["notas_sefaz", "Notas SEFAZ"], ["lancamentos_puzl", "Lançamentos PUZL"],
+    ["programacao_itens", "Programação - linhas"], ["programacao_cargas", "Programação - cargas"], ["notas_sefaz", "Efit"], ["lancamentos_puzl", "Notas Puzl"],
     ["vpo_dias", "VPO - dias"], ["vpo_entradas", "VPO - entradas"], ["historico_importacoes", "Importações"], ["solic_encarregados", "Encarregados"],
     ["solic_encarregado_usinas", "Encarregado x usina"], ["solic_cimento", "Solicitações"], ["solic_cimento_linhas", "Solicitações - linhas"],
     ["solic_autorizacoes", "Autorizações"], ["solic_alteracoes", "Alterações pedidas"], ["usina_silos", "Silos"], ["usina_silo_trocas", "Silos - trocas"],
@@ -8756,7 +9078,7 @@
   var AUD = { aba: "docs", de: null, ate: null, d: null, h: null, carregando: false, msg: "", ruim: false, tabela: "" };
   var AUD_TIPO = { pedido_apagado: ["warning", "Pedido apagado"], carregamento_cancelado: ["danger", "Carregamento cancelado"] };
   var AUD_TAB = { usinas: "Usinas", fornecedores: "Fornecedores", fabricas: "Fábricas", fornecedor_codigos: "Códigos de fornecedor", frota: "Frota (antiga)", transportadoras: "Transportadoras", veiculos: "Veículos",
-    lancamentos_puzl: "Lançamentos PUZL", notas_sefaz: "Notas SEFAZ", programacao_cargas: "Programação — cargas", programacao_dias: "Programação — dias", programacao_itens: "Programação — usinas",
+    lancamentos_puzl: "Notas Puzl", notas_sefaz: "Efit", programacao_cargas: "Programação — cargas", programacao_dias: "Programação — dias", programacao_itens: "Programação — usinas",
     rotas_pedagio: "Rotas e pedágio", solic_autorizacoes: "Autorizações", solic_chaves: "Chaves das usinas", solic_cimento: "Solicitações", chaves: "Chaves", usuarios: "Usuários", membros: "Membros",
     vpo_dias: "VPO — dias", vpo_entradas: "VPO — lançamentos", auditoria_documentos: "Documentos de auditoria", cimento_lista: "Controle de cimento", usina_cimento_obs: "Controle de cimento — obs", encarregados: "Encarregados" };
   var VPO_DIA_DATA = {};   // id do dia do VPO → data (para a Auditoria mostrar a data)
