@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-28-2">
+<meta name="app-versao" content="2026-10-29-1">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -4143,7 +4143,7 @@
   function renderCatalogoCimentos(){
     var cardEl = el("catalogoCimentoCard");
     if (!cardEl) return;
-    function podeRemover(){ return typeof ME !== "undefined" && ME && ME.papel === "admin"; }
+    function podeRemover(){ return typeof ME !== "undefined" && ehAdminTela(); }
     function paint(){
       var rm = podeRemover();
       var chips = CEMENTO_CATALOGO.map(function(termo, idx){
@@ -5227,7 +5227,7 @@
     });
     FRETE_BASE.forEach(function(b){ add(String(b.usina).toUpperCase(), b.fabrica); });
     var lista = Object.keys(rotas).map(function(k){ return rotas[k]; }).sort(function(a, b){ return a.usina.localeCompare(b.usina, "pt-BR") || a.fab.localeCompare(b.fab, "pt-BR"); });
-    var pode = modPodeEditar(), admin = ME && ME.papel === "admin";
+    var pode = modPodeEditar(), admin = ehAdminTela();
     var rows = lista.map(function(r){
       var regs = baseRegistros(r.usina, r.fab), atual = baseVigente(r.usina, r.fab, toISO(TODAY)) || regs[0] || null, aberto = CONS.baseAberta === r.k;
       var media = r.peso ? r.frete / r.peso : null, dif = media != null && atual ? media - Number(atual.valor) : null;
@@ -6957,13 +6957,14 @@
   ];
   // Abas que cada usuário interno pode ver (o administrador escolhe no Adm). null = todas. O administrador vê tudo.
   var ABAS_SEMPRE = ["configuracoes"];
+  // administrador, ou usuário com a aba "Adm" liberada (tem os mesmos poderes do administrador)
+  function ehAdminTela(){ return !!ME && (ME.papel === "admin" || (Array.isArray(ME.abas) && ME.abas.indexOf("adm") !== -1)); }
   function abasGrupos(){
-    var g = [["Cimento — em foco", NAV_CIMENTO], ["Base de Dados", NAV_DADOS], ["Administração", [{ id: "relatorios", label: "Relatórios", icon: "📈" }, { id: "auditoria", label: "Auditoria", icon: "🔍" }]], ["Outros", NAV], ["Em breve", NAV_BREVE]];
+    var g = [["Cimento — em foco", NAV_CIMENTO], ["Base de Dados", NAV_DADOS], ["Administração", [{ id: "adm", label: "Adm (poderes de administrador)", icon: "🔐" }, { id: "relatorios", label: "Relatórios", icon: "📈" }, { id: "auditoria", label: "Auditoria", icon: "🔍" }]], ["Outros", NAV], ["Em breve", NAV_BREVE]];
     return g.map(function(x){ return { nome: x[0], itens: x[1].filter(function(i){ return i.id && ABAS_SEMPRE.indexOf(i.id) === -1; }) }; });
   }
   function podeVerAba(id){
     if (!ME || ME.papel === "admin" || !Array.isArray(ME.abas)) return true;
-    if (id === "adm") return false;
     return ABAS_SEMPRE.indexOf(id) !== -1 || ME.abas.indexOf(id) !== -1;
   }
   function primeiraAbaPermitida(){
@@ -6971,13 +6972,12 @@
     return b ? b.dataset.view : "configuracoes";
   }
   function aplicarAbasPermitidas(){
-    document.querySelectorAll(".nav-item[data-view]").forEach(function(b){ if (b.id === "navItemAdm") return; b.classList.toggle("aba-bloq", !podeVerAba(b.dataset.view)); });
+    document.querySelectorAll(".nav-item[data-view]").forEach(function(b){ b.classList.toggle("aba-bloq", !podeVerAba(b.dataset.view)); });
     document.querySelectorAll(".nav-sub").forEach(function(d){
       var g = d.parentElement, vis = g.querySelectorAll('.nav-item[data-sub="' + d.dataset.sub + '"]:not(.aba-bloq)').length;
       d.classList.toggle("aba-bloq", !vis);
     });
     document.querySelectorAll(".nav-group[data-group]").forEach(function(g){
-      if (g.id === "navAdm") return;
       g.classList.toggle("aba-bloq", !g.querySelectorAll(".nav-item:not(.aba-bloq)").length);
     });
     var ativa = document.querySelector(".view.active"), id = ativa ? ativa.id.replace(/^view-/, "") : "";
@@ -6985,7 +6985,7 @@
   }
   function admInit(){
     // Administração: Adm só para o administrador; Relatórios e Auditoria para administrador e operadores da Logística
-    var ehAdm = !!ME && ME.papel === "admin", ehLog = ehAdm || (!!ME && ME.papel === "operador");
+    var ehAdm = ehAdminTela(), ehLog = ehAdm || (!!ME && ME.papel === "operador");
     el("navAdm").hidden = !ehLog; el("navItemAdm").style.display = ehAdm ? "" : "none";
     var ativa = ["adm", "relatorios", "auditoria"].filter(function(v){ return el("view-" + v).classList.contains("active"); })[0];
     if ((ativa === "adm" && !ehAdm) || (ativa && !ehLog)) showView("programacao-cimento");
@@ -7004,7 +7004,7 @@
   function admFmt(d){ if (!d) return "nunca entrou"; var x = new Date(d); return isNaN(x) ? "—" : x.toLocaleDateString("pt-BR") + " " + x.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }); }
   async function paintAdm(){
     var v = el("view-adm");
-    if (!ME || ME.papel !== "admin"){ v.innerHTML = '<div class="card banner">Área restrita ao administrador.</div>'; return; }
+    if (!ehAdminTela()){ v.innerHTML = '<div class="card banner">Área restrita ao administrador.</div>'; return; }
     ADM.carregando = true; admRender();
     var r = await sb.rpc("admin_listar_usuarios");
     if (r.error){ ADM.msg = dbErr(r.error); ADM.ruim = true; ADM.usuarios = []; }
@@ -7078,11 +7078,11 @@
     var alvoA = ADM.alvoAbas && ADM.usuarios.find(function(u){ return u.user_id === ADM.alvoAbas; });
     if (alvoA){
       var marc = Array.isArray(alvoA.abas) ? alvoA.abas : null;
-      h += '<div class="card" id="admAbasCard" style="margin-bottom:16px;"><div class="card-head"><div><h2>🗂️ Abas que ' + esc(alvoA.nome || alvoA.usuario) + ' vê</h2><p>Marque as telas que esta pessoa pode abrir. As desmarcadas somem do menu dela. Configurações fica sempre disponível.</p></div><button class="btn-ghost" data-act="cancelar">Cancelar</button></div>' +
-        '<div class="adm-pad"><label class="adm-abas-todas"><input type="checkbox" id="admAbasTodas"' + (marc ? '' : ' checked') + '> Todas as abas (inclusive as que forem criadas depois)</label>' +
+      h += '<div class="card" id="admAbasCard" style="margin-bottom:16px;"><div class="card-head"><div><h2>🗂️ Abas que ' + esc(alvoA.nome || alvoA.usuario) + ' vê</h2><p>Marque as telas que esta pessoa pode abrir. As desmarcadas somem do menu dela. Configurações fica sempre disponível. <b>Atenção:</b> marcar <b>Adm</b> dá os mesmos poderes do administrador (senhas, papéis, abas, chaves e cópia de segurança).</p></div><button class="btn-ghost" data-act="cancelar">Cancelar</button></div>' +
+        '<div class="adm-pad"><label class="adm-abas-todas"><input type="checkbox" id="admAbasTodas"' + (marc ? '' : ' checked') + '> Todas as abas, menos Adm (inclusive as que forem criadas depois)</label>' +
         '<div class="adm-abas">' + abasGrupos().map(function(g){
           return '<div class="adm-abas-g"><div class="adm-abas-t">' + esc(g.nome) + '</div>' + g.itens.map(function(i){
-            return '<label><input type="checkbox" data-aba="' + esc(i.id) + '"' + (!marc || marc.indexOf(i.id) !== -1 ? ' checked' : '') + (marc ? '' : ' disabled') + '> ' + i.icon + ' ' + esc(i.label) + '</label>'; }).join("") + '</div>';
+            return '<label><input type="checkbox" data-aba="' + esc(i.id) + '"' + ((!marc && i.id !== "adm") || (marc && marc.indexOf(i.id) !== -1) ? ' checked' : '') + (marc ? '' : ' disabled') + '> ' + i.icon + ' ' + esc(i.label) + '</label>'; }).join("") + '</div>';
         }).join("") + '</div>' +
         '<div style="margin-top:12px;"><button class="btn-primary" id="admAbasSalvar" style="width:auto;padding:10px 18px;">Salvar abas</button></div></div></div>';
     }
@@ -7129,7 +7129,7 @@
     ADM.msg = r.error ? dbErr(r.error) : "Papel atualizado."; ADM.ruim = !!r.error; await paintAdm();
   });
   el("view-adm").addEventListener("change", function(ev){
-    if (ev.target && ev.target.id === "admAbasTodas") document.querySelectorAll('#admAbasCard input[data-aba]').forEach(function(i){ i.disabled = ev.target.checked; if (ev.target.checked) i.checked = true; });
+    if (ev.target && ev.target.id === "admAbasTodas") document.querySelectorAll('#admAbasCard input[data-aba]').forEach(function(i){ i.disabled = ev.target.checked; if (ev.target.checked) i.checked = i.dataset.aba !== "adm"; });
   });
   el("view-adm").addEventListener("click", async function(ev){
     var b = ev.target.closest && ev.target.closest("button"); if (!b) return;
@@ -7189,7 +7189,7 @@
     return v;
   }
   async function admBackup(){
-    if (!ME || ME.papel !== "admin" || ADM.backup) return;
+    if (!ehAdminTela() || ADM.backup) return;
     if (typeof XLSX === "undefined"){ ADM.msg = "Não consegui gerar o Excel neste navegador."; ADM.ruim = true; admRender(); return; }
     var wb = XLSX.utils.book_new(), resumo = [["Tabela", "Linhas"]], total = 0;
     try {
@@ -7883,7 +7883,7 @@
             '<td class="sol-pedido">' + (env && !env.sem_necessidade ? solLinhasTxt(env.linhas) : "—") + '</td>' +
             '<td class="muted">' + (env ? esc(solQuando(env.enviado_em)) + '<br><span class="faint">' + esc(env.por || env.origem || "") + (u.versoes > 1 ? " · v" + env.versao : "") + '</span>' : "—") + '</td>' +
             '<td><div class="adm-acoes">' + (nv > 1 ? '<button class="btn-ghost" data-sol="hist" data-u="' + esc(u.k) + '">' + (ab ? "Ocultar" : "Histórico (" + nv + ")") + '</button>' : "") +
-            (env && ME && ME.papel === "admin" ? '<button class="btn-ghost" style="color:var(--danger)" data-sol="apagar" data-u="' + esc(u.k) + '" title="Apagar esta solicitação (todas as versões do dia). Só administrador.">' + (SOL.confirmaApagar === u.k ? "Confirmar apagar" : "🗑 Apagar") + '</button>' : "") + '</div></td></tr>';
+            (env && ehAdminTela() ? '<button class="btn-ghost" style="color:var(--danger)" data-sol="apagar" data-u="' + esc(u.k) + '" title="Apagar esta solicitação (todas as versões do dia). Só administrador.">' + (SOL.confirmaApagar === u.k ? "Confirmar apagar" : "🗑 Apagar") + '</button>' : "") + '</div></td></tr>';
           if (ab) h += '<tr class="sol-hist"><td colspan="' + (d.multi ? 7 : 6) + '">' + (u.historico || []).map(function(x){
             return '<div class="sol-v"><b>' + esc(solQuando(x.enviado_em)) + '</b> · versão ' + esc(x.versao) + (x.ativa ? ' <span class="badge success">em vigor</span>' : ' <span class="badge neutral">substituída</span>') + ' ' + solSelo(x) + (x.por ? ' <span class="faint">' + esc(x.por) + '</span>' : "") +
               '<div class="muted">' + (x.sem_necessidade && x.removido ? "Não sobrou pedido para este dia." : x.sem_necessidade ? "Sem necessidade de cimento." : solLinhasTxt(x.linhas)) + '</div>' +
@@ -7983,7 +7983,7 @@
     await solCarregar(true);
   }
   async function solApagar(k){
-    if (!ME || ME.papel !== "admin" || !SOL.d) return;
+    if (!ehAdminTela() || !SOL.d) return;
     var u = (SOL.d.usinas || []).find(function(x){ return x.k === k; }); if (!u) return;
     SOL.ocupado = true;
     var r; try { r = await sb.rpc("admin_solic_apagar", { p_usina: u.usina_id, p_dia: u.dia }); } catch (e) { r = { error: e }; }
