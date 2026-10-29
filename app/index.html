@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-29-4">
+<meta name="app-versao" content="2026-10-29-5">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -207,6 +207,8 @@
   .fb-hist{flex-basis:100%; display:flex; flex-direction:column; gap:4px; margin-top:4px;} .fb-hist-t{font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-faint);}
   .fb-reg{font-size:12.5px;} .fb-reg.atual{font-weight:600;} .fb-mais{color:var(--danger); font-size:11.5px;} .fb-menos{color:var(--info); font-size:11.5px;}
   tr.fb-aberta td{background:var(--accent-soft);}
+  .ped-conf-aviso{padding:8px 10px; border:1px solid var(--warning); border-radius:6px; background:var(--warning-soft); color:var(--text); font-size:12.5px;} .ped-conf-aviso ul{margin:4px 0 4px 18px; padding:0;}
+  .pz-onde{font-size:11px; margin-top:2px; max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .nf-rastro-btn{border:0; background:transparent; padding:0; cursor:pointer; display:inline-flex; align-items:center; gap:4px;} .nf-rastro-btn:hover .badge{filter:brightness(1.15); outline:1px solid currentColor;}
   .nf-rastro-i{font-size:12px; color:var(--text-faint);}
   .nf-rastro-link{border:0; background:transparent; padding:0; color:var(--accent-strong); text-decoration:underline dotted; cursor:pointer; font:inherit;}
@@ -4024,9 +4026,12 @@
     var cardEl = el("puzlCard");
     if (!cardEl) return;
     var podeEd = bdPodeEditar();
+    var enPorId = new Map(); cementEntradas.forEach(function(en){ enPorId.set(en.id, en); });
+    var LIG = {};
     var rows = puzlEntradas.map(function(p){
+      var lg = LIG[p.id] = puzlLigacao(p, enPorId.get(p.id));
       if (PZ_ED === p.id && podeEd){
-        return '<tr class="bd-edit"><td class="cell-strong">'+esc(p.documento)+'</td>' +
+        return '<tr class="bd-edit"><td class="cell-strong">'+esc(p.documento)+'</td><td>'+puzlLigacaoHtml(p, lg)+'</td>' +
           '<td>'+bdIn("data-pze", "emissaoNF", toIsoDate(p.emissaoNF), "date")+'</td><td>'+bdIn("data-pze", "dataEntrada", toIsoDate(p.dataEntrada), "date")+'</td>' +
           '<td>'+bdIn("data-pze", "fornecedor", p.fornecedor, "text", "dlBdForn")+'</td><td>'+bdIn("data-pze", "item", p.item)+'</td>' +
           '<td class="muted" title="A central faz parte da identificação do lançamento e não muda">'+esc(p.centralEntrada)+'</td>' +
@@ -4036,6 +4041,7 @@
       }
       return '<tr>' +
         '<td class="cell-strong">'+esc(p.documento)+'</td>' +
+        '<td style="padding:4px 6px;">'+puzlLigacaoHtml(p, lg)+'</td>' +
         '<td class="muted">'+esc(brDate(p.emissaoNF))+'</td>' +
         '<td class="muted">'+esc(brDate(p.dataEntrada))+'</td>' +
         '<td><span class="badge neutral">'+esc(p.fornecedor)+'</span></td>' +
@@ -4052,7 +4058,7 @@
       '<details'+(puzlListOpen?" open":"")+'><summary style="cursor:pointer;padding:12px 18px;font-size:13.5px;font-weight:600;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">Lançamentos importados da PUZL ('+puzlEntradas.length+')</summary>' +
       '<div class="card" style="margin-top:8px;">' +
       (puzlEntradas.length
-        ? '<div class="table-wrap"><table><thead><tr><th>Documento</th><th>Emissão</th><th>Data de entrada</th><th>Fornecedor</th><th>Item</th><th>Central (entrada)</th><th>Quantidade</th><th>Pedido</th><th>Descrição complementar</th><th>Chave da nota</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+        ? '<div class="table-wrap"><table><thead><tr><th>Documento</th><th title="Onde esta nota está ligada (clique para ver o caminho completo)">Ligação</th><th>Emissão</th><th>Data de entrada</th><th>Fornecedor</th><th>Item</th><th>Central (entrada)</th><th>Quantidade</th><th>Pedido</th><th>Descrição complementar</th><th>Chave da nota</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>'
         : '<p class="prog-empty">Nenhum lançamento da PUZL importado ainda.</p>') +
       '</div></details>';
     cardEl.querySelector("details").addEventListener("toggle", function(e){ puzlListOpen = e.target.open; });
@@ -4076,7 +4082,11 @@
         renderMateriaisNovos();
       });
     });
-    xlEnhance(cardEl, "puzl", [10]);
+    cardEl.querySelectorAll("[data-pzlig]").forEach(function(b){ b.addEventListener("click", function(){
+      var lg = LIG[parseInt(b.dataset.pzlig, 10)]; if (!lg) return;
+      if (lg.nf) nfRastroAbrir(lg.nf); else if (lg.e) progIrPara(lg.iso, lg.e);
+    }); });
+    xlEnhance(cardEl, "puzl", [11]);
   }
 
   // Alerta de materiais possivelmente novos (ver computeMateriaisNovosPendentes):
@@ -4739,7 +4749,7 @@
     }
     return n || 1;
   }
-  var PED_CONF = { lista: [], aberto: -1, erro: "", fixas: {} };   // fixas: cargas mexidas nesta aba (continuam à vista até trocar de aba)
+  var PED_CONF = { lista: [], aberto: -1, erro: "", fixas: {}, rasc: null, okNF: "" };   // fixas: cargas mexidas nesta aba (continuam à vista até trocar de aba)
   function pedConfChave(l){ return l.iso + "|" + entryKey(l.e) + "|" + l.c.idx; }
   var PED_PROG_ABAS = [
     ["acomp", "Acompanhamento", function(l){ return l.status !== "adiado" && !(l.progSt === "ok" && l.status === "sem_nota"); }],
@@ -4806,15 +4816,108 @@
       b.addEventListener("click", function(){ pedProgFiltro = b.dataset.aba; PED_CONF.aberto = -1; PED_CONF.fixas = {}; paintPedidosProg(); });
     });
     el("pedProgCard").querySelectorAll("[data-conf]").forEach(function(b){
-      b.addEventListener("click", function(ev){ ev.stopPropagation(); var i = +b.dataset.conf; PED_CONF.aberto = PED_CONF.aberto === i ? -1 : i; PED_CONF.erro = ""; paintPedidosProg();
+      b.addEventListener("click", function(ev){ ev.stopPropagation(); var i = +b.dataset.conf; PED_CONF.aberto = PED_CONF.aberto === i ? -1 : i; PED_CONF.erro = ""; PED_CONF.rasc = null; PED_CONF.okNF = ""; paintPedidosProg();
         var f = el("pedConfData"); if (f) f.focus(); });
     });
     el("pedProgCard").querySelectorAll("[data-rastronum]").forEach(function(b){ b.addEventListener("click", function(ev){ ev.stopPropagation(); var nf = nfByNumero(b.dataset.rastronum); if (nf) nfRastroAbrir(nf); }); });
     el("pedProgCard").querySelectorAll("[data-confacao]").forEach(function(b){
       b.addEventListener("click", function(ev){ ev.stopPropagation(); pedConfSalvar(b.dataset.confacao); });
     });
+    var nfIn = el("pedConfNF");
+    if (nfIn) nfIn.addEventListener("input", function(){
+      var l = PED_CONF.lista[PED_CONF.aberto]; if (!l) return;
+      PED_CONF.okNF = "";
+      var av = el("pedConfAviso"); if (av) av.innerHTML = pedConfAvisoHtml(l, nfIn.value);
+      var bs = el("pedProgCard").querySelector('[data-confacao="salvar"]'); if (bs) bs.textContent = "Salvar";
+      var er = el("pedProgCard").querySelector(".ped-conf-form .vpo-erro"); if (er) er.remove();
+    });
     xlEnhance(el("pedProgCard"), "ped-prog-" + aba[0]);
     var tbP = el("pedProgCard").querySelector("table"); if (tbP){ tbP.classList.add("ped-tab"); colunasAjustaveis(tbP, "ped_colunas", [8, 11, 15, 8, 7.5, 7, 6.5, 6.5, 14, 6.5, 10]); }
+  }
+  // ---- Onde uma NF está ligada: marcador das Notas Puzl e aviso da conferência manual ----
+  function nfNumNorm(x){ return String(x == null ? "" : x).split("/")[0].replace(/\D/g, "").replace(/^0+/, ""); }
+  function cargaPorIdx(e, idx){ return cargasDaLinha(e).find(function(x){ return x.idx === idx; }) || null; }
+  function progCargaRotulo(iso, e, c){
+    var n = cargasDaLinha(e).length;
+    return String(e.usina || "").trim() + " · " + brDate(iso) + (c ? (n > 1 ? " · carga " + (c.idx + 1) + " de " + n : "") + (c.pedido ? " · pedido " + c.pedido : (c.placa ? " · " + c.placa : "")) : "");
+  }
+  // índice por nº de NF (notas do Efit, conferências manuais, lançamentos PUZL) — guardado durante um desenho
+  function nfIdxNum(){
+    var P = (typeof __passo !== "undefined" && __passo) ? __passo : null;
+    if (P && P.nfLigIdx) return P.nfLigIdx;
+    var ix = { nf: new Map(), conf: new Map(), pz: new Map(), en: new Map() };
+    var push = function(m, k, v){ if (!k) return; var a = m.get(k); if (!a){ a = []; m.set(k, a); } a.push(v); };
+    cementNFes.forEach(function(nf){ push(ix.nf, nfNumNorm(nf.numero), nf); });
+    puzlEntradas.forEach(function(pz){ push(ix.pz, nfNumNorm(pz.documento), pz); });
+    cementEntradas.forEach(function(en){ ix.en.set(en.id, en); });
+    Object.keys(cementScheduleByDate).forEach(function(iso){ cementScheduleByDate[iso].entries.forEach(function(e){
+      (e.conf || []).forEach(function(cf, k){ if (cf) push(ix.conf, nfNumNorm(cf.nf), { iso: iso, e: e, idx: k, conf: cf }); });
+    }); });
+    if (P) P.nfLigIdx = ix;
+    return ix;
+  }
+  // conferências manuais (Controle de Pedidos) com esta NF
+  function confComNF(num){ var k = nfNumNorm(num); return (k && nfIdxNum().conf.get(k)) || []; }
+  // Todas as ligações de uma NF (pelo número) com cargas da Programação.
+  // exceto = {e, idx}: ignora essa carga (a que está sendo conferida agora).
+  function nfConexoes(num, exceto){
+    var alvo = nfNumNorm(num), out = []; if (!alvo) return out;
+    var mesma = function(e, idx){ return !!exceto && exceto.e === e && (idx == null || exceto.idx === idx); };
+    // a mesma carga ligada por dois caminhos (nota do Efit + conferência dela mesma) conta uma vez só
+    var add = function(x){ if (!out.some(function(y){ return y.e === x.e && (y.idx === x.idx || y.idx < 0 || x.idx < 0); })) out.push(x); };
+    var ix = nfIdxNum();
+    (ix.nf.get(alvo) || []).forEach(function(nf){
+      if (nfSoRegistro(nf)) return;
+      var s = nfSituacao(nf); if (!s.entry) return;
+      var c = cargaDaNota(nf, s.entry);
+      if (mesma(s.entry, c ? c.idx : null)) return;
+      add({ tipo: "efit", iso: s.iso, e: s.entry, idx: c ? c.idx : -1, nf: nf, txt: "Nota do Efit" + (nf.fornecedor ? " (" + nf.fornecedor + ")" : "") + " ligada a " + progCargaRotulo(s.iso, s.entry, c) });
+    });
+    confComNF(alvo).forEach(function(x){
+      if (mesma(x.e, x.idx)) return;
+      add({ tipo: "conf", iso: x.iso, e: x.e, idx: x.idx, txt: "Conferência manual de " + progCargaRotulo(x.iso, x.e, cargaPorIdx(x.e, x.idx)) + (x.conf.por ? " (feita por " + x.conf.por + ")" : "") });
+    });
+    // lançamento da PUZL sem nota no Efit, ligado à Programação pela entrada
+    (ix.pz.get(alvo) || []).forEach(function(p){
+      var en = ix.en.get(p.id); if (!en || entradaNFStatus(en).nf) return;
+      var m = matchProgramacao(en); if (!m.entry || m.situacao !== "confere") return;
+      var cs = cargasDaLinha(m.entry), c = en.pedido ? cs.find(function(x){ return cargaTemPedido(x, en.pedido); }) : (cs.length === 1 ? cs[0] : null);
+      if (mesma(m.entry, c ? c.idx : null)) return;
+      add({ tipo: "puzl", iso: m.dataProgramada, e: m.entry, idx: c ? c.idx : -1, txt: "Entrada da PUZL (" + (en.usina || "usina") + ", " + brDate(en.data) + ") ligada a " + progCargaRotulo(m.dataProgramada, m.entry, c) });
+    });
+    return out;
+  }
+  // Marcador da tela Notas Puzl: como este lançamento está ligado
+  function puzlLigacao(p, en){
+    var nf = en ? entradaNFStatus(en).nf : null;
+    var r;
+    if (nf && nfCancelada(nf)) r = { k: "canc", ic: "🚫", txt: "Nota cancelada", tone: "danger", nf: nf, onde: "a nota " + nf.numero + " está cancelada no Efit" };
+    else if (nf && nfTransf(nf)) r = { k: "reg", ic: "🔁", txt: "Transferência", tone: "info", nf: nf, onde: "só registro" };
+    else if (nf){
+      var s = nfSituacao(nf);
+      if (s.entry){
+        var c = cargaDaNota(nf, s.entry), ok = s.situacao === "confere";
+        r = { k: ok ? "ok" : "incerta", ic: ok ? "✅" : "⚠️", txt: ok ? "Ligada" : "Ligada, sem certeza", tone: ok ? "success" : "warning", nf: nf, iso: s.iso, e: s.entry, onde: progCargaRotulo(s.iso, s.entry, c) };
+      } else r = { k: "semprog", ic: "⚠️", txt: "Nota sem programação", tone: "warning", nf: nf, onde: "a nota está no Efit, mas não achou carga na Programação" };
+    } else {
+      var cf = confComNF(p.documento)[0];
+      if (cf) r = { k: "conf", ic: "✋", txt: "Ligada por conferência", tone: "info", iso: cf.iso, e: cf.e, onde: progCargaRotulo(cf.iso, cf.e, cargaPorIdx(cf.e, cf.idx)) };
+      else {
+        var m = en ? matchProgramacao(en) : null;
+        if (m && m.entry && m.situacao === "confere") r = { k: "entrada", ic: "🔗", txt: "Ligada sem nota no Efit", tone: "info", iso: m.dataProgramada, e: m.entry, onde: progCargaRotulo(m.dataProgramada, m.entry, null) + " (pela entrada; a nota ainda não está no Efit)" };
+        else r = { k: "sem", ic: "❌", txt: "Sem nota no Efit", tone: "danger", onde: "a nota " + (p.documento || "") + " ainda não foi importada do Efit" };
+      }
+    }
+    var tudo = nfConexoes(p.documento);
+    r.qtd = tudo.length; r.todas = tudo;
+    return r;
+  }
+  function puzlLigacaoHtml(p, lg){
+    var clic = lg.nf || lg.e;
+    var badge = '<span class="badge ' + lg.tone + '">' + lg.ic + ' ' + esc(lg.txt) + '</span>';
+    var dupla = lg.qtd > 1 ? ' <span class="badge danger xl-ignore" title="' + esc(lg.todas.map(function(x){ return "• " + x.txt; }).join("\n")) + '">⚠️ ' + lg.qtd + ' ligações</span>' : '';
+    return (clic ? '<button class="nf-rastro-btn" data-pzlig="' + p.id + '" title="Ver o caminho completo desta nota">' + badge + '</button>' : badge) + dupla +
+      (lg.onde ? '<div class="faint xl-ignore pz-onde">' + esc(lg.onde) + '</div>' : '');
   }
   // Rastro de uma nota: em que ordem o sistema liga Nota (Efit) → Programação (dia, usina, carga) → Entrada na usina (PUZL).
   function nfRastroAbrir(nf){
@@ -4896,14 +4999,22 @@
       if (tr){ tr.scrollIntoView({ block: "center" }); tr.classList.add("rz-flash"); setTimeout(function(){ tr.classList.remove("rz-flash"); }, 2600); }
     }, 60);
   }
+  // aviso: a NF digitada já está ligada a outra carga (nota do Efit, outra conferência ou entrada da PUZL)
+  function pedConfAvisoHtml(l, nf){
+    nf = String(nf || "").trim();
+    var cx = nf ? nfConexoes(nf, { e: l.e, idx: l.c.idx }) : [];
+    if (!cx.length) return "";
+    return '<div class="ped-conf-aviso">⚠️ <b>A NF ' + esc(nf) + ' já tem conexão:</b><ul>' + cx.map(function(x){ return "<li>" + esc(x.txt) + "</li>"; }).join("") + '</ul>Confira o número antes de salvar.</div>';
+  }
   function pedConfFormHtml(l, i){
-    var cf = l.conf || {}, nf0 = cf.nf || (l.nfs[0] ? l.nfs[0].numero : "");
+    var cf = l.conf || {}, rs = PED_CONF.rasc || {}, nf0 = rs.nf != null ? rs.nf : (cf.nf || (l.nfs[0] ? l.nfs[0].numero : ""));
     return '<tr class="ped-conf-row" data-xlfixa="1" data-xlapos="pc' + i + '"><td colspan="11"><div class="ped-conf-form">' +
       '<b>✋ Conferência manual — ' + esc(l.e.usina) + ' · ' + esc(brDate(l.iso)) + ' · ' + esc(l.c.pedido || l.c.placa || "carga") + '</b>' +
-      '<label>Descarregou em <input type="date" id="pedConfData" value="' + esc(cf.descarga || toISO(TODAY)) + '"></label>' +
+      '<label>Descarregou em <input type="date" id="pedConfData" value="' + esc(rs.data || cf.descarga || toISO(TODAY)) + '"></label>' +
       '<label>Nº da NF <input id="pedConfNF" value="' + esc(nf0) + '" placeholder="ex.: 1123505"></label>' +
-      '<label class="grow">Observação <input id="pedConfObs" value="' + esc(cf.obs || "") + '" placeholder="ex.: confirmado com o encarregado por telefone"></label>' +
-      '<button class="btn-primary btn-inline" data-confacao="salvar">Salvar</button>' +
+      '<label class="grow">Observação <input id="pedConfObs" value="' + esc(rs.obs != null ? rs.obs : (cf.obs || "")) + '" placeholder="ex.: confirmado com o encarregado por telefone"></label>' +
+      '<div id="pedConfAviso" style="flex-basis:100%;">' + pedConfAvisoHtml(l, nf0) + '</div>' +
+      '<button class="btn-primary btn-inline" data-confacao="salvar">' + (PED_CONF.okNF ? "Salvar mesmo assim" : "Salvar") + '</button>' +
       (l.conf ? '<button class="btn-ghost" data-confacao="desfazer" title="Volta a valer só o que está no sistema">Desfazer conferência</button>' : '') +
       '<button class="btn-ghost" data-confacao="cancelar">Cancelar</button>' +
       (PED_CONF.erro ? '<span class="vpo-erro">' + esc(PED_CONF.erro) + '</span>' : '') +
@@ -4912,10 +5023,16 @@
   }
   async function pedConfSalvar(acao){
     var l = PED_CONF.lista[PED_CONF.aberto]; if (!l) return;
-    if (acao === "cancelar"){ PED_CONF.aberto = -1; PED_CONF.erro = ""; paintPedidosProg(); return; }
+    if (acao === "cancelar"){ PED_CONF.aberto = -1; PED_CONF.erro = ""; PED_CONF.rasc = null; PED_CONF.okNF = ""; paintPedidosProg(); return; }
     var desfazer = acao === "desfazer";
     var data = desfazer ? null : (el("pedConfData").value || ""), nf = desfazer ? "" : el("pedConfNF").value.trim(), obs = desfazer ? "" : el("pedConfObs").value.trim();
+    if (!desfazer) PED_CONF.rasc = { data: data, nf: nf, obs: obs };
     if (!desfazer && !toIsoDate(data)){ PED_CONF.erro = "Informe a data da descarga."; paintPedidosProg(); return; }
+    if (!desfazer && nf && PED_CONF.okNF !== nfNumNorm(nf) && nfConexoes(nf, { e: l.e, idx: l.c.idx }).length){
+      PED_CONF.okNF = nfNumNorm(nf);
+      PED_CONF.erro = "Essa NF já está ligada em outro lugar (veja acima). Se estiver certo mesmo, clique em “Salvar mesmo assim”.";
+      paintPedidosProg(); return;
+    }
     var r; try { r = await sb.rpc("programacao_carga_conferir", { p_data: l.iso, p_usina: String(l.e.usina || "").trim(), p_n: progLinhaN(l.iso, l.e), p_ordem: l.c.idx + 1, p_descarga: data, p_nf: nf, p_obs: obs }); } catch (x) { r = { error: x }; }
     var erro = r.error ? dbErr(r.error) : (r.data && r.data.erro);
     if (erro){ PED_CONF.erro = erro; paintPedidosProg(); return; }
@@ -4923,7 +5040,7 @@
     l.e.conf[l.c.idx] = desfazer ? null : { descarga: data, nf: nf, obs: obs, por: (ME && ME.nome) || "", em: new Date().toISOString() };
     if (!l.e.conf.some(Boolean)) delete l.e.conf;
     PED_CONF.fixas[pedConfChave(l)] = 1;
-    PED_CONF.aberto = -1; PED_CONF.erro = "";
+    PED_CONF.aberto = -1; PED_CONF.erro = ""; PED_CONF.rasc = null; PED_CONF.okNF = "";
     paintPedidosProg();
   }
   function paintPedidosNotas(){
