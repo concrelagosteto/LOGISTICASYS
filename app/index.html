@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-29-5">
+<meta name="app-versao" content="2026-10-29-6">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -4154,8 +4154,12 @@
           var id = parseInt(btn.dataset.ignpid, 10);
           var p = pendentes.find(function(x){ return x.id === id; });
           if (!p) return;
-          materiaisIgnorados[materialNovoKey(p.fornecedorNF, p.material)] = true;
+          var chave = materialNovoKey(p.fornecedorNF, p.material);
+          materiaisIgnorados[chave] = true;
           paint();
+          if (typeof sb !== "undefined" && sb && ME && ME.empresa_id)
+            sb.from("materiais_ignorados").upsert({ empresa_id: ME.empresa_id, chave: chave, fornecedor: p.fornecedorNF, material: p.material, por_nome: ME.nome || "" }, { onConflict: "empresa_id,chave", ignoreDuplicates: true })
+              .then(function(r){ if (r && r.error) console.warn("ignorar material:", r.error.message); }, function(){ });
         });
       });
     }
@@ -6658,9 +6662,13 @@
       fetchAll(function(){ return live("vpo_entradas", "dia_id,ordem,rota1_usina,rota1_fabrica,rota2_usina,rota2_fabrica,obs,status,extra,frota(codigo)")().order("dia_id").order("ordem"); }),
       fetchAll(function(){ return sb.from("catalogo_cimento").select("termo,excluir").order("termo"); }),
       sb.from("fornecedores").select("nome,cnpjs,aliases,mat_alias,fabricas(material,deleted_at)").is("deleted_at", null).order("created_at").then(function(r){ return r.error ? null : r.data; }),
-      sb.from("historico_importacoes").select("id,arquivo,modulo,registros,total,usuario,created_at").is("deleted_at", null).order("created_at", { ascending: false }).limit(300).then(function(r){ return r.error ? [] : r.data; })
+      sb.from("historico_importacoes").select("id,arquivo,modulo,registros,total,usuario,created_at").is("deleted_at", null).order("created_at", { ascending: false }).limit(300).then(function(r){ return r.error ? [] : r.data; }),
+      sb.from("materiais_ignorados").select("chave").then(function(r){ return r.error ? [] : r.data; }, function(){ return []; })
     ]);
-    var uRows = res[0], nRows = res[1], pRows = res[2], pdRows = res[3], piRows = res[4], vdRows = res[5], veRows = res[6], catRows = res[7], fabRows = res[8], histRows = res[9];
+    var uRows = res[0], nRows = res[1], pRows = res[2], pdRows = res[3], piRows = res[4], vdRows = res[5], veRows = res[6], catRows = res[7], fabRows = res[8], histRows = res[9], ignRows = res[10] || [];
+    // materiais "possivelmente novos" que alguém já mandou ignorar (fica salvo no banco, vale para todos)
+    Object.keys(materiaisIgnorados).forEach(function(k){ delete materiaisIgnorados[k]; });
+    ignRows.forEach(function(r){ if (r && r.chave) materiaisIgnorados[r.chave] = true; });
 
     usinasCadastro.length = 0;
     uRows.forEach(function(u){
