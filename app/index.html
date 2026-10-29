@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-29-1">
+<meta name="app-versao" content="2026-10-29-2">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -192,7 +192,13 @@
   .cons-resumo{grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); margin-bottom:12px;}
   .cons-tile{cursor:pointer; text-align:left; font:inherit; color:inherit;}
   .cons-resumo .stat{display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-start; gap:2px;} .cons-resumo .stat-top{order:0;} .cons-resumo .stat-val{order:1; margin-top:0;} .cons-resumo .stat-sub{order:2; font-size:11px; color:var(--text-muted);}
-  .cons-tab th, .cons-tab td{white-space:nowrap; font-size:12px; padding:6px 9px;} .cons-tile.on{outline:2px solid var(--stat-accent); outline-offset:-2px;}
+  .cons-tab th, .cons-tab td{white-space:nowrap; font-size:12px; padding:6px 9px;}
+  table.tab-ajustavel{table-layout:fixed;} table.tab-ajustavel td{overflow:hidden; text-overflow:ellipsis;} table.tab-ajustavel th{position:relative; white-space:normal; line-height:1.15; vertical-align:bottom;}
+  .cons-tab.tab-ajustavel th, .cons-tab.tab-ajustavel td{font-size:11.5px; padding:5px 6px;}
+  .cons-tab.tab-ajustavel th{font-size:10px; letter-spacing:0; padding-right:8px;} .cons-tab.tab-ajustavel th .xl-th-label{overflow-wrap:normal; word-break:normal; hyphens:none;}
+  .cons-tab.tab-ajustavel th .xl-filter-btn{margin-left:3px; vertical-align:middle;} .cons-dif{font-size:10.5px;}
+  .col-arraste{position:absolute; top:0; right:-3px; width:7px; height:100%; cursor:col-resize; z-index:3;} th:last-child > .col-arraste{right:0; width:5px;} .col-arraste:hover, body.arrastando-col .col-arraste{background:var(--accent-soft);}
+  body.arrastando-col{cursor:col-resize; user-select:none;} .cons-tile.on{outline:2px solid var(--stat-accent); outline-offset:-2px;}
   .cons-grupos{display:flex; gap:8px; margin-bottom:8px; font-size:11.5px; font-weight:700;} .cons-grupos .g{padding:3px 10px; border-radius:20px; border:1px solid currentColor;}
   .cons-grupos .g-nota, .cons-tab th.g-nota{color:var(--accent-strong);} .cons-grupos .g-transp, .cons-tab th.g-transp{color:var(--warning);} .cons-grupos .g-custo, .cons-tab th.g-custo{color:var(--success);}
   .cons-tab th.g-nota, .cons-tab td.g-nota{box-shadow:inset 3px 0 0 var(--accent);} .cons-tab th.g-transp, .cons-tab td.g-transp{box-shadow:inset 3px 0 0 var(--warning);} .cons-tab th.g-custo, .cons-tab td.g-custo{box-shadow:inset 3px 0 0 var(--success);}
@@ -5127,6 +5133,48 @@
     });
   }
 
+  // Larguras iniciais (% da tela) das 19 colunas da Consulta geral: tudo cabe na tela; texto comprido vira "…" (passe o mouse para ver inteiro)
+  var CONS_LARG = [4, 4, 6.5, 6.5, 9, 5.5, 4.5, 4.8, 3.6, 5.8, 8.5, 4, 4, 5.3, 4.2, 4.2, 4.6, 4.3, 6.8];
+  // Colunas com largura ajustável: arraste a borda direita do cabeçalho; a largura fica guardada neste computador.
+  // Duplo clique na borda (ou "Ajustar à tela") volta ao padrão que cabe na tela.
+  function colunasAjustaveis(table, chave, padrao){
+    if (!table) return;
+    var ths = Array.prototype.slice.call(table.querySelectorAll("thead th")); if (!ths.length) return;
+    var salvo = null; try { salvo = JSON.parse(localStorage.getItem(chave) || "null"); } catch (e) { salvo = null; }
+    if (!Array.isArray(salvo) || salvo.length !== ths.length) salvo = null;
+    var cg = table.querySelector("colgroup"); if (cg) cg.remove();
+    cg = document.createElement("colgroup");
+    ths.forEach(function(th, i){ var c = document.createElement("col"); c.style.width = salvo ? salvo[i] + "px" : (padrao && padrao[i] ? padrao[i] + "%" : "auto"); cg.appendChild(c); });
+    table.insertBefore(cg, table.firstChild);
+    table.classList.add("tab-ajustavel");
+    table.style.width = salvo ? salvo.reduce(function(a, b){ return a + b; }, 0) + "px" : "100%";
+    var cols = Array.prototype.slice.call(cg.children);
+    var paraPx = function(){ var ws = ths.map(function(th){ return Math.round(th.getBoundingClientRect().width); }); cols.forEach(function(c, i){ c.style.width = ws[i] + "px"; }); table.style.width = ws.reduce(function(a, b){ return a + b; }, 0) + "px"; return ws; };
+    var guardar = function(ws){ try { localStorage.setItem(chave, JSON.stringify(ws)); } catch (e) {} };
+    ths.forEach(function(th, i){
+      var h = document.createElement("span"); h.className = "col-arraste xl-ignore"; h.title = "Arraste para mudar a largura (duplo clique: ajustar à tela)";
+      h.addEventListener("click", function(e){ e.stopPropagation(); });
+      h.addEventListener("dblclick", function(e){ e.stopPropagation(); try { localStorage.removeItem(chave); } catch (x) {} colunasAjustaveis(table, chave, padrao); });
+      h.addEventListener("mousedown", function(e){
+        e.preventDefault(); e.stopPropagation();
+        var ws = paraPx(), x0 = e.clientX, w0 = ws[i];
+        document.body.classList.add("arrastando-col");
+        var mover = function(ev){ ws[i] = Math.max(36, w0 + ev.clientX - x0); cols[i].style.width = ws[i] + "px"; table.style.width = ws.reduce(function(a, b){ return a + b; }, 0) + "px"; };
+        var soltar = function(){ document.removeEventListener("mousemove", mover); document.removeEventListener("mouseup", soltar); document.body.classList.remove("arrastando-col"); guardar(ws); };
+        document.addEventListener("mousemove", mover); document.addEventListener("mouseup", soltar);
+      });
+      th.appendChild(h);
+    });
+    // texto cortado: mostra inteiro ao passar o mouse
+    if (!table.__dicas){ table.__dicas = 1; table.addEventListener("mouseover", function(e){ var td = e.target.closest && e.target.closest("td"); if (td && !td.title && td.scrollWidth > td.clientWidth + 1) td.title = td.textContent.trim(); }); }
+    // botão "Ajustar à tela" na barra de filtros da tabela
+    var bar = table.closest(".table-wrap") && table.closest(".table-wrap").previousElementSibling;
+    if (bar && bar.classList.contains("xl-clear-bar") && !bar.querySelector(".col-ajustar")){
+      var b = document.createElement("button"); b.type = "button"; b.className = "xl-clear-btn col-ajustar"; b.textContent = "↔ Ajustar à tela"; b.title = "Volta as colunas ao tamanho que cabe na tela";
+      b.addEventListener("click", function(e){ e.stopPropagation(); try { localStorage.removeItem(chave); } catch (x) {} colunasAjustaveis(table, chave, padrao); });
+      bar.insertBefore(b, bar.querySelector(".xl-clear-btn"));
+    }
+  }
   function renderConsultas(){
     el("view-consultas").innerHTML =
       '<div class="pedidos-tabs" id="consultaAbas" style="padding:0 0 12px;border:none;">' +
@@ -5187,30 +5235,32 @@
     lista.sort(function(a, b){ return a.emis < b.emis ? 1 : a.emis > b.emis ? -1 : (a.nf < b.nf ? 1 : -1); });
     var LIM = 2000, mostra = lista.slice(0, LIM);
     el("consCount").textContent = lista.length + " nota(s)" + (CONS.sit ? " · filtro: " + SIT_FRETE[CONS.sit][1].replace(/^[▲▼=] /, "") : "") + (FRETES.length ? "" : " · importe o Resumo de entradas (Fretes) em Base de Dados");
-    var td = function(v, cls){ return '<td' + (cls ? ' class="' + cls + '"' : '') + '>' + v + '</td>'; };
+    var td = function(v, cls, tit){ return '<td' + (cls ? ' class="' + cls + '"' : '') + (tit ? ' title="' + esc(tit) + '"' : '') + '>' + v + '</td>'; };
+    var dCurta = function(iso){ var b = brDate(iso); return b ? esc(b.slice(0, 5)) : '<span class="faint">—</span>'; };   // dd/mm (o ano está no período)
+    var SIT_CURTA = { acima: "▲ Acima", abaixo: "▼ Abaixo", nabase: "= Na base", sembase: "Sem base", semfrete: "Sem frete" };
     var rows = mostra.map(function(l){
       var s = SIT_FRETE[l.sit];
-      var difTxt = l.dif == null ? "" : ' <span class="faint" style="font-size:11px;">(' + (l.dif > 0 ? "+" : "") + brl2(l.dif) + '/t)</span>';
+      var difTxt = l.dif == null ? "" : (l.dif > 0 ? "+" : "") + brl2(l.dif) + " R$/t";
       return '<tr class="cons-' + l.sit + '">' +
-        td(esc(brDate(l.emis)), "g-nota") + td(esc(brDate(l.entrega))) + td(esc(l.usinaC)) + td('<b>' + esc(l.usinaD) + '</b>') + td(esc(l.fab)) + td(esc(l.mat)) +
-        td('<b>' + esc(l.nf) + '</b>') + td(esc(l.placa) || '<span class="faint">—</span>') + td(ton(l.peso), "num") + td(brl(l.valor), "num") +
-        td(esc(l.transp) || '<span class="faint">—</span>', "g-transp") + td(esc(brDate(l.emisFrete)) || '<span class="faint">—</span>') + td(esc(l.numFrete) || '<span class="faint">—</span>') + td(brl(l.frete), "num") +
+        td(dCurta(l.emis), "g-nota", brDate(l.emis)) + td(dCurta(l.entrega), "", brDate(l.entrega)) + td(esc(l.usinaC)) + td('<b>' + esc(l.usinaD) + '</b>') + td(esc(l.fab)) + td(esc(l.mat)) +
+        td('<b>' + esc(l.nf) + '</b>') + td(esc(l.placa) || '<span class="faint">—</span>') + td(ton(l.peso), "num") + td(brl2(l.valor), "num", brl(l.valor)) +
+        td(esc(l.transp) || '<span class="faint">—</span>', "g-transp") + td(dCurta(l.emisFrete), "", brDate(l.emisFrete)) + td(esc(l.numFrete) || '<span class="faint">—</span>') + td(brl2(l.frete), "num", l.frete == null ? "" : brl(l.frete)) +
         td(brl2(l.preco), "num g-custo") + td(brl2(l.freteU), "num") + td(brl2(l.custo), "num") +
         td(l.base ? '<button type="button" class="nf-rastro-link xl-ignore" data-base="' + esc(l.usinaD + "#" + l.fabKey) + '" title="Ver / alterar o frete base desta rota">' + brl2(l.base.valor) + '</button><span style="display:none">' + brl2(l.base.valor) + '</span>' : '<button type="button" class="btn-ghost btn-xs xl-ignore" data-base="' + esc(l.usinaD + "#" + l.fabKey) + '">＋ base</button>', "num") +
-        td('<span class="badge ' + s[0] + '">' + s[1] + '</span>' + difTxt) +
+        td('<span class="badge ' + s[0] + '">' + SIT_CURTA[l.sit] + '</span>' + (difTxt ? ' <span class="faint cons-dif">' + difTxt + '</span>' : ''), "", s[1].replace(/^[▲▼=] /, "") + (difTxt ? " (" + difTxt + ")" : "")) +
         '</tr>';
     }).join("");
     el("consTabela").innerHTML = lista.length
       ? '<div class="cons-grupos"><span class="g g-nota">Nota fiscal</span><span class="g g-transp">Transporte / frete</span><span class="g g-custo">Custos (R$/t)</span></div>' +
         '<div class="table-wrap"><table class="cons-tab"><thead><tr>' +
-        '<th class="g-nota">Emissão</th><th>Entrega</th><th>Usina compra</th><th>Usina destino</th><th>Fábrica</th><th>Material</th><th>NF</th><th>Placa</th><th>Peso (t)</th><th>Valor total</th>' +
-        '<th class="g-transp">Transportador</th><th>Emissão frete</th><th>Nº frete</th><th>Valor frete</th>' +
-        '<th class="g-custo">Preço unit.</th><th>Frete unit.</th><th>Custo (preço + frete)</th><th>Frete base</th><th>Situação do frete</th>' +
+        '<th class="g-nota">Emissão</th><th>Entrega</th><th>Usina compra</th><th>Usina destino</th><th>Fábrica</th><th>Material</th><th>NF</th><th>Placa</th><th>Peso (t)</th><th>Valor total (R$)</th>' +
+        '<th class="g-transp">Transportador</th><th>Emissão frete</th><th>Nº frete</th><th>Valor frete (R$)</th>' +
+        '<th class="g-custo">Preço unit.</th><th>Frete unit.</th><th>Custo (preço+frete)</th><th>Frete base</th><th>Situação do frete</th>' +
         '</tr></thead><tbody>' + rows + '</tbody></table></div>' +
         (lista.length > LIM ? '<p class="faint" style="margin:8px 0 0;font-size:12px;">Mostrando ' + LIM + ' de ' + lista.length + ' notas. Diminua o período ou use a busca para ver o resto.</p>' : '')
       : '<p class="prog-empty">' + (FRETES.length ? "Nenhuma nota neste período / filtro." : "Ainda não há notas. Importe o <b>Resumo de entradas (Fretes)</b> em Base de Dados › Importar arquivos.") + '</p>';
     el("consTabela").querySelectorAll("[data-base]").forEach(function(b){ b.addEventListener("click", function(ev){ ev.stopPropagation(); CONS.aba = "base"; CONS.baseAberta = b.dataset.base; paintConsulta(); var r = document.querySelector('#consultaCorpo tr[data-fb="' + CSS.escape(b.dataset.base) + '"]'); if (r) r.scrollIntoView({ block: "center" }); var i = el("fbValor"); if (i) i.focus(); }); });
-    if (lista.length) xlEnhance(el("consTabela"), "consulta-custos");
+    if (lista.length){ xlEnhance(el("consTabela"), "consulta-custos"); colunasAjustaveis(el("consTabela").querySelector("table"), "cons_colunas", CONS_LARG); }
   }
 
   // ---------- Frete base (mesmo jeito do Controle de cimento: valor atual + registros anteriores) ----------
