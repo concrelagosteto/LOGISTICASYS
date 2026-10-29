@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-29-3">
+<meta name="app-versao" content="2026-10-29-4">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -219,6 +219,15 @@
   .rz-aviso{font-size:12.5px; padding:6px 9px; border-radius:6px; background:var(--warning-soft); color:var(--text);} .rz-aviso.info{background:var(--info-soft);}
   .rz-pe{display:flex; gap:8px; justify-content:flex-end;}
   tr.rz-flash td{animation:rzFlash 2.4s ease;} @keyframes rzFlash{0%,60%{background:var(--accent-soft);} 100%{background:transparent;}}
+  .ped-topo{display:flex; align-items:center; gap:10px 14px; flex-wrap:wrap; padding:8px 12px; margin-bottom:10px;} .ped-topo .grow{flex:1;}
+  .ped-modo{display:flex; gap:4px; background:var(--surface-2); border:1px solid var(--border); border-radius:9px; padding:3px;}
+  .ped-modo button{border:0; background:transparent; color:var(--text-muted); font:inherit; font-size:12.5px; font-weight:600; padding:5px 10px; border-radius:7px; cursor:pointer;} .ped-modo button.active{background:var(--accent-soft); color:var(--accent-strong);}
+  .ped-per-lbl{font-size:11.5px; margin-left:-8px;} .ped-topo .filter-count{margin:0;}
+  .ped-info{position:relative; font-size:12px;} .ped-info summary{cursor:pointer; color:var(--text-muted); list-style:none;} .ped-info summary::-webkit-details-marker{display:none;}
+  .ped-info-txt{position:absolute; right:0; top:26px; z-index:40; width:min(560px, 80vw); background:var(--surface); border:1px solid var(--border-strong); border-radius:10px; padding:12px 14px; box-shadow:0 12px 30px rgba(0,0,0,.35); line-height:1.5;}
+  .ped-tab td{white-space:nowrap;} .ped-tab tr.ped-conf-row td{white-space:normal; overflow:visible;}
+  #pedProgCard .pedidos-tabs{padding:8px 12px; gap:6px;} #pedProgCard .pedidos-tabs button{padding:5px 11px; font-size:12px;}
+  #pedidosStats .stat-grid{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;} #pedidosStats .stat{display:flex; align-items:center; gap:8px; padding:4px 10px;} #pedidosStats .stat-val{font-size:14px; margin:0;} #pedidosStats .stat-icn{display:none;}
   .ped-conf-form{position:sticky; left:8px; max-width:min(1150px, calc(100vw - 340px)); display:flex; flex-wrap:wrap; gap:10px 14px; align-items:center; padding:10px 12px; border:1px dashed var(--info); border-radius:8px; background:var(--info-soft);}
   .ped-conf-form label{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted);} .ped-conf-form label.grow{flex:1; min-width:220px;}
   .ped-conf-form input{height:30px; border-radius:6px; border:1px solid var(--border-strong); background:var(--surface); color:var(--text); padding:0 8px; font-size:12.5px;} .ped-conf-form label.grow input{flex:1;}
@@ -4581,13 +4590,14 @@
   function renderControlePedidos(){
     if (typeof PED_CONF !== "undefined"){ PED_CONF.fixas = {}; PED_CONF.aberto = -1; }
     el("view-controle-pedidos-cimento").innerHTML =
-      '<div class="card banner" id="pedBanner" style="margin-bottom:16px;">Cada nota importada em <b>Base de Dados &gt; Efit</b> é ligada à Programação de Cimento pelo nº do pedido (conferida pela placa, quando informada); sem pedido na nota, a ligação cai pra Usina + Placa + Data. O caminho é: <b>Programação → nota emitida (Efit) → descarregada (entrada da PUZL, pelo nº da nota)</b>. Pra importar notas ou entradas, use a aba <b>Base de Dados</b>.</div>' +
-      '<div class="card" style="margin-bottom:16px;"><div class="filters" style="align-items:center;">' +
-      '<div class="filter-field"><span id="pedPeriodoLbl">Período (dia programado)</span>' +
-      '<div class="daterange"><button class="daterange-btn" id="pedDrBtn">📅 <span id="pedDrLabel"></span> <span style="opacity:.6;">▾</span></button>' +
-      '<div class="daterange-panel" id="pedDrPanel"></div></div></div>' +
-      '<div class="filter-count" id="pedDayInfo"></div></div></div>' +
-      '<div class="pedidos-tabs" id="pedModo" style="padding:0 0 12px;border:none;"><button data-modo="prog">📋 Por programação</button><button data-modo="nota">🧾 Por nota (Efit)</button></div>' +
+      // barra única e compacta: modo · período · contagem · ajuda (a tabela fica com mais espaço)
+      '<div class="card ped-topo">' +
+        '<div class="ped-modo" id="pedModo"><button data-modo="prog">📋 Por programação</button><button data-modo="nota">🧾 Por nota (Efit)</button></div>' +
+        '<div class="daterange"><button class="daterange-btn" id="pedDrBtn" title="Período">📅 <span id="pedDrLabel"></span> <span style="opacity:.6;">▾</span></button><div class="daterange-panel" id="pedDrPanel"></div></div>' +
+        '<span id="pedPeriodoLbl" class="faint ped-per-lbl"></span>' +
+        '<span class="filter-count" id="pedDayInfo"></span><span class="grow"></span>' +
+        '<details class="ped-info"><summary>ℹ️ Como funciona</summary><div class="ped-info-txt" id="pedBanner">Cada nota importada em <b>Base de Dados &gt; Efit</b> é ligada à Programação de Cimento pelo nº do pedido (conferida pela placa, quando informada); sem pedido na nota, a ligação cai pra Usina + Placa + Data. O caminho é: <b>Programação → nota emitida (Efit) → descarregada (entrada da PUZL, pelo nº da nota)</b>. Pra importar notas ou entradas, use a aba <b>Base de Dados</b>.</div></details>' +
+      '</div>' +
       '<div id="pedProgStats"></div><div class="card" id="pedProgCard" style="margin-bottom:16px;"></div>' +
       '<div id="pedidosStats"></div>' +
       '<div class="card" id="pedidosCard" style="margin-bottom:16px;"></div>' +
@@ -4644,7 +4654,7 @@
     var prog = pedidosModo === "prog";
     ["pedProgStats","pedProgCard"].forEach(function(id){ el(id).style.display = prog ? "" : "none"; });
     ["pedidosStats","pedidosCard","pedidosSemNFCard"].forEach(function(id){ el(id).style.display = prog ? "none" : ""; });
-    el("pedPeriodoLbl").textContent = prog ? "Período (dia programado)" : "Período (emissão da nota)";
+    el("pedPeriodoLbl").textContent = prog ? "pelo dia programado" : "pela emissão da nota";
     el("pedModo").querySelectorAll("button").forEach(function(b){ b.classList.toggle("active", b.dataset.modo === pedidosModo); });
     var bn = el("pedBanner");
     if (!window.__pedBannerNotas) window.__pedBannerNotas = bn.innerHTML;
@@ -4738,6 +4748,7 @@
     ["conferida", "✋ Conferência manual", function(l){ return l.status === "conferida"; }],
     ["emitida", "Emitidas — falta descarregar", function(l){ return l.status === "emitida"; }],
     ["semnota", "Sem nota", function(l){ return l.status === "sem_nota" || l.status === "cancelada"; }],
+    ["atrasada", "⏰ Atrasadas", function(l){ return l.atrasada; }],
     ["oksem", "Tudo OK sem nota", function(l){ return l.progSt === "ok" && l.status === "sem_nota"; }],
     ["adiado", "Adiadas", function(l){ return l.status === "adiado"; }],
     ["todas", "Todas", function(){ return true; }]
@@ -4748,17 +4759,7 @@
     var ativas = linhas.filter(function(l){ return l.status !== "adiado"; });
     el("pedDayInfo").textContent = ativas.length + " carga(s) programada(s) no período · " + linhas.filter(function(l){ return l.status === "adiado"; }).length + " adiada(s)";
     var cnt = function(f){ return linhas.filter(f).length; };
-    el("pedProgStats").innerHTML = '<div class="stat-grid">' +
-      [["Cargas programadas", ativas.length, "accent"],
-       ["Descarregadas", cnt(function(l){ return l.status === "descarregada" && !l.desvio; }), "success"],
-       ["Desviadas", cnt(function(l){ return !!l.desvio; }), "info"],
-       ["Conferência manual", cnt(function(l){ return l.status === "conferida"; }), "info"],
-       ["Emitidas (falta descarregar)", cnt(function(l){ return l.status === "emitida"; }), "warning"],
-       ["Sem nota", cnt(function(l){ return l.status === "sem_nota" || l.status === "cancelada"; }), "neutral"],
-       ["Atrasadas", cnt(function(l){ return l.atrasada; }), "danger"],
-       ["Adiadas", cnt(function(l){ return l.status === "adiado"; }), "warning"]
-      ].map(function(s){ return '<div class="stat" style="--stat-accent:var(--'+s[2]+');"><div class="stat-top"><span>'+s[0]+'</span></div><div class="stat-val">'+s[1]+'</div></div>'; }).join("") +
-      '</div>';
+    el("pedProgStats").innerHTML = "";
     var aba = PED_PROG_ABAS.find(function(a){ return a[0] === pedProgFiltro; }) || PED_PROG_ABAS[0];
     var tabs = PED_PROG_ABAS.map(function(a){
       return '<button data-aba="'+a[0]+'" class="'+(a[0] === aba[0] ? "active" : "")+'">'+a[1]+' ('+cnt(a[2])+')</button>';
@@ -4813,6 +4814,7 @@
       b.addEventListener("click", function(ev){ ev.stopPropagation(); pedConfSalvar(b.dataset.confacao); });
     });
     xlEnhance(el("pedProgCard"), "ped-prog-" + aba[0]);
+    var tbP = el("pedProgCard").querySelector("table"); if (tbP){ tbP.classList.add("ped-tab"); colunasAjustaveis(tbP, "ped_colunas", [8, 11, 15, 8, 7.5, 7, 6.5, 6.5, 14, 6.5, 10]); }
   }
   // Rastro de uma nota: em que ordem o sistema liga Nota (Efit) → Programação (dia, usina, carga) → Entrada na usina (PUZL).
   function nfRastroAbrir(nf){
