@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-30-7">
+<meta name="app-versao" content="2026-10-30-8">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -3663,6 +3663,25 @@
     if (__passo) __passo.distPl = res; else __distPlCache = res;
     return res;
   }
+  // o material da carga ("Nassau — CP III 40 RS") é o mesmo tipo do da nota (CP II / CP III / CP V / Pozolana)?
+  // Se um dos dois não dá pra classificar, não barra.
+  function materialCompativel(nf, fabricaTxt){
+    var partes = String(fabricaTxt || "").split(/[—–]/);
+    var a = sugerirNomeCadastro(materialEfetivo(nf) || nf.material), b = sugerirNomeCadastro(partes.slice(1).join(" ") || partes[0]);
+    return !a || !b || a === b;
+  }
+  // a fábrica da carga ("Nassau — CP III 40 RS") é do mesmo fornecedor da nota?
+  function fabricaCompativel(nf, fabricaTxt){
+    var fab = normalizeMaterial(String(fabricaTxt || "").split(/[—–]/)[0]);
+    if (!fab) return false;
+    var fe = fabricaEntryForFornecedor(nf.fornecedor);
+    if (fe){
+      var nomes = [fe.fornecedor].concat(fe.aliases || []).map(normalizeMaterial).filter(Boolean);
+      return nomes.some(function(n){ return fab.indexOf(n) !== -1 || n.indexOf(fab) !== -1; });
+    }
+    var ta = fornTokens(nf.fornecedor), tb = fornTokens(String(fabricaTxt || "").split(/[—–]/)[0]);
+    return ta.some(function(w){ return tb.indexOf(w) !== -1; });
+  }
   function nfProgMatch(nf){
     var m = nfProgMatch0(nf);
     if (m && m.entry && ligDesfeita(nf.numero, m.iso, m.entry)) return null;
@@ -3720,6 +3739,8 @@
     var usinaAlvo = String(nf.usina||"").trim().toUpperCase();
     if (!usinaAlvo) return null;
     var byUsina = progAtivos(day).filter(function(e){ return String(e.usina||"").trim().toUpperCase() === usinaAlvo; });
+    // só linhas com uma carga da mesma fábrica (fornecedor) da nota: nota da Nassau não liga em linha só de Pozolana da Vittoria
+    byUsina = byUsina.filter(function(e){ return cargasDaLinha(e).some(function(c){ return fabricaCompativel(nf, c.fabrica) && materialCompativel(nf, c.fabrica); }); });
     if (!byUsina.length) return null;
     var placaAlvo = String(nf.placa||"").trim().toUpperCase();
     var comPlaca = placaAlvo && byUsina.find(function(e){ return String(e.carretas||"").toUpperCase().indexOf(placaAlvo) !== -1; });
@@ -5000,7 +5021,7 @@
       var s = nfSituacao(nf); if (!s.entry) return;
       var c = cargaDaNota(nf, s.entry);
       if (mesma(s.entry, c ? c.idx : null)) return;
-      add({ tipo: "efit", iso: s.iso, e: s.entry, idx: c ? c.idx : -1, nf: nf, txt: "Nota do Efit" + (nf.fornecedor ? " (" + nf.fornecedor + ")" : "") + " ligada a " + progCargaRotulo(s.iso, s.entry, c) });
+      add({ tipo: "efit", iso: s.iso, e: s.entry, idx: c ? c.idx : -1, nf: nf, txt: "Nota do Efit" + (nf.fornecedor ? " (" + nf.fornecedor + ")" : "") + " ligada a " + progCargaRotulo(s.iso, s.entry, c) + (s.situacao === "sem_certeza" ? " — ligação SEM CERTEZA (" + (s.matchedBy === "usina_data_placa_diverge" ? "só usina + dia" : "placa diferente") + ")" : "") });
     });
     confComNF(alvo).forEach(function(x){
       if (mesma(x.e, x.idx)) return;
