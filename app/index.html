@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-29-7">
+<meta name="app-versao" content="2026-10-30-1">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -4035,7 +4035,7 @@
           '<td>'+bdIn("data-pze", "emissaoNF", toIsoDate(p.emissaoNF), "date")+'</td><td>'+bdIn("data-pze", "dataEntrada", toIsoDate(p.dataEntrada), "date")+'</td>' +
           '<td>'+bdIn("data-pze", "fornecedor", p.fornecedor, "text", "dlBdForn")+'</td><td>'+bdIn("data-pze", "item", p.item)+'</td>' +
           '<td class="muted" title="A central faz parte da identificação do lançamento e não muda">'+esc(p.centralEntrada)+'</td>' +
-          '<td>'+bdIn("data-pze", "quantidade", p.quantidade)+'</td><td>'+bdIn("data-pze", "pedido", p.pedido)+'</td>' +
+          '<td>'+bdIn("data-pze", "quantidade", p.quantidade)+'</td><td>'+bdIn("data-pze", "pedido", p.pedido)+'</td><td class="muted">'+puzlPlacaHtml(p, lg)+'</td>' +
           '<td>'+bdIn("data-pze", "observacoes", p.observacoes)+'</td><td>'+bdIn("data-pze", "chaveNota", p.chaveNota)+'</td>' +
           '<td><div class="bd-acoes"><button class="btn-primary btn-inline" data-pzsave="'+p.id+'">Salvar</button><button class="btn-ghost" data-pzcancel="1">Cancelar</button></div></td></tr>';
       }
@@ -4049,6 +4049,7 @@
         '<td class="muted">'+esc(p.centralEntrada)+'</td>' +
         '<td class="muted">'+esc(p.quantidade)+' '+esc(p.unCompra)+'</td>' +
         '<td class="cell-strong">'+esc(p.pedido || "")+'</td>' +
+        '<td style="white-space:nowrap;">'+puzlPlacaHtml(p, lg)+'</td>' +
         '<td class="muted" title="'+esc(p.observacoes || "")+'" style="max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(p.observacoes || "")+'</td>' +
         '<td class="muted" style="font-family:monospace;font-size:11px;white-space:nowrap;">'+esc(p.chaveNota || "")+'</td>' +
         '<td style="padding:4px 6px;"><div class="bd-acoes">'+(podeEd ? '<button class="btn-ghost" data-edpz="'+p.id+'" title="Alterar este lançamento" style="padding:5px 8px;">✏️</button>' : '')+'<button class="btn-ghost" data-delpuzl="'+p.id+'" style="padding:5px 8px;">🗑</button></div></td>' +
@@ -4058,7 +4059,7 @@
       '<details'+(puzlListOpen?" open":"")+'><summary style="cursor:pointer;padding:12px 18px;font-size:13.5px;font-weight:600;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">Lançamentos importados da PUZL ('+puzlEntradas.length+')</summary>' +
       '<div class="card" style="margin-top:8px;">' +
       (puzlEntradas.length
-        ? '<div class="table-wrap"><table><thead><tr><th>Documento</th><th title="Onde esta nota está ligada (clique para ver o caminho completo)">Ligação</th><th>Emissão</th><th>Data de entrada</th><th>Fornecedor</th><th>Item</th><th>Central (entrada)</th><th>Quantidade</th><th>Pedido</th><th>Descrição complementar</th><th>Chave da nota</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+        ? '<div class="table-wrap"><table><thead><tr><th>Documento</th><th title="Onde esta nota está ligada (clique para ver o caminho completo)">Ligação</th><th>Emissão</th><th>Data de entrada</th><th>Fornecedor</th><th>Item</th><th>Central (entrada)</th><th>Quantidade</th><th>Pedido</th><th title="Placa da nota do Efit; sem ela, a que está na descrição da nota; sem nenhuma das duas, a da carga na Programação (prog)">Placa</th><th>Descrição complementar</th><th>Chave da nota</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>'
         : '<p class="prog-empty">Nenhum lançamento da PUZL importado ainda.</p>') +
       '</div></details>';
     cardEl.querySelector("details").addEventListener("toggle", function(e){ puzlListOpen = e.target.open; });
@@ -4086,7 +4087,7 @@
       var lg = LIG[parseInt(b.dataset.pzlig, 10)]; if (!lg) return;
       if (lg.nf) nfRastroAbrir(lg.nf); else if (lg.e) progIrPara(lg.iso, lg.e);
     }); });
-    xlEnhance(cardEl, "puzl", [11]);
+    xlEnhance(cardEl, "puzl", [12]);
   }
 
   // Alerta de materiais possivelmente novos (ver computeMateriaisNovosPendentes):
@@ -4915,6 +4916,24 @@
     var tudo = nfConexoes(p.documento);
     r.qtd = tudo.length; r.todas = tudo;
     return r;
+  }
+  // Placa do lançamento: a PUZL não traz placa — vem da nota do Efit; senão da descrição da nota; senão da carga ligada na Programação
+  function puzlPlaca(p, lg){
+    var pn = lg && lg.nf ? String(lg.nf.placa || "").trim().toUpperCase() : "";
+    if (pn) return { placa: pn, de: "" };
+    var d = p.observacoes ? extractFromDescricao(p.fornecedor, p.observacoes).placa : "";
+    if (d) return { placa: String(d).toUpperCase(), de: "" };
+    if (lg && lg.e){
+      var c = lg.nf ? cargaDaNota(lg.nf, lg.e) : null;
+      var pl = c ? c.placa : (cargasDaLinha(lg.e).length === 1 ? cargasDaLinha(lg.e)[0].placa : "");
+      if (pl && ehPlaca(pl)) return { placa: String(pl).toUpperCase(), de: "prog" };
+    }
+    return { placa: "", de: "" };
+  }
+  function puzlPlacaHtml(p, lg){
+    var x = puzlPlaca(p, lg);
+    if (!x.placa) return '<span class="faint">—</span>';
+    return esc(x.placa) + (x.de ? ' <span class="faint xl-ignore" style="font-size:11px;" title="Placa da carga na Programação (a nota não trouxe placa)">(prog)</span>' : '');
   }
   function puzlLigacaoHtml(p, lg){
     var clic = lg.nf || lg.e;
