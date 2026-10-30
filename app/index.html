@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-30-1">
+<meta name="app-versao" content="2026-10-30-2">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -2386,7 +2386,7 @@
     progPicker.updateLabel();
     var days = rangeDays(progPicker.state);
 
-    var shown = 0;
+    var shown = 0; PROG_RZ = [];
     var agg = { programadas:0, ok:0, conferir:0, pendentes:0 };
     var dcs = {};
     var html = days.map(function(day){
@@ -2434,12 +2434,12 @@
         // documento lançado mas ainda sem confirmação no Efit, "Emitida".
         var nfSt = progEntryNFStatus(e);
         var nfCanc = nfCanceladasLigadas(e).map(function(nf){ return '<span class="badge danger" title="Esta nota está CANCELADA no Efit">🚫 NF '+esc(nf.numero)+' CANCELADA</span>'; }).join(" ");
-        var nfCell0 = '<td style="padding:4px 6px;">' + nfCanc + (
+        var nfCell0 = '<td style="padding:4px 6px;">' + nfCanc + progRzBtn(progNotasDaLinha(e, nfSt), (
           nfSt === "cancelada" ? '<span class="badge danger">🚫 NF CANCELADA</span>' :
           nfSt === "confirmada" ? (function(){ var dv = progDesvios(e); return dv.length ? dv.map(badgeDesvio).join(" ") : '<span class="badge success">✅ Descarregada</span>'; })() :
           nfSt === "emitida" ? '<span class="badge warning">Emitida</span>' :
           '<span class="faint" style="font-style:italic;font-size:11px;">—</span>'
-        ) + '</td>';
+        )) + '</td>';
         var nfCell = progNFCelulaMulti(e, nfCanc, nfSt) || nfCell0;
         if (nfSt === "none" && cargasDaLinha(e).length < 2 && linhaCompleta(e) && progLinhaSituacao(e) === "pendente") nfCell = '<td style="padding:4px 6px;">' + nfCanc + BADGE_PENDENTE + '</td>';
         var rowCls = e.status === "ok" ? "prog-row-ok" : (e.status === "conferir" ? "prog-row-conferir" : (e.status === "adiado" ? "prog-row-adiado" : (e.status === "sem_necessidade" ? "prog-row-semnec" : "")));
@@ -2474,6 +2474,7 @@
       });
     });
     el("progBlocks").querySelectorAll(".multi-field").forEach(wireMultiField);
+    el("progBlocks").querySelectorAll("[data-progrz]").forEach(function(b){ b.addEventListener("click", function(ev){ ev.stopPropagation(); var n = PROG_RZ[+b.dataset.progrz]; if (n) progRzAbrir(n); }); });
     el("progBlocks").querySelectorAll("tr.prog-row-semnec").forEach(progSemNecAsteriscos);
     el("progBlocks").querySelectorAll(".prog-block[data-iso]").forEach(function(block){
       block.addEventListener("change", function(){
@@ -3436,6 +3437,36 @@
     return cs.length > 0 && cs.every(cargaCompleta);
   }
   var BADGE_PENDENTE = '<span class="badge danger" title="Programação completa, mas ainda sem nota no Efit nem lançamento na PUZL">⏳ Pendente</span>';
+  // Clicar no selo da coluna NF (Efit) (Descarregada / Emitida / conferência) abre a ligação da nota.
+  // As notas de cada selo ficam em PROG_RZ (refeito a cada desenho); sem nota, o selo fica como está.
+  var PROG_RZ = [];
+  function progRzBtn(notas, html){
+    notas = (notas || []).filter(Boolean);
+    if (!notas.length) return html;
+    PROG_RZ.push(notas);
+    return '<button type="button" class="nf-rastro-btn" data-progrz="' + (PROG_RZ.length - 1) + '" title="Ver a ligação da nota ' + esc(notas.map(function(n){ return n.numero; }).join(", ")) + '">' + html + '</button>';
+  }
+  // notas ligadas a uma linha (pela cadeia da nota; sem ela, pelas entradas da PUZL que batem com a linha)
+  function progNotasDaLinha(e, nfSt){
+    if (e.status === "adiado" || nfSt === "none") return [];
+    var out = [];
+    progNFPorCarga(e).forEach(function(r){ r.nfs.forEach(function(x){ if (out.indexOf(x.nf) === -1) out.push(x.nf); }); });
+    if (!out.length) entradasParaProgEntry(e).forEach(function(en){ var nf = entradaNFStatus(en).nf; if (nf && out.indexOf(nf) === -1) out.push(nf); });
+    if (!out.length && nfSt === "cancelada") nfCanceladasLigadas(e).forEach(function(nf){ out.push(nf); });
+    return out;
+  }
+  function progRzAbrir(notas){
+    if (notas.length === 1) return nfRastroAbrir(notas[0]);
+    var velho = el("nfRastro"); if (velho) velho.remove();
+    document.body.insertAdjacentHTML("beforeend", '<div id="nfRastro" class="pw-modal" role="dialog" aria-modal="true"><div class="pw-box rz-box">' +
+      '<div class="rz-head"><h2>Notas desta carga</h2><button class="btn-ghost" data-rz="x">✕</button></div><p class="pw-sub">Escolha a nota para ver a ligação.</p>' +
+      '<div style="display:flex;flex-direction:column;gap:6px;">' + notas.map(function(n, i){ return '<button class="btn-ghost" data-rzn="' + i + '" style="text-align:left;">🧾 NF ' + esc(n.numero) + ' · ' + esc(brDate(n.emissao)) + (n.fornecedor ? ' · ' + esc(n.fornecedor) : '') + '</button>'; }).join("") + '</div></div></div>');
+    var box = el("nfRastro");
+    box.addEventListener("click", function(ev){
+      if (ev.target === box || ev.target.closest('[data-rz="x"]')) return box.remove();
+      var b = ev.target.closest("[data-rzn]"); if (b){ box.remove(); nfRastroAbrir(notas[+b.dataset.rzn]); }
+    });
+  }
   function progNFCelulaMulti(progEntry, nfCanc, nfStLinha){
     var cs = cargasDaLinha(progEntry);
     var temConf = progEntry.status !== "adiado" && cs.some(function(c){ return progConfDe(progEntry, c.idx); });
@@ -3452,7 +3483,7 @@
     var linhas = res.map(function(r, i){
       var nome = r.carga.pedido || r.carga.placa || ("carga " + (i + 1));
       var dica = [r.carga.placa, r.carga.fabrica].filter(Boolean).join(" · ") + (r.nfs.length ? " — NF " + r.nfs.map(function(x){ return x.nf.numero; }).join(", ") : "");
-      return '<div style="display:flex;align-items:center;gap:6px;white-space:nowrap;" title="'+esc(dica)+'"><span class="faint" style="font-size:10.5px;min-width:64px;">'+esc(nome)+'</span>'+(r.conf ? BADGE_CONF(r.conf) : badge(r.status, r.status === "none" && r.carga.placa && r.carga.fabrica && r.carga.pedido && progEntry.status !== "adiado", r.desvio))+'</div>';
+      return '<div style="display:flex;align-items:center;gap:6px;white-space:nowrap;" title="'+esc(dica)+'"><span class="faint" style="font-size:10.5px;min-width:64px;">'+esc(nome)+'</span>'+(r.conf ? progRzBtn(r.conf.nf && nfByNumero(r.conf.nf) ? [nfByNumero(r.conf.nf)] : [], BADGE_CONF(r.conf)) : progRzBtn(r.nfs.map(function(x){ return x.nf; }), badge(r.status, r.status === "none" && r.carga.placa && r.carga.fabrica && r.carga.pedido && progEntry.status !== "adiado", r.desvio)))+'</div>';
     }).join("");
     return '<td style="padding:4px 6px;">' + nfCanc + '<div style="display:flex;flex-direction:column;gap:3px;">' + linhas + '</div></td>';
   }
