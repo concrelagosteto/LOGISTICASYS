@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-30-3">
+<meta name="app-versao" content="2026-10-30-4">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -212,7 +212,7 @@
   .nf-rastro-btn{border:0; background:transparent; padding:0; cursor:pointer; display:inline-flex; align-items:center; gap:4px;} .nf-rastro-btn:hover .badge{filter:brightness(1.15); outline:1px solid currentColor;}
   .nf-rastro-i{font-size:12px; color:var(--text-faint);}
   .nf-rastro-link{border:0; background:transparent; padding:0; color:var(--accent-strong); text-decoration:underline dotted; cursor:pointer; font:inherit;}
-  .rz-box{max-width:560px;} .rz-head{display:flex; justify-content:space-between; align-items:center;}
+  .rz-box{max-width:560px; max-height:92vh; overflow:auto;} .rz-head{display:flex; justify-content:space-between; align-items:center;}
   .rz-passo{display:flex; gap:12px; padding:12px; border:1px solid var(--border); border-radius:10px; background:var(--surface-2);} .rz-passo.falta{border-style:dashed; opacity:.9;}
   .rz-num{flex:0 0 26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12.5px; background:var(--success-soft); color:var(--success);} .rz-passo.falta .rz-num{background:var(--warning-soft); color:var(--warning);}
   .rz-corpo{flex:1; min-width:0; display:flex; flex-direction:column; gap:4px;} .rz-t{font-weight:700; font-size:13.5px; margin-bottom:2px;}
@@ -1580,7 +1580,17 @@
   // (outra data) -> data_incorreta; (5) nada encontrado -> nao_realizado.
   // Linhas marcadas como "Adiado" não entram em nenhuma ligação (nota, entrada, PUZL)
   function progAtivos(day){ return day.entries.filter(function(e){ return e.status !== "adiado"; }); }
+  // Ligações desfeitas pela Logística (Controle de Pedidos › Situação › Desconectar): "esta NF não é desta linha (dia + usina)".
+  // Ficam em ligacoes_desfeitas; o sistema passa a ignorar essa ligação e procura outra carga (ou deixa sem ligação).
+  var LIG_DESF = new Map();   // chave nf|dia|USINA -> {nf, data, usina, por}
+  function ligDesfChave(num, iso, usina){ return nfNumNorm(num) + "|" + String(iso || "").slice(0, 10) + "|" + String(usina || "").trim().toUpperCase(); }
+  function ligDesfeita(num, iso, entry){ return LIG_DESF.size > 0 && !!entry && LIG_DESF.has(ligDesfChave(num, iso, entry.usina)); }
   function matchProgramacao(entrada){
+    var m = matchProgramacao0(entrada);
+    if (m.entry && ligDesfeita(entrada.documento, m.dataProgramada, m.entry)) return {situacao:"nao_realizado", entry:null, dataProgramada:null};
+    return m;
+  }
+  function matchProgramacao0(entrada){
     var fabricaAlvo = String(entrada.fabrica||"").trim().toUpperCase();
     var pedidoAlvo = String(entrada.pedido||"").trim();
     var day = cementScheduleByDate[entrada.data];
@@ -3573,7 +3583,7 @@
       };
       porPed.forEach(function(nfs, k){
         var sl = multi.get(k), pares = [];
-        nfs.forEach(function(nf){ sl.forEach(function(s, j){ var c = custo(nf, s); if (c <= 3) pares.push({ nf: nf, s: s, j: j, c: c }); }); });
+        nfs.forEach(function(nf){ sl.forEach(function(s, j){ if (ligDesfeita(nf.numero, s.iso, s.entry)) return; var c = custo(nf, s); if (c <= 3) pares.push({ nf: nf, s: s, j: j, c: c }); }); });
         pares.sort(function(a, b){ return a.c - b.c || (a.s.iso < b.s.iso ? -1 : a.s.iso > b.s.iso ? 1 : a.j - b.j); });
         var usadaNf = new Set(), usadaSl = new Set();
         pares.forEach(function(p){ if (usadaNf.has(p.nf) || usadaSl.has(p.j)) return; usadaNf.add(p.nf); usadaSl.add(p.j); res.set(p.nf, p.s); });
@@ -3620,6 +3630,7 @@
       notas.push(nf);
       sl.forEach(function(s){
         var d = diasEntre(em, s.iso); if (d < -1) return;                      // carga programada antes da véspera da emissão: não é ela
+        if (ligDesfeita(nf.numero, s.iso, s.entry)) return;
         if (us && !usinaIgual(us, s.entry.usina) && !(en && usinaIgual(en.usina, s.entry.usina))) return;
         var c = en && en.data ? Math.abs(diasEntre(en.data, s.iso)) : (d === 0 || d === 1 ? 0.5 : (d > 1 ? d - 0.5 : 1.5));
         if (c <= 3) pares.push({ nf: nf, s: s, c: c });
@@ -3632,6 +3643,11 @@
     return res;
   }
   function nfProgMatch(nf){
+    var m = nfProgMatch0(nf);
+    if (m && m.entry && ligDesfeita(nf.numero, m.iso, m.entry)) return null;
+    return m;
+  }
+  function nfProgMatch0(nf){
     var pedidoAlvo = pedidoEfetivo(nf);
     var viaPuzl = !String(nf.pedido||"").trim() && !!pedidoAlvo;
     var dist = pedidoAlvo ? distPedidos() : null;
@@ -4787,7 +4803,7 @@
           var nfs = r ? r.nfs.map(function(x){ return x.nf; }) : [];
           var cst = progStatusCarga(e, c.idx), adC = adiado || cst === "adiado";
           var status = adC ? "adiado" : (r && r.status === "confirmada" ? "descarregada" : (r && r.status === "emitida" ? "emitida" : "sem_nota"));
-          var descarga = "", desvio = r && r.desvio ? r.desvio : null;
+          var descarga = "", desvio = r && r.desvio ? r.desvio : null, ents = [];
           nfs.forEach(function(nf){ var en = nfEntradaMatch(nf); if (en && en.data && en.data > descarga) descarga = en.data; });
           if (!adC){
             (entPorLinha.get(e) || []).forEach(function(en){
@@ -4797,7 +4813,7 @@
               var est = entradaNFStatus(en).status;
               if (est === "cancelada") return;
               if (status === "descarregada" || (status === "emitida" && est !== "confirmada")) return;   // esta carga já tem a sua
-              enUsadas.add(en);
+              enUsadas.add(en); ents.push(en);
               if (est === "confirmada"){ status = "descarregada"; if (en.data && en.data > descarga) descarga = en.data; if (!desvio) desvio = desvioDaEntrada(en, e); }
               else if (status === "sem_nota") status = "emitida";
             });
@@ -4809,7 +4825,7 @@
           var atraso = "";
           if ((status === "descarregada" || status === "conferida") && descarga){ var d = diasEntre(iso, descarga); atraso = d === 0 ? "no dia" : (d > 0 ? "+" + d + " dia(s)" : Math.abs(d) + " dia(s) antes"); }
           else if ((status === "sem_nota" || status === "emitida") && iso < hoje){ var a2 = diasEntre(iso, hoje); atraso = "atrasada " + a2 + " dia(s)"; }
-          out.push({iso: iso, e: e, c: c, status: status, progSt: cst, conf: conf, nfs: nfs, canc: canc, descarga: descarga, atraso: atraso, atrasada: /^atrasada/.test(atraso), desvio: status === "descarregada" ? desvio : null});
+          out.push({iso: iso, e: e, c: c, status: status, progSt: cst, conf: conf, nfs: nfs, ents: ents, canc: canc, descarga: descarga, atraso: atraso, atrasada: /^atrasada/.test(atraso), desvio: status === "descarregada" ? desvio : null});
         });
       });
     });
@@ -4876,7 +4892,7 @@
     if (PED_CONF.lista !== lista && PED_CONF.aberto >= 0){ var lAnt = PED_CONF.lista[PED_CONF.aberto]; PED_CONF.aberto = lAnt ? lista.findIndex(function(x){ return x.e === lAnt.e && x.c.idx === lAnt.c.idx && x.iso === lAnt.iso; }) : -1; }
     PED_CONF.lista = lista;
     var rows = lista.map(function(l, i){
-      var nfTxt = l.nfs.length ? l.nfs.map(function(nf){ return '<button type="button" class="nf-rastro-link xl-ignore" data-rastronum="' + esc(nf.numero) + '" title="Ver a ligação desta nota">' + esc(nf.numero) + '</button><span style="display:none">' + esc(nf.numero) + '</span>'; }).join(", ") : (l.conf && l.conf.nf ? '<span title="NF informada na conferência manual">✋ ' + esc(l.conf.nf) + '</span>' : '<span class="faint">—</span>');
+      var nfTxt = l.nfs.length ? l.nfs.map(function(nf){ return '<button type="button" class="nf-rastro-link xl-ignore" data-rastronum="' + esc(nf.numero) + '" title="Ver a ligação desta nota">' + esc(nf.numero) + '</button><span style="display:none">' + esc(nf.numero) + '</span>'; }).join(", ") : (l.ents && l.ents.length ? l.ents.map(function(en){ var nf0 = entradaNFStatus(en).nf; return nf0 ? '<button type="button" class="nf-rastro-link xl-ignore" data-rastronum="' + esc(nf0.numero) + '" title="Ver a ligação desta nota">' + esc(nf0.numero) + '</button><span style="display:none">' + esc(nf0.numero) + '</span>' : '<span title="Documento da entrada na PUZL (a nota ainda não está no Efit)">' + esc(en.documento) + ' <span class="faint" style="font-size:10.5px;">(PUZL)</span></span>'; }).join(", ") : (l.conf && l.conf.nf ? '<span title="NF informada na conferência manual">✋ ' + esc(l.conf.nf) + '</span>' : '<span class="faint">—</span>'));
       if (l.canc.length) nfTxt += ' <span class="badge danger" title="Nota cancelada no Efit">🚫 '+l.canc.map(function(nf){ return esc(nf.numero); }).join(", ")+'</span>';
       var emis = l.nfs.length ? esc(brDate(l.nfs.map(function(nf){ return nf.emissao; }).sort()[0])) : '<span class="faint">—</span>';
       var fixa = PED_CONF.fixas[pedConfChave(l)] || PED_CONF.aberto === i;
@@ -4889,7 +4905,7 @@
         '<td>'+progBadge(l.progSt)+'</td>' +
         '<td style="white-space:nowrap;">'+nfTxt+'</td>' +
         '<td style="white-space:nowrap;">'+emis+'</td>' +
-        '<td><div style="display:flex;align-items:center;gap:6px;white-space:nowrap;">'+statusBadge(l) + (!podeConf ? '' : l.status === "conferida" ? '<button class="btn-ghost btn-xs xl-ignore" data-conf="' + i + '" title="Editar ou desfazer a conferência">✏️</button>'
+        '<td><div style="display:flex;align-items:center;gap:6px;white-space:nowrap;"><button type="button" class="nf-rastro-btn" data-cglig="' + i + '" title="Ver a ligação desta carga (nota, entrada e como ligou)">'+statusBadge(l)+'</button>' + (!podeConf ? '' : l.status === "conferida" ? '<button class="btn-ghost btn-xs xl-ignore" data-conf="' + i + '" title="Editar ou desfazer a conferência">✏️</button>'
           : (["sem_nota", "emitida", "cancelada"].indexOf(l.status) !== -1 ? '<button class="btn-ghost btn-xs xl-ignore" data-conf="' + i + '" title="Marcar como descarregada (conferida pela Logística), com o nº da NF">✋ Conferir</button>' : '')) + '</div></td>' +
         '<td style="white-space:nowrap;">'+(l.descarga ? esc(brDate(l.descarga)) : '<span class="faint">—</span>')+'</td>' +
         '<td style="white-space:nowrap;'+(l.atrasada ? 'color:var(--danger);font-weight:700;' : '')+'">'+(esc(l.atraso) || '<span class="faint">—</span>')+'</td>' +
@@ -4908,6 +4924,7 @@
         var f = el("pedConfData"); if (f) f.focus(); });
     });
     el("pedProgCard").querySelectorAll("[data-rastronum]").forEach(function(b){ b.addEventListener("click", function(ev){ ev.stopPropagation(); var nf = nfByNumero(b.dataset.rastronum); if (nf) nfRastroAbrir(nf); }); });
+    el("pedProgCard").querySelectorAll("[data-cglig]").forEach(function(b){ b.addEventListener("click", function(ev){ ev.stopPropagation(); var l = PED_CONF.lista[+b.dataset.cglig]; if (l) pedLigAbrir(l); }); });
     el("pedProgCard").querySelectorAll("[data-confacao]").forEach(function(b){
       b.addEventListener("click", function(ev){ ev.stopPropagation(); pedConfSalvar(b.dataset.confacao); });
     });
@@ -5104,6 +5121,91 @@
       var tr = document.querySelector('#progBlocks tr[data-pk="' + iso + "|" + String(entryKey(entry)).replace(/"/g, '\\"') + '"]');
       if (tr){ tr.scrollIntoView({ block: "center" }); tr.classList.add("rz-flash"); setTimeout(function(){ tr.classList.remove("rz-flash"); }, 2600); }
     }, 60);
+  }
+  // ---- Ligação de uma carga (clicar na Situação do Controle de Pedidos) ----
+  function nfLigacaoComo(nf){
+    var m = nfProgMatch(nf); if (!m) return { txt: "—", forte: false };
+    if (m.matchedBy === "pedido" && !m.viaPuzl) return { txt: "nº do pedido da nota", forte: true };
+    if (m.matchedBy === "pedido") return { txt: "nº do pedido que veio da PUZL (a nota não tem pedido)", forte: false };
+    if (m.matchedBy === "usina_placa_data") return { txt: "placa + usina (a nota não tem pedido)", forte: false };
+    return { txt: "só usina + dia (a placa não bate ou não veio)", forte: false };
+  }
+  function pedLigAbrir(l){
+    var velho = el("nfRastro"); if (velho) velho.remove();
+    var pode = modPodeEditar(), cs = cargasDaLinha(l.e);
+    var linha = function(rot, val){ return '<div class="rz-l"><span>' + rot + '</span><b>' + val + '</b></div>'; };
+    var blocos = [];
+    blocos.push({ ic: "📋", t: "Carga programada", ok: true, corpo:
+      linha("Dia programado", esc(brDate(l.iso)) + ' <span class="faint">(' + esc(weekdayLong(fromISO(l.iso))) + ')</span>') + linha("Usina", esc(l.e.usina)) +
+      (cs.length > 1 ? linha("Carga", (l.c.idx + 1) + "ª de " + cs.length) : "") +
+      linha("Placa", esc(l.c.placa) || '<span class="faint">—</span>') + linha("Fábrica", esc(l.c.fabrica) || '<span class="faint">—</span>') +
+      linha("Pedido", esc((l.c.pedidos && l.c.pedidos.length ? l.c.pedidos : [l.c.pedido]).filter(Boolean).join(" + ")) || '<span class="faint">sem pedido</span>') });
+    l.nfs.forEach(function(nf){
+      var como = nfLigacaoComo(nf), en = nfEntradaMatch(nf);
+      blocos.push({ ic: "🧾", t: "Nota " + nf.numero + " (Efit)", ok: como.forte, corpo:
+        linha("Emissão", esc(brDate(nf.emissao)) || "—") + linha("Fornecedor", esc(nf.fornecedor) || "—") + linha("Placa da nota", esc(nf.placa) || '<span class="faint">—</span>') +
+        linha("Entrada na usina", en ? esc(brDate(en.data)) + " · " + esc(en.usina) : '<span class="faint">ainda não lançada na PUZL</span>') +
+        linha("Ligada por", esc(como.txt) + (como.forte ? ' <span class="badge success">forte</span>' : ' <span class="badge warning">fraca</span>')),
+        acoes: '<button class="btn-ghost btn-xs" data-lg="ver" data-nf="' + esc(nf.numero) + '">Ver caminho da nota</button>' +
+          (pode && !como.forte ? '<button class="btn-ghost btn-xs" data-lg="desf" data-nf="' + esc(nf.numero) + '" style="color:var(--danger);">✂️ Desconectar desta carga</button>' : '') });
+    });
+    (l.ents || []).forEach(function(en){
+      var nf0 = entradaNFStatus(en).nf;
+      blocos.push({ ic: "🏭", t: "Entrada " + en.documento + " (PUZL)", ok: false, corpo:
+        linha("Data de entrada", esc(brDate(en.data)) || "—") + linha("Usina (central)", esc(en.usina) || "—") + linha("Quantidade", esc(en.quantidade) || "—") +
+        linha("Nota no Efit", nf0 ? esc(nf0.numero) + ' <span class="faint">(mas a nota não ligou nesta carga)</span>' : '<span class="faint">ainda não importada</span>') +
+        linha("Ligada por", 'entrada no dia, mesma ' + (en.pedido ? 'usina/pedido' : 'usina e fábrica') + ' <span class="badge warning">fraca</span>'),
+        acoes: (nf0 ? '<button class="btn-ghost btn-xs" data-lg="ver" data-nf="' + esc(nf0.numero) + '">Ver caminho da nota</button>' : '') +
+          (pode ? '<button class="btn-ghost btn-xs" data-lg="desf" data-nf="' + esc(en.documento) + '" style="color:var(--danger);">✂️ Desconectar desta carga</button>' : '') });
+    });
+    if (l.conf) blocos.push({ ic: "✋", t: "Conferência manual", ok: true, corpo: '<div class="rz-aviso info">' + esc(progConfDica(l.conf)) + '</div>' + '<div class="faint" style="font-size:11.5px;">Para mudar, use o ✏️ ao lado da Situação.</div>' });
+    var desf = [];
+    LIG_DESF.forEach(function(v, k){ if (v.data === l.iso && usinaIgual(v.usina, l.e.usina)) desf.push(v); });
+    if (desf.length) blocos.push({ ic: "✂️", t: "Ligações desfeitas nesta linha", ok: true, corpo: desf.map(function(v){
+      return '<div class="rz-l" style="align-items:center;"><span>NF ' + esc(v.nf) + '</span><b class="faint" style="font-weight:400;">' + (v.por ? "por " + esc(v.por) : "") + '</b>' +
+        (pode ? '<button class="btn-ghost btn-xs" data-lg="refaz" data-nf="' + esc(v.nf) + '" style="margin-left:auto;">↩ Refazer</button>' : '') + '</div>'; }).join("") });
+    var nada = !l.nfs.length && !(l.ents || []).length && !l.conf;
+    var html = '<div id="nfRastro" class="pw-modal" role="dialog" aria-modal="true"><div class="pw-box rz-box">' +
+      '<div class="rz-head"><h2>Ligação da carga</h2><button class="btn-ghost" data-lg="x">✕</button></div>' +
+      '<p class="pw-sub">' + (nada ? "Nenhuma nota nem entrada ligada a esta carga ainda." : "O que está ligado a esta carga e por quê. Ligação <b>fraca</b> (sem nº de pedido) pode ser desconectada se estiver errada.") + '</p>' +
+      (PED_LIG_MSG ? '<div class="rz-aviso info">' + esc(PED_LIG_MSG) + '</div>' : '') +
+      blocos.map(function(p, i){ return '<div class="rz-passo ' + (p.ok ? "ok" : "falta") + '"><div class="rz-num">' + (i + 1) + '</div><div class="rz-corpo"><div class="rz-t">' + p.ic + ' ' + esc(p.t) + '</div>' + p.corpo + (p.acoes ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">' + p.acoes + '</div>' : '') + '</div></div>'; }).join("") +
+      '<div class="rz-pe"><button class="btn-primary btn-inline" data-lg="prog">Abrir na Programação</button><button class="btn-ghost" data-lg="x">Fechar</button></div></div></div>';
+    PED_LIG_MSG = "";
+    document.body.insertAdjacentHTML("beforeend", html);
+    var box = el("nfRastro");
+    var fechar = function(){ box.remove(); document.removeEventListener("keydown", tecla); };
+    var tecla = function(e){ if (e.key === "Escape") fechar(); };
+    document.addEventListener("keydown", tecla);
+    box.addEventListener("click", async function(ev){
+      if (ev.target === box) return fechar();
+      var b = ev.target.closest("[data-lg]"); if (!b) return;
+      var a = b.dataset.lg;
+      if (a === "x") return fechar();
+      if (a === "prog"){ fechar(); return progIrPara(l.iso, l.e); }
+      if (a === "ver"){ var nf = nfByNumero(b.dataset.nf); if (nf){ fechar(); nfRastroAbrir(nf); } return; }
+      if (a === "desf" || a === "refaz"){
+        b.disabled = true;
+        var erro = await ligDesfSalvar(a === "desf", b.dataset.nf, l.iso, l.e.usina);
+        PED_CONF.fixas[pedConfChave(l)] = 1;
+        fechar(); paintPedidosProg();
+        var l2 = PED_CONF.lista.find(function(x){ return x.e === l.e && x.c.idx === l.c.idx && x.iso === l.iso; }) || l;
+        PED_LIG_MSG = erro ? "Não consegui salvar: " + erro : (a === "desf" ? "NF " + b.dataset.nf + " desconectada desta carga. O sistema procura outra carga para ela (ou ela fica sem ligação)." : "Ligação da NF " + b.dataset.nf + " refeita.");
+        pedLigAbrir(l2);
+      }
+    });
+  }
+  var PED_LIG_MSG = "";
+  async function ligDesfSalvar(desfazer, num, iso, usina){
+    var k = ligDesfChave(num, iso, usina), r;
+    try {
+      if (desfazer) r = await sb.from("ligacoes_desfeitas").insert({ empresa_id: ME.empresa_id, nf: nfNumNorm(num), data: iso, usina: String(usina || "").trim(), por_nome: (ME && ME.nome) || "" });
+      else r = await sb.from("ligacoes_desfeitas").delete().eq("nf", nfNumNorm(num)).eq("data", iso).eq("usina", String(usina || "").trim());
+    } catch (x){ r = { error: x }; }
+    if (r && r.error && !(desfazer && /duplicate|23505/i.test(String(r.error.message || r.error.code || "")))) return dbErr ? dbErr(r.error) : String(r.error.message || r.error);
+    if (desfazer) LIG_DESF.set(k, { nf: nfNumNorm(num), data: iso, usina: String(usina || "").trim(), por: (ME && ME.nome) || "" }); else LIG_DESF.delete(k);
+    __distCache = null; __distPlCache = null; if (typeof __passo !== "undefined" && __passo) __passo = {};
+    return "";
   }
   // aviso: a NF digitada já está ligada a outra carga (nota do Efit, outra conferência ou entrada da PUZL)
   function pedConfAvisoHtml(l, nf){
@@ -6765,12 +6867,15 @@
       fetchAll(function(){ return sb.from("catalogo_cimento").select("termo,excluir").order("termo"); }),
       sb.from("fornecedores").select("nome,cnpjs,aliases,mat_alias,fabricas(material,deleted_at)").is("deleted_at", null).order("created_at").then(function(r){ return r.error ? null : r.data; }),
       sb.from("historico_importacoes").select("id,arquivo,modulo,registros,total,usuario,created_at").is("deleted_at", null).order("created_at", { ascending: false }).limit(300).then(function(r){ return r.error ? [] : r.data; }),
-      sb.from("materiais_ignorados").select("chave").then(function(r){ return r.error ? [] : r.data; }, function(){ return []; })
+      sb.from("materiais_ignorados").select("chave").then(function(r){ return r.error ? [] : r.data; }, function(){ return []; }),
+      sb.from("ligacoes_desfeitas").select("nf,data,usina,por_nome").then(function(r){ return r.error ? [] : r.data; }, function(){ return []; })
     ]);
     var uRows = res[0], nRows = res[1], pRows = res[2], pdRows = res[3], piRows = res[4], vdRows = res[5], veRows = res[6], catRows = res[7], fabRows = res[8], histRows = res[9], ignRows = res[10] || [];
     // materiais "possivelmente novos" que alguém já mandou ignorar (fica salvo no banco, vale para todos)
     Object.keys(materiaisIgnorados).forEach(function(k){ delete materiaisIgnorados[k]; });
     ignRows.forEach(function(r){ if (r && r.chave) materiaisIgnorados[r.chave] = true; });
+    LIG_DESF = new Map();
+    (res[11] || []).forEach(function(r){ if (r && r.nf) LIG_DESF.set(ligDesfChave(r.nf, r.data, r.usina), { nf: r.nf, data: String(r.data).slice(0, 10), usina: r.usina, por: r.por_nome || "" }); });
 
     usinasCadastro.length = 0;
     uRows.forEach(function(u){
