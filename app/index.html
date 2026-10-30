@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-30-5">
+<meta name="app-versao" content="2026-10-30-6">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -3593,7 +3593,15 @@
       };
       porPed.forEach(function(nfs, k){
         var sl = multi.get(k), pares = [];
-        nfs.forEach(function(nf){ sl.forEach(function(s, j){ if (ligDesfeita(nf.numero, s.iso, s.entry)) return; var c = custo(nf, s); if (c <= 3) pares.push({ nf: nf, s: s, j: j, c: c }); }); });
+        // a placa desempata: mesma placa (nota = carga) vai primeiro; placas de verdade diferentes ficam por último
+        var placaAj = function(nf, s){
+          var pn = placaSoLetras(nf.placa); if (!ehPlaca(pn)) return 0;
+          var c = cargasDaLinha(s.entry).find(function(x){ return x.idx === s.idx; });
+          var pcs = String(c && c.placa || "").split(/[\s\/,;+]+/).map(placaSoLetras).filter(ehPlaca);
+          if (!pcs.length) return 0;
+          return pcs.indexOf(pn) !== -1 ? -5 : 2;
+        };
+        nfs.forEach(function(nf){ sl.forEach(function(s, j){ if (ligDesfeita(nf.numero, s.iso, s.entry)) return; var c = custo(nf, s); if (c <= 3) pares.push({ nf: nf, s: s, j: j, c: c + placaAj(nf, s) }); }); });
         pares.sort(function(a, b){ return a.c - b.c || (a.s.iso < b.s.iso ? -1 : a.s.iso > b.s.iso ? 1 : a.j - b.j); });
         var usadaNf = new Set(), usadaSl = new Set();
         pares.forEach(function(p){ if (usadaNf.has(p.nf) || usadaSl.has(p.j)) return; usadaNf.add(p.nf); usadaSl.add(p.j); res.set(p.nf, p.s); });
