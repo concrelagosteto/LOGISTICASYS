@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-30-2">
+<meta name="app-versao" content="2026-10-30-3">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -3385,6 +3385,8 @@
     var cs = cargasDaLinha(entry);
     var sd = distPedidos().get(nf);
     if (sd && sd.entry === entry){ var cd = cs.find(function(x){ return x.idx === sd.idx; }); if (cd) return cd; }
+    var sp = !String(nf.pedido || "").trim() ? distPlacas().get(nf) : null;
+    if (sp && sp.entry === entry){ var cp = cs.find(function(x){ return x.idx === sp.idx; }); if (cp) return cp; }
     var pn = normalizePedidoNum(pedidoEfetivo(nf));
     var c = pn && cs.find(function(x){ return cargaTemPedido(x, pn); });
     if (!c && nf.placa) c = cs.find(function(x){ return x.placa && x.placa.toUpperCase() === String(nf.placa).trim().toUpperCase(); });
@@ -3413,9 +3415,11 @@
     var usinaProg = String(progEntry.usina || "").trim().toUpperCase();
     nfsCandidatas(progEntry).forEach(function(nf){
       if (nfSoRegistro(nf)) return;
-      var np = pedidoEfetivo(nf);
-      if (!np && String(nf.usina || "").trim().toUpperCase() !== usinaProg) return;
-      if (np && !cs.some(function(c){ return cargaTemPedido(c, np); })) return;
+      var np = pedidoEfetivo(nf), vpl = distPlacas().get(nf);
+      if (!(vpl && vpl.entry === progEntry)){
+        if (!np && String(nf.usina || "").trim().toUpperCase() !== usinaProg) return;
+        if (np && !cs.some(function(c){ return cargaTemPedido(c, np); })) return;
+      }
       var s = nfSituacao(nf);
       if (s.entry !== progEntry || s.situacao !== "confere") return;
       var carga = cargaDaNota(nf, progEntry);
@@ -3503,7 +3507,8 @@
       if (nfSoRegistro(nf)) return;                                   // cancelada / transferência: não conta
       var np = pedidoEfetivo(nf);
       // pré-filtro exato: só chama a ligação completa se o pedido da nota está nesta linha (ou, sem pedido, a usina é a mesma)
-      if (np ? ped.indexOf(normalizePedidoNum(np)) === -1 : String(nf.usina || "").trim().toUpperCase() !== usinaProg) return;
+      var vpl = distPlacas().get(nf);
+      if (!(vpl && vpl.entry === progEntry) && (np ? ped.indexOf(normalizePedidoNum(np)) === -1 : String(nf.usina || "").trim().toUpperCase() !== usinaProg)) return;
       var s = nfSituacao(nf);
       if (s.entry !== progEntry || s.situacao !== "confere") return;
       var st = nfEntradaMatch(nf) ? "confirmada" : "emitida";
@@ -3582,6 +3587,50 @@
     if (__passo) __passo.dist = res; else __distCache = res;
     return res;
   }
+  // Notas SEM pedido (ex.: Nassau): liga pela PLACA nos dias em volta da emissão, não só no dia da emissão
+  // (a nota costuma sair na véspera, e a carga pode estar programada 1-2 dias depois). Cada carga recebe uma
+  // nota só, na ordem da data mais próxima (entrada na usina; sem entrada, a emissão), como em distPedidos.
+  var __distPlCache = null;
+  setInterval(function(){ __distPlCache = null; }, 1500);
+  function distPlacas(){
+    if (__passo && __passo.distPl) return __passo.distPl;
+    if (!__passo && __distPlCache) return __distPlCache;
+    var res = new Map(), porPlaca = new Map(), pedidosProg = new Set(), ids = new Map();
+    Object.keys(cementScheduleByDate).forEach(function(iso){
+      if (!toIsoDate(iso)) return;
+      progAtivos(cementScheduleByDate[iso]).forEach(function(e){
+        cargasDaLinha(e).forEach(function(c){
+          (c.pedidos || []).forEach(function(p){ var k = normalizePedidoNum(p); if (k) pedidosProg.add(k); });
+          String(c.placa || "").split(/[\s,;+]+/).forEach(function(pl){
+            pl = placaSoLetras(pl); if (!ehPlaca(pl)) return;
+            var l = porPlaca.get(pl); if (!l) porPlaca.set(pl, l = []);
+            if (!ids.has(e)) ids.set(e, ids.size + 1);
+            l.push({ entry: e, iso: iso, idx: c.idx, k: ids.get(e) + "|" + c.idx });
+          });
+        });
+      });
+    });
+    var pares = [], notas = [];
+    cementNFes.forEach(function(nf){
+      if (nfSoRegistro(nf) || String(nf.pedido || "").trim()) return;          // nota com pedido próprio: liga pelo pedido
+      var pe = normalizePedidoNum(pedidoEfetivo(nf)); if (pe && pedidosProg.has(pe)) return;   // pedido da PUZL achado na Programação
+      var pl = placaSoLetras(nf.placa), sl = ehPlaca(pl) ? porPlaca.get(pl) : null; if (!sl) return;
+      var em = String(nf.emissao || ""); if (!toIsoDate(em)) return;
+      var en = nfEntradaMatch(nf), us = String(nf.usina || "").trim().toUpperCase();
+      notas.push(nf);
+      sl.forEach(function(s){
+        var d = diasEntre(em, s.iso); if (d < -1) return;                      // carga programada antes da véspera da emissão: não é ela
+        if (us && !usinaIgual(us, s.entry.usina) && !(en && usinaIgual(en.usina, s.entry.usina))) return;
+        var c = en && en.data ? Math.abs(diasEntre(en.data, s.iso)) : (d === 0 || d === 1 ? 0.5 : (d > 1 ? d - 0.5 : 1.5));
+        if (c <= 3) pares.push({ nf: nf, s: s, c: c });
+      });
+    });
+    pares.sort(function(a, b){ return a.c - b.c || (a.s.iso < b.s.iso ? -1 : a.s.iso > b.s.iso ? 1 : 0); });
+    var usadaNf = new Set(), usadaSl = new Set();
+    pares.forEach(function(p){ if (usadaNf.has(p.nf) || usadaSl.has(p.s.k)) return; usadaNf.add(p.nf); usadaSl.add(p.s.k); res.set(p.nf, p.s); });
+    if (__passo) __passo.distPl = res; else __distPlCache = res;
+    return res;
+  }
   function nfProgMatch(nf){
     var pedidoAlvo = pedidoEfetivo(nf);
     var viaPuzl = !String(nf.pedido||"").trim() && !!pedidoAlvo;
@@ -3622,7 +3671,10 @@
       // (continua abaixo, no critério Usina + Placa + Data)
       // — não cai pro fallback (pedido errado precisa ser corrigido, não "adivinhado" por usina/placa/data)
     }
-    // Sem pedido na nota: fallback por Usina + Placa + Data (emissão da nota
+    // Sem pedido na nota: primeiro pela placa nos dias em volta da emissão (distPlacas)
+    var dp = !String(nf.pedido || "").trim() ? distPlacas().get(nf) : null;
+    if (dp) return {entry:dp.entry, iso:dp.iso, matchedBy:"usina_placa_data", cargaIdx:dp.idx};
+    // Fallback por Usina + Placa + Data (emissão da nota
     // = dia programado). Sem uma dessas três referências (a data, no mínimo,
     // já que é ela que restringe o dia), não dá pra tentar.
     var dataAlvo = String(nf.emissao||"").trim();
@@ -4622,7 +4674,7 @@
 
   /* ---------------- Controle de Pedidos de Cimento ---------------- */
   var pedidosFiltro = "todos";
-  var pedidosModo = "prog", pedProgFiltro = "acomp";
+  var pedidosModo = "prog", pedProgFiltro = "todas";
   // Controle de Pedidos passou a ser formado pelas NOTAS DO Efit (cementNFes),
   // não mais pelas entradas: cada nota puxa usina/fábrica/placa da Programação
   // de Cimento (via nfProgMatch, pelo nº do pedido — combinado com você como a
@@ -4788,6 +4840,7 @@
   var PED_CONF = { lista: [], aberto: -1, erro: "", fixas: {}, rasc: null, okNF: "" };   // fixas: cargas mexidas nesta aba (continuam à vista até trocar de aba)
   function pedConfChave(l){ return l.iso + "|" + entryKey(l.e) + "|" + l.c.idx; }
   var PED_PROG_ABAS = [
+    ["todas", "Todas", function(){ return true; }],
     ["acomp", "Acompanhamento", function(l){ return l.status !== "adiado" && !(l.progSt === "ok" && l.status === "sem_nota"); }],
     ["descarregada", "Descarregadas", function(l){ return l.status === "descarregada" && !l.desvio; }],
     ["desviada", "🔀 Desviadas", function(l){ return !!l.desvio; }],
@@ -4796,8 +4849,7 @@
     ["semnota", "Sem nota", function(l){ return l.status === "sem_nota" || l.status === "cancelada"; }],
     ["atrasada", "⏰ Atrasadas", function(l){ return l.atrasada; }],
     ["oksem", "Tudo OK sem nota", function(l){ return l.progSt === "ok" && l.status === "sem_nota"; }],
-    ["adiado", "Adiadas", function(l){ return l.status === "adiado"; }],
-    ["todas", "Todas", function(){ return true; }]
+    ["adiado", "Adiadas", function(l){ return l.status === "adiado"; }]
   ];
   function paintPedidosProg(){
     pedidosPicker.updateLabel();
@@ -9225,6 +9277,8 @@
     var add = function(l){ (l || []).forEach(function(nf){ if (!vistos.has(nf)){ vistos.add(nf); out.push(nf); } }); };
     pedidoListFrom(progEntry.pedido).forEach(function(p){ add(ix.porPedido.get(normalizePedidoNum(p))); });
     add(ix.porUsina.get(String(progEntry.usina || "").trim().toUpperCase()));
+    if (!ix.porEntry){ ix.porEntry = new Map(); distPlacas().forEach(function(sv, nf){ var l = ix.porEntry.get(sv.entry); if (!l) ix.porEntry.set(sv.entry, l = []); l.push(nf); }); }
+    add(ix.porEntry.get(progEntry));
     out.sort(function(a, b){ return ix.pos.get(a) - ix.pos.get(b); });
     return out;
   }
