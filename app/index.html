@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-30-4">
+<meta name="app-versao" content="2026-10-30-5">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -1742,6 +1742,14 @@
     if (ok && state.busca) ok = solNormBusca(tds.map(function(td){ return xlCellValue(td); }).join(" ")).indexOf(solNormBusca(state.busca)) !== -1;
     return ok;
   }
+  // Mudou o filtro: as linhas que estavam "presas" à vista (alteradas há pouco) voltam a obedecer ao filtro.
+  // Só continua presa a linha com o formulário aberto (e o próprio formulário).
+  function xlSoltarFixas(table){
+    var abertos = {};
+    table.querySelectorAll("tbody tr[data-xlapos]").forEach(function(f){ abertos[f.dataset.xlapos] = 1; });
+    table.querySelectorAll("tbody tr[data-xlfixa]").forEach(function(tr){ if (!tr.dataset.xlapos && !abertos[tr.dataset.xlid]) tr.removeAttribute("data-xlfixa"); });
+    try { table.dispatchEvent(new CustomEvent("xl-soltar", { bubbles: true })); } catch (e) {}
+  }
   function xlApplyState(table, key, skipCols){
     var state = xlGetState(key);
     var tbody = table.querySelector("tbody");
@@ -1879,6 +1887,7 @@
     });
     pop.querySelector(".xl-pop-clear").addEventListener("click", function(){
       delete state.filters[colIdx];
+      xlSoltarFixas(table);
       xlApplyState(table, key);
       xlCloseAllPopovers();
     });
@@ -1886,6 +1895,7 @@
       if (!sel.size){ xlCloseAllPopovers(); return; }
       if (values.every(function(v){ return sel.has(v); })) delete state.filters[colIdx];   // tudo o que aparece marcado = sem filtro nesta coluna (como no Excel)
       else state.filters[colIdx] = new Set(sel);
+      xlSoltarFixas(table);
       xlApplyState(table, key);
       xlCloseAllPopovers();
     });
@@ -1922,7 +1932,7 @@
       var st = xlGetState(key);
       if (!Object.keys(st.filters).length && !st.sort && !st.busca) return;
       st.filters = {}; st.sort = null; st.busca = ""; var bb = bar.querySelector(".xl-busca"); if (bb) bb.value = "";
-      xlCloseAllPopovers();
+      xlCloseAllPopovers(); xlSoltarFixas(table);
       xlApplyState(table, key, skipCols);
     });
     ancora.parentNode.insertBefore(bar, ancora);
@@ -4924,6 +4934,9 @@
         var f = el("pedConfData"); if (f) f.focus(); });
     });
     el("pedProgCard").querySelectorAll("[data-rastronum]").forEach(function(b){ b.addEventListener("click", function(ev){ ev.stopPropagation(); var nf = nfByNumero(b.dataset.rastronum); if (nf) nfRastroAbrir(nf); }); });
+    var cardPP = el("pedProgCard");
+    if (!cardPP.__soltar){ cardPP.__soltar = 1; cardPP.addEventListener("xl-soltar", function(){
+      var ab = PED_CONF.lista[PED_CONF.aberto]; PED_CONF.fixas = {}; if (ab) PED_CONF.fixas[pedConfChave(ab)] = 1; }); }
     el("pedProgCard").querySelectorAll("[data-cglig]").forEach(function(b){ b.addEventListener("click", function(ev){ ev.stopPropagation(); var l = PED_CONF.lista[+b.dataset.cglig]; if (l) pedLigAbrir(l); }); });
     el("pedProgCard").querySelectorAll("[data-confacao]").forEach(function(b){
       b.addEventListener("click", function(ev){ ev.stopPropagation(); pedConfSalvar(b.dataset.confacao); });
