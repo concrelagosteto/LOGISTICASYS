@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-03-1">
+<meta name="app-versao" content="2026-11-03-2">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -3654,7 +3654,7 @@
             pl = placaSoLetras(pl); if (!ehPlaca(pl)) return;
             var l = porPlaca.get(pl); if (!l) porPlaca.set(pl, l = []);
             if (!ids.has(e)) ids.set(e, ids.size + 1);
-            l.push({ entry: e, iso: iso, idx: c.idx, k: ids.get(e) + "|" + c.idx });
+            l.push({ entry: e, iso: iso, idx: c.idx, fab: c.fabrica, k: ids.get(e) + "|" + c.idx });
           });
         });
       });
@@ -3671,6 +3671,7 @@
       sl.forEach(function(s){
         var d = diasEntre(em, s.iso); if (d < -1) return;                      // carga programada antes da véspera da emissão: não é ela
         if (ligDesfeita(nf.numero, s.iso, s.entry)) return;
+        if (!fabricaCompativel(nf, s.fab) || !materialCompativel(nf, s.fab)) return;   // mesma placa, mas outra fábrica/material: é outra viagem do caminhão
         if (us && !usinaIgual(us, s.entry.usina) && !(en && usinaIgual(en.usina, s.entry.usina))) return;
         var c = en && en.data ? Math.abs(diasEntre(en.data, s.iso)) : (d === 0 || d === 1 ? 0.5 : (d > 1 ? d - 0.5 : 1.5));
         if (c <= 3) pares.push({ nf: nf, s: s, c: c });
