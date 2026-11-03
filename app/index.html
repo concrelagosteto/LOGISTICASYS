@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-03-3">
+<meta name="app-versao" content="2026-11-03-4">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -1767,6 +1767,26 @@
     table.querySelectorAll("tbody tr[data-xlfixa]").forEach(function(tr){ if (!tr.dataset.xlapos && !abertos[tr.dataset.xlid]) tr.removeAttribute("data-xlfixa"); });
     try { table.dispatchEvent(new CustomEvent("xl-soltar", { bubbles: true })); } catch (e) {}
   }
+  // Comparação das planilhas: data (dd/mm/aaaa, dd/mm ou aaaa-mm-dd) em ordem cronológica, número como número, texto A→Z.
+  function xlDataChave(v){
+    var t = String(v || "").trim(), m = /^(\d{4})-(\d{2})-(\d{2})/.exec(t);
+    if (m) return m[1] + m[2] + m[3];
+    m = /^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?(?!\d)/.exec(t);
+    if (!m || +m[2] > 12 || +m[1] > 31) return null;
+    var a = m[3] ? (m[3].length === 2 ? "20" + m[3] : m[3]) : String(new Date().getFullYear());
+    return a + ("0" + m[2]).slice(-2) + ("0" + m[1]).slice(-2);
+  }
+  function xlCmp(va, vb){
+    va = String(va == null ? "" : va); vb = String(vb == null ? "" : vb);
+    var da = xlDataChave(va), db = xlDataChave(vb);
+    if (da && db) return da < db ? -1 : da > db ? 1 : va.localeCompare(vb, "pt-BR", {sensitivity:"base", numeric:true});
+    if (da && !vb.trim()) return -1; if (db && !va.trim()) return 1;
+    var sa = va.trim().replace(/^R\$\s*/, ""), sb2 = vb.trim().replace(/^R\$\s*/, "");
+    var na = parseFloat(sa.replace(/\./g, "").replace(",", ".")), nb = parseFloat(sb2.replace(/\./g, "").replace(",", "."));
+    var numA = /^-?[\d.]+(,\d+)?\b/.test(sa), numB = /^-?[\d.]+(,\d+)?\b/.test(sb2);
+    if (numA && numB && !isNaN(na) && !isNaN(nb) && na !== nb) return na - nb;
+    return va.localeCompare(vb, "pt-BR", {sensitivity:"base", numeric:true});
+  }
   function xlApplyState(table, key, skipCols){
     var state = xlGetState(key);
     var tbody = table.querySelector("tbody");
@@ -1785,10 +1805,7 @@
       var colIdx = state.sort.col, dir = state.sort.dir;
       var sorted = rows.slice().sort(function(a, b){
         var va = xlCellValue(a.children[colIdx]), vb = xlCellValue(b.children[colIdx]);
-        var na = parseFloat(String(va).replace(",", ".")), nb = parseFloat(String(vb).replace(",", "."));
-        var cmp;
-        if (!isNaN(na) && !isNaN(nb) && String(va).trim() !== "" && String(vb).trim() !== "") cmp = na - nb;
-        else cmp = va.localeCompare(vb, "pt-BR", {sensitivity:"base", numeric:true});
+        var cmp = xlCmp(va, vb) || (a.__xlIdx - b.__xlIdx) * (dir === "desc" ? -1 : 1);
         return dir === "desc" ? -cmp : cmp;
       });
       sorted.forEach(function(tr){ tbody.appendChild(tr); });
@@ -1833,7 +1850,7 @@
       if (v === "") v = "(vazio)";
       counts[v] = (counts[v] || 0) + 1;
     });
-    var values = Object.keys(counts).sort(function(a,b){ return a.localeCompare(b, "pt-BR", {sensitivity:"base", numeric:true}); });
+    var values = Object.keys(counts).sort(xlCmp);
     var allowed = state.filters[colIdx]; // undefined = tudo marcado
 
     var pop = document.createElement("div");
@@ -1861,7 +1878,7 @@
     function visiveis(){ var t = txtAtual.toLowerCase(); return values.filter(function(v){ return v.toLowerCase().indexOf(t) !== -1; }); }
     function paintChips(){
       var tudo = values.length > 0 && values.every(function(v){ return sel.has(v); });
-      chips.innerHTML = tudo || !sel.size ? "" : '<span class="xl-chips-tit">Marcados (' + sel.size + '):</span>' + Array.from(sel).sort(function(x, y){ return x.localeCompare(y, "pt-BR", {numeric:true}); }).slice(0, 12).map(function(v){
+      chips.innerHTML = tudo || !sel.size ? "" : '<span class="xl-chips-tit">Marcados (' + sel.size + '):</span>' + Array.from(sel).sort(xlCmp).slice(0, 12).map(function(v){
         return '<button type="button" class="xl-chip" data-v="' + esc(v) + '" title="Desmarcar">' + esc(v) + ' ×</button>'; }).join("") + (sel.size > 12 ? '<span class="xl-chips-tit">+' + (sel.size - 12) + '</span>' : "");
       okBtn.disabled = !sel.size; okBtn.title = sel.size ? "" : "Marque pelo menos um valor";
     }
