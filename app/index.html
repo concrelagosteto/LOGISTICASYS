@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-10-30-8">
+<meta name="app-versao" content="2026-11-03-1">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -222,6 +222,7 @@
   .rz-pe{display:flex; gap:8px; justify-content:flex-end;}
   .lg-just{flex-basis:100%; display:flex; flex-direction:column; gap:6px; padding:8px; border:1px dashed var(--danger); border-radius:8px; margin-top:4px;} .lg-just[hidden]{display:none;}
   .lg-just button{width:auto !important; flex:0 0 auto;}
+  .lg-man{display:flex; gap:6px; flex-wrap:wrap; margin-top:4px;} .lg-man input{height:30px; border-radius:6px; border:1px solid var(--border-strong); background:var(--surface); color:var(--text); padding:0 8px; font-size:12.5px; min-width:0;} .lg-man input#lgManNF{width:140px;} .lg-man input#lgManObs{flex:1; min-width:160px;}
   .lg-just label{display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--text-muted);} .lg-just textarea{width:100%; border-radius:6px; border:1px solid var(--border-strong); background:var(--surface); color:var(--text); padding:6px 8px; font:inherit; font-size:12.5px; resize:vertical;}
   tr.rz-flash td{animation:rzFlash 2.4s ease;} @keyframes rzFlash{0%,60%{background:var(--accent-soft);} 100%{background:transparent;}}
   .ped-topo{display:flex; align-items:center; gap:10px 14px; flex-wrap:wrap; padding:8px 12px; margin-bottom:10px;} .ped-topo .grow{flex:1;}
@@ -1587,6 +1588,19 @@
   // Ficam em ligacoes_desfeitas; o sistema passa a ignorar essa ligação e procura outra carga (ou deixa sem ligação).
   var LIG_DESF = new Map();   // chave nf|dia|USINA -> {nf, data, usina, por}
   function ligDesfChave(num, iso, usina){ return nfNumNorm(num) + "|" + String(iso || "").slice(0, 10) + "|" + String(usina || "").trim().toUpperCase(); }
+  // Ligações manuais (Ligação da carga › "Ligar outra nota"): esta NF é desta carga, ponto. Vale antes de qualquer regra.
+  var LIG_MAN = new Map();    // nf -> {nf, data, usina, linha, ordem, motivo, por}
+  function ligManual(nf){
+    if (!LIG_MAN.size || !nf) return null;
+    var v = LIG_MAN.get(nfNumNorm(nf.numero)); if (!v) return null;
+    var day = cementScheduleByDate[v.data]; if (!day) return null;
+    var e = day.entries.find(function(x){ return x.status !== "adiado" && usinaIgual(x.usina, v.usina) && progLinhaN(v.data, x) === v.linha; });
+    if (!e) return null;
+    var c = cargasDaLinha(e).find(function(x){ return x.idx === v.ordem - 1; });
+    return c ? { entry: e, iso: v.data, idx: c.idx, man: v } : null;
+  }
+  // ligação "fixa" de uma nota: manual, senão pela placa (nota sem pedido)
+  function nfLigFixa(nf){ return ligManual(nf) || (!String(nf.pedido || "").trim() ? distPlacas().get(nf) : null) || null; }
   function ligDesfeita(num, iso, entry){ return LIG_DESF.size > 0 && !!entry && LIG_DESF.has(ligDesfChave(num, iso, entry.usina)); }
   function matchProgramacao(entrada){
     var m = matchProgramacao0(entrada);
@@ -3408,7 +3422,7 @@
     var cs = cargasDaLinha(entry);
     var sd = distPedidos().get(nf);
     if (sd && sd.entry === entry){ var cd = cs.find(function(x){ return x.idx === sd.idx; }); if (cd) return cd; }
-    var sp = !String(nf.pedido || "").trim() ? distPlacas().get(nf) : null;
+    var sp = nfLigFixa(nf);
     if (sp && sp.entry === entry){ var cp = cs.find(function(x){ return x.idx === sp.idx; }); if (cp) return cp; }
     var pn = normalizePedidoNum(pedidoEfetivo(nf));
     var c = pn && cs.find(function(x){ return cargaTemPedido(x, pn); });
@@ -3426,7 +3440,9 @@
     if (!progEntry || progEntry.status === "adiado") return [];
     var out = [], vistos = {};
     var add = function(d){ if (d && !vistos[d.doc + "|" + d.para]){ vistos[d.doc + "|" + d.para] = 1; out.push(d); } };
-    progNFPorCarga(progEntry).forEach(function(r){ if (r.desvio) add(r.desvio); });
+    var resD = progNFPorCarga(progEntry);
+    resD.forEach(function(r){ if (r.desvio) add(r.desvio); });
+    if (resD.some(function(r){ return r.local; })) return out;               // outra nota já descarregou aqui: não é mais desvio
     entradasParaProgEntry(progEntry).forEach(function(en){ if (entradaNFStatus(en).status === "confirmada") add(desvioDaEntrada(en, progEntry)); });
     return out;
   }
@@ -3438,7 +3454,7 @@
     var usinaProg = String(progEntry.usina || "").trim().toUpperCase();
     nfsCandidatas(progEntry).forEach(function(nf){
       if (nfSoRegistro(nf)) return;
-      var np = pedidoEfetivo(nf), vpl = distPlacas().get(nf);
+      var np = pedidoEfetivo(nf), vpl = nfLigFixa(nf);
       if (!(vpl && vpl.entry === progEntry)){
         if (!np && String(nf.usina || "").trim().toUpperCase() !== usinaProg) return;
         if (np && !cs.some(function(c){ return cargaTemPedido(c, np); })) return;
@@ -3450,9 +3466,10 @@
       if (!r) return;
       var enM = nfEntradaMatch(nf), st = enM ? "confirmada" : "emitida";
       r.nfs.push({nf: nf, st: st});
-      if (st === "confirmada"){ r.status = "confirmada"; if (!r.desvio) r.desvio = desvioDaEntrada(enM, progEntry); }
+      if (st === "confirmada"){ r.status = "confirmada"; var dv = desvioDaEntrada(enM, progEntry); if (!dv) r.local = true; else if (!r.desvio) r.desvio = dv; }
       else if (r.status === "none") r.status = "emitida";
     });
+    res.forEach(function(r){ if (r.local && r.desvio){ r.desviada = r.desvio; r.desvio = null; } });   // a nota desviada foi reposta por outra que chegou aqui
     return res;
   }
   // "Pendente": a linha está TODA preenchida (placa, fábrica e pedido em cada carga), não está adiada
@@ -3530,7 +3547,7 @@
       if (nfSoRegistro(nf)) return;                                   // cancelada / transferência: não conta
       var np = pedidoEfetivo(nf);
       // pré-filtro exato: só chama a ligação completa se o pedido da nota está nesta linha (ou, sem pedido, a usina é a mesma)
-      var vpl = distPlacas().get(nf);
+      var vpl = nfLigFixa(nf);
       if (!(vpl && vpl.entry === progEntry) && (np ? ped.indexOf(normalizePedidoNum(np)) === -1 : String(nf.usina || "").trim().toUpperCase() !== usinaProg)) return;
       var s = nfSituacao(nf);
       if (s.entry !== progEntry || s.situacao !== "confere") return;
@@ -3584,6 +3601,7 @@
       var porPed = new Map();
       cementNFes.forEach(function(nf){
         if (nfSoRegistro(nf)) return;
+        if (LIG_MAN.size && LIG_MAN.has(nfNumNorm(nf.numero))) return;
         var k = normalizePedidoNum(pedidoEfetivo(nf)); if (!k || !multi.has(k)) return;
         var l = porPed.get(k); if (!l) porPed.set(k, l = []); l.push(nf);
       });
@@ -3644,6 +3662,7 @@
     var pares = [], notas = [];
     cementNFes.forEach(function(nf){
       if (nfSoRegistro(nf) || String(nf.pedido || "").trim()) return;          // nota com pedido próprio: liga pelo pedido
+      if (LIG_MAN.size && LIG_MAN.has(nfNumNorm(nf.numero))) return;          // ligada à mão
       var pe = normalizePedidoNum(pedidoEfetivo(nf)); if (pe && pedidosProg.has(pe)) return;   // pedido da PUZL achado na Programação
       var pl = placaSoLetras(nf.placa), sl = ehPlaca(pl) ? porPlaca.get(pl) : null; if (!sl) return;
       var em = String(nf.emissao || ""); if (!toIsoDate(em)) return;
@@ -3683,6 +3702,8 @@
     return ta.some(function(w){ return tb.indexOf(w) !== -1; });
   }
   function nfProgMatch(nf){
+    var lm = ligManual(nf);
+    if (lm) return {entry: lm.entry, iso: lm.iso, matchedBy: "manual", cargaIdx: lm.idx};
     var m = nfProgMatch0(nf);
     if (m && m.entry && ligDesfeita(nf.numero, m.iso, m.entry)) return null;
     return m;
@@ -3761,6 +3782,7 @@
   function nfSituacao(nf){
     var m = nfProgMatch(nf);
     if (!m) return {situacao:"nao_vinculado", entry:null, iso:null, placaOk:null, matchedBy:null};
+    if (m.matchedBy === "manual") return {situacao:"confere", entry:m.entry, iso:m.iso, placaOk:null, matchedBy:"manual"};
     if (m.matchedBy === "usina_placa_data") return {situacao:"confere", entry:m.entry, iso:m.iso, placaOk:true, matchedBy:m.matchedBy};
     if (m.matchedBy === "usina_data_placa_diverge") return {situacao:"sem_certeza", entry:m.entry, iso:m.iso, placaOk:false, matchedBy:m.matchedBy};
     var placaAlvo = placaSoLetras(nf.placa);
@@ -4867,7 +4889,7 @@
           var atraso = "";
           if ((status === "descarregada" || status === "conferida") && descarga){ var d = diasEntre(iso, descarga); atraso = d === 0 ? "no dia" : (d > 0 ? "+" + d + " dia(s)" : Math.abs(d) + " dia(s) antes"); }
           else if ((status === "sem_nota" || status === "emitida") && iso < hoje){ var a2 = diasEntre(iso, hoje); atraso = "atrasada " + a2 + " dia(s)"; }
-          out.push({iso: iso, e: e, c: c, status: status, progSt: cst, conf: conf, nfs: nfs, ents: ents, canc: canc, descarga: descarga, atraso: atraso, atrasada: /^atrasada/.test(atraso), desvio: status === "descarregada" ? desvio : null});
+          out.push({iso: iso, e: e, c: c, status: status, progSt: cst, conf: conf, nfs: nfs, ents: ents, canc: canc, desviada: r && r.desviada ? r.desviada : null, descarga: descarga, atraso: atraso, atrasada: /^atrasada/.test(atraso), desvio: status === "descarregada" ? desvio : null});
         });
       });
     });
@@ -4922,7 +4944,7 @@
     }).join("");
     var lista = linhas.filter(function(l){ return aba[2](l) || PED_CONF.fixas[pedConfChave(l)]; });
     var statusBadge = function(l){
-      return l.desvio ? badgeDesvio(l.desvio) : l.status === "descarregada" ? '<span class="badge success">✅ Descarregada</span>'
+      return l.desvio ? badgeDesvio(l.desvio) : l.status === "descarregada" ? '<span class="badge success">✅ Descarregada</span>' + (l.desviada ? ' <span class="badge info" title="Uma nota desta carga foi desviada para ' + esc(l.desviada.para) + '; outra nota foi ligada e descarregou aqui">🔀 +1 desviada</span>' : '')
         : l.status === "conferida" ? BADGE_CONF(l.conf)
         : l.status === "emitida" ? '<span class="badge warning">Emitida</span>'
         : l.status === "cancelada" ? '<span class="badge danger">🚫 NF cancelada</span>'
@@ -5170,6 +5192,7 @@
   // ---- Ligação de uma carga (clicar na Situação do Controle de Pedidos) ----
   function nfLigacaoComo(nf){
     var m = nfProgMatch(nf); if (!m) return { txt: "—", forte: false };
+    if (m.matchedBy === "manual"){ var lm = ligManual(nf); return { txt: "ligação manual" + (lm && lm.man.por ? " (por " + lm.man.por + ")" : "") + (lm && lm.man.motivo ? " · “" + lm.man.motivo + "”" : ""), forte: true, manual: true }; }
     if (m.matchedBy === "pedido" && !m.viaPuzl) return { txt: "nº do pedido da nota", forte: true };
     if (m.matchedBy === "pedido") return { txt: "nº do pedido que veio da PUZL (a nota não tem pedido)", forte: false };
     if (m.matchedBy === "usina_placa_data") return { txt: "placa + usina (a nota não tem pedido)", forte: false };
@@ -5192,10 +5215,11 @@
         linha("Entrada na usina", en ? esc(brDate(en.data)) + " · " + esc(en.usina) : '<span class="faint">ainda não lançada na PUZL</span>') +
         linha("Ligada por", esc(como.txt) + (como.forte ? ' <span class="badge success">forte</span>' : ' <span class="badge warning">fraca</span>')),
         acoes: '<button class="btn-ghost btn-xs" data-lg="ver" data-nf="' + esc(nf.numero) + '">Ver caminho da nota</button>' +
-          (pode && !como.forte ? '<button class="btn-ghost btn-xs" data-lg="desf" data-nf="' + esc(nf.numero) + '" style="color:var(--danger);">✂️ Desconectar desta carga</button>' : '') +
+          (pode && como.manual ? '<button class="btn-ghost btn-xs" data-lg="desman" data-nf="' + esc(nf.numero) + '" style="color:var(--danger);">✂️ Remover ligação manual</button>' : '') +
+          (como.manual ? '' : (pode && !como.forte ? '<button class="btn-ghost btn-xs" data-lg="desf" data-nf="' + esc(nf.numero) + '" style="color:var(--danger);">✂️ Desconectar desta carga</button>' : '') +
           (pode && como.forte ? '<button class="btn-ghost btn-xs" data-lg="forte" data-nf="' + esc(nf.numero) + '" style="color:var(--danger);" title="A nota tem o nº do pedido desta carga: só desconecte com uma justificativa">✂️ Desconectar (pede justificativa)</button>' +
             '<div class="lg-just" data-nfj="' + esc(nf.numero) + '" hidden><label>Justificativa (obrigatória)<textarea rows="2" placeholder="ex.: pedido digitado errado na nota; a carga certa é a do dia 28"></textarea></label>' +
-            '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;"><button class="btn-primary btn-xs" data-lg="forte-ok" data-nf="' + esc(nf.numero) + '">Confirmar desconexão</button><button class="btn-ghost btn-xs" data-lg="forte-cancel" data-nf="' + esc(nf.numero) + '">Cancelar</button><span class="vpo-erro"></span></div></div>' : '') });
+            '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;"><button class="btn-primary btn-xs" data-lg="forte-ok" data-nf="' + esc(nf.numero) + '">Confirmar desconexão</button><button class="btn-ghost btn-xs" data-lg="forte-cancel" data-nf="' + esc(nf.numero) + '">Cancelar</button><span class="vpo-erro"></span></div></div>' : '')) });
     });
     (l.ents || []).forEach(function(en){
       var nf0 = entradaNFStatus(en).nf;
@@ -5206,6 +5230,11 @@
         acoes: (nf0 ? '<button class="btn-ghost btn-xs" data-lg="ver" data-nf="' + esc(nf0.numero) + '">Ver caminho da nota</button>' : '') +
           (pode ? '<button class="btn-ghost btn-xs" data-lg="desf" data-nf="' + esc(en.documento) + '" style="color:var(--danger);">✂️ Desconectar desta carga</button>' : '') });
     });
+    if (l.desviada) blocos.push({ ic: "🔀", t: "Nota desviada", ok: true, corpo: '<div class="rz-aviso info">A NF ' + esc(l.desviada.doc) + ' desta carga descarregou em ' + esc(l.desviada.para) + (l.desviada.data ? ' em ' + esc(brDate(l.desviada.data)) : '') + '. Outra nota foi ligada e descarregou aqui, então a carga conta como descarregada.</div>' });
+    if (pode && l.status !== "adiado") blocos.push({ ic: "➕", t: "Ligar outra nota a esta carga", ok: true, corpo:
+      '<div class="faint" style="font-size:11.5px;">Ex.: a nota do pedido foi desviada e a usina recebeu outra nota. A nota informada fica ligada a esta carga (as duas aparecem).</div>' +
+      '<div class="lg-man"><input id="lgManNF" placeholder="Nº da NF (Efit)" inputmode="numeric"><input id="lgManObs" placeholder="Observação (opcional)"><button class="btn-primary btn-xs" data-lg="man">Ligar</button></div>' +
+      '<div id="lgManAviso"></div>' });
     if (l.conf) blocos.push({ ic: "✋", t: "Conferência manual", ok: true, corpo: '<div class="rz-aviso info">' + esc(progConfDica(l.conf)) + '</div>' + '<div class="faint" style="font-size:11.5px;">Para mudar, use o ✏️ ao lado da Situação.</div>' });
     var desf = [];
     LIG_DESF.forEach(function(v, k){ if (v.data === l.iso && usinaIgual(v.usina, l.e.usina)) desf.push(v); });
@@ -5232,6 +5261,33 @@
       if (a === "x") return fechar();
       if (a === "prog"){ fechar(); return progIrPara(l.iso, l.e); }
       if (a === "ver"){ var nf = nfByNumero(b.dataset.nf); if (nf){ fechar(); nfRastroAbrir(nf); } return; }
+      if (a === "man"){
+        var nfIn = el("lgManNF"), num = nfIn ? nfIn.value.trim() : "", nfM = num ? cementNFes.find(function(x){ return nfNumNorm(x.numero) === nfNumNorm(num) && !nfSoRegistro(x); }) : null;
+        var av = el("lgManAviso");
+        if (!nfM){ if (av) av.innerHTML = '<span class="vpo-erro">' + (num ? "A NF " + esc(num) + " não está no Efit (importe a nota antes de ligar)." : "Informe o nº da NF.") + '</span>'; return; }
+        var cx = nfConexoes(num, { e: l.e, idx: l.c.idx });
+        if (cx.length && b.dataset.ok !== nfNumNorm(num)){
+          b.dataset.ok = nfNumNorm(num); b.textContent = "Ligar mesmo assim";
+          if (av) av.innerHTML = '<div class="ped-conf-aviso">⚠️ <b>A NF ' + esc(num) + ' já tem conexão:</b><ul>' + cx.map(function(x){ return "<li>" + esc(x.txt) + "</li>"; }).join("") + '</ul>Ao ligar aqui, ela sai de lá e passa a ser desta carga.</div>';
+          return;
+        }
+        b.disabled = true;
+        var erroM = await ligManSalvar(true, nfM.numero, l, (el("lgManObs") || {}).value || "");
+        PED_CONF.fixas[pedConfChave(l)] = 1;
+        fechar(); paintPedidosProg();
+        var lM = PED_CONF.lista.find(function(x){ return x.e === l.e && x.c.idx === l.c.idx && x.iso === l.iso; }) || l;
+        PED_LIG_MSG = erroM ? "Não consegui salvar: " + erroM : "NF " + nfM.numero + " ligada a esta carga.";
+        return pedLigAbrir(lM);
+      }
+      if (a === "desman"){
+        b.disabled = true;
+        var erroD = await ligManSalvar(false, b.dataset.nf, l, "");
+        PED_CONF.fixas[pedConfChave(l)] = 1;
+        fechar(); paintPedidosProg();
+        var lD = PED_CONF.lista.find(function(x){ return x.e === l.e && x.c.idx === l.c.idx && x.iso === l.iso; }) || l;
+        PED_LIG_MSG = erroD ? "Não consegui salvar: " + erroD : "Ligação manual da NF " + b.dataset.nf + " removida.";
+        return pedLigAbrir(lD);
+      }
       if (a === "forte" || a === "forte-cancel"){
         var fj = box.querySelector('.lg-just[data-nfj="' + b.dataset.nf + '"]'); if (!fj) return;
         fj.hidden = a === "forte-cancel"; if (!fj.hidden) fj.querySelector("textarea").focus();
@@ -5256,6 +5312,17 @@
     });
   }
   var PED_LIG_MSG = "";
+  async function ligManSalvar(ligar, num, l, motivo){
+    var k = nfNumNorm(num), r, v = { nf: k, data: l.iso, usina: String(l.e.usina || "").trim(), linha: progLinhaN(l.iso, l.e), ordem: l.c.idx + 1, motivo: String(motivo || "").trim(), por: (ME && ME.nome) || "" };
+    try {
+      if (ligar) r = await sb.from("ligacoes_manuais").upsert({ empresa_id: ME.empresa_id, nf: v.nf, data: v.data, usina: v.usina, linha: v.linha, ordem: v.ordem, motivo: v.motivo || null, por_nome: v.por }, { onConflict: "empresa_id,nf" });
+      else r = await sb.from("ligacoes_manuais").delete().eq("nf", k);
+    } catch (x){ r = { error: x }; }
+    if (r && r.error) return dbErr(r.error);
+    if (ligar) LIG_MAN.set(k, v); else LIG_MAN.delete(k);
+    __distCache = null; __distPlCache = null; if (typeof __passo !== "undefined" && __passo) __passo = {};
+    return "";
+  }
   async function ligDesfSalvar(desfazer, num, iso, usina, motivo, forte){
     var k = ligDesfChave(num, iso, usina), r;
     try {
@@ -6928,12 +6995,15 @@
       sb.from("fornecedores").select("nome,cnpjs,aliases,mat_alias,fabricas(material,deleted_at)").is("deleted_at", null).order("created_at").then(function(r){ return r.error ? null : r.data; }),
       sb.from("historico_importacoes").select("id,arquivo,modulo,registros,total,usuario,created_at").is("deleted_at", null).order("created_at", { ascending: false }).limit(300).then(function(r){ return r.error ? [] : r.data; }),
       sb.from("materiais_ignorados").select("chave").then(function(r){ return r.error ? [] : r.data; }, function(){ return []; }),
-      sb.from("ligacoes_desfeitas").select("nf,data,usina,por_nome,motivo,forte").then(function(r){ return r.error ? [] : r.data; }, function(){ return []; })
+      sb.from("ligacoes_desfeitas").select("nf,data,usina,por_nome,motivo,forte").then(function(r){ return r.error ? [] : r.data; }, function(){ return []; }),
+      sb.from("ligacoes_manuais").select("nf,data,usina,linha,ordem,motivo,por_nome").then(function(r){ return r.error ? [] : r.data; }, function(){ return []; })
     ]);
     var uRows = res[0], nRows = res[1], pRows = res[2], pdRows = res[3], piRows = res[4], vdRows = res[5], veRows = res[6], catRows = res[7], fabRows = res[8], histRows = res[9], ignRows = res[10] || [];
     // materiais "possivelmente novos" que alguém já mandou ignorar (fica salvo no banco, vale para todos)
     Object.keys(materiaisIgnorados).forEach(function(k){ delete materiaisIgnorados[k]; });
     ignRows.forEach(function(r){ if (r && r.chave) materiaisIgnorados[r.chave] = true; });
+    LIG_MAN = new Map();
+    (res[12] || []).forEach(function(r){ if (r && r.nf) LIG_MAN.set(nfNumNorm(r.nf), { nf: nfNumNorm(r.nf), data: String(r.data).slice(0, 10), usina: r.usina, linha: r.linha || 1, ordem: r.ordem || 1, motivo: r.motivo || "", por: r.por_nome || "" }); });
     LIG_DESF = new Map();
     (res[11] || []).forEach(function(r){ if (r && r.nf) LIG_DESF.set(ligDesfChave(r.nf, r.data, r.usina), { nf: r.nf, data: String(r.data).slice(0, 10), usina: r.usina, por: r.por_nome || "", motivo: r.motivo || "", forte: !!r.forte }); });
 
@@ -9442,7 +9512,8 @@
     var add = function(l){ (l || []).forEach(function(nf){ if (!vistos.has(nf)){ vistos.add(nf); out.push(nf); } }); };
     pedidoListFrom(progEntry.pedido).forEach(function(p){ add(ix.porPedido.get(normalizePedidoNum(p))); });
     add(ix.porUsina.get(String(progEntry.usina || "").trim().toUpperCase()));
-    if (!ix.porEntry){ ix.porEntry = new Map(); distPlacas().forEach(function(sv, nf){ var l = ix.porEntry.get(sv.entry); if (!l) ix.porEntry.set(sv.entry, l = []); l.push(nf); }); }
+    if (!ix.porEntry){ ix.porEntry = new Map(); var pe = function(sv, nf){ var l = ix.porEntry.get(sv.entry); if (!l) ix.porEntry.set(sv.entry, l = []); l.push(nf); };
+      distPlacas().forEach(pe); if (LIG_MAN.size) cementNFes.forEach(function(nf){ var lm = ligManual(nf); if (lm) pe(lm, nf); }); }
     add(ix.porEntry.get(progEntry));
     out.sort(function(a, b){ return ix.pos.get(a) - ix.pos.get(b); });
     return out;
