@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-03-6">
+<meta name="app-versao" content="2026-11-03-7">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -3634,6 +3634,19 @@
       var pk = normalizePedidoNum(pedidoEfetivo(nf)), slot = (porDiaUsina.get(lm.iso + "|" + String(lm.entry.usina || "").trim().toUpperCase()) || []).find(function(x){ return x.entry === lm.entry && x.idx === lm.idx; });
       res.set(nf, { entry: lm.entry, iso: lm.iso, idx: lm.idx, por: "manual" });   // decisão da Logística: soma, não ocupa a vaga da nota do pedido
     });
+    var confDepois = [];
+    // 1b) conferência manual com nº da NF (✋ Descarregada): a nota fica ligada àquela carga em todas as telas
+    var porNum = null;
+    porDiaUsina.forEach(function(lst){ lst.forEach(function(sl){
+      var cf = progConfDe(sl.entry, sl.idx); if (!cf || !cf.nf || cf.tipo === "nao_realizada") return;
+      if (!porNum){ porNum = new Map(); notas.forEach(function(nf){ var k = nfNumNorm(nf.numero); if (k && !porNum.has(k)) porNum.set(k, nf); }); }
+      var nfC = porNum.get(nfNumNorm(cf.nf)); if (!nfC || res.has(nfC)) return;
+      var pkC = normalizePedidoNum(pedidoEfetivo(nfC));
+      // o pedido da nota está em OUTRA carga (e não nesta): a conferência não "rouba" a nota — só se ela sobrar (passo 4)
+      if (pkC && porPed.has(pkC) && sl.peds.indexOf(pkC) === -1){ confDepois.push({ nf: nfC, sl: sl }); return; }
+      res.set(nfC, { entry: sl.entry, iso: sl.iso, idx: sl.idx, por: "conf" });
+      if (pkC && sl.peds.indexOf(pkC) !== -1) ocup.add(sub(sl, pkC));
+    }); });
     // 2) com pedido
     var custo = function(nf, s){
       var en = nfEntradaMatch(nf);
@@ -3682,6 +3695,8 @@
       if (res.has(p.nf)) return; var k = sub(p.s, null); if (ocup.has(k)) return;
       ocup.add(k); res.set(p.nf, { entry: p.s.entry, iso: p.s.iso, idx: p.s.idx, por: "semped" });
     });
+    // 4) nota de conferência que o pedido não levou para nenhuma carga: fica na carga conferida
+    confDepois.forEach(function(x){ if (!res.has(x.nf)) res.set(x.nf, { entry: x.sl.entry, iso: x.sl.iso, idx: x.sl.idx, por: "conf" }); });
     res.multi = multi; res.pedidos = porPed;
     if (typeof __passo !== "undefined" && __passo) __passo.atrib = res; else __atribCache = res;
     return res;
@@ -3718,7 +3733,7 @@
   function nfProgMatch0(nf){
     var a = atribNotas().get(nf);
     if (!a) return null;
-    return { entry: a.entry, iso: a.iso, cargaIdx: a.idx, matchedBy: a.por === "semped" ? "descarga_dia" : (a.por === "manual" ? "manual" : "pedido"), viaPuzl: a.por === "pedido_puzl" };
+    return { entry: a.entry, iso: a.iso, cargaIdx: a.idx, matchedBy: a.por === "semped" ? "descarga_dia" : (a.por === "manual" || a.por === "conf" ? a.por : "pedido"), viaPuzl: a.por === "pedido_puzl" };
   }
   var NF_MATCH_LABEL = {
     pedido: "",
@@ -3733,7 +3748,7 @@
   function nfSituacao(nf){
     var m = nfProgMatch(nf);
     if (!m) return {situacao:"nao_vinculado", entry:null, iso:null, placaOk:null, matchedBy:null};
-    if (m.matchedBy === "manual") return {situacao:"confere", entry:m.entry, iso:m.iso, placaOk:null, matchedBy:"manual"};
+    if (m.matchedBy === "manual" || m.matchedBy === "conf") return {situacao:"confere", entry:m.entry, iso:m.iso, placaOk:null, matchedBy:m.matchedBy};
     if (m.matchedBy === "usina_placa_data" || m.matchedBy === "descarga_dia") return {situacao:"confere", entry:m.entry, iso:m.iso, placaOk:null, matchedBy:m.matchedBy};
     if (m.matchedBy === "usina_data_placa_diverge") return {situacao:"sem_certeza", entry:m.entry, iso:m.iso, placaOk:false, matchedBy:m.matchedBy};
     var placaAlvo = placaSoLetras(nf.placa);
@@ -5023,8 +5038,8 @@
     else if (nf){
       var s = nfSituacao(nf);
       if (s.entry){
-        var c = cargaDaNota(nf, s.entry), ok = s.situacao === "confere";
-        r = { k: ok ? "ok" : "incerta", ic: ok ? "✅" : "⚠️", txt: ok ? "Ligada" : "Ligada, sem certeza", tone: ok ? "success" : "warning", nf: nf, iso: s.iso, e: s.entry, onde: progCargaRotulo(s.iso, s.entry, c) };
+        var c = cargaDaNota(nf, s.entry), ok = s.situacao === "confere", porConf = s.matchedBy === "conf";
+        r = { k: porConf ? "conf" : (ok ? "ok" : "incerta"), ic: porConf ? "✋" : (ok ? "✅" : "⚠️"), txt: porConf ? "Ligada por conferência" : (ok ? "Ligada" : "Ligada, sem certeza"), tone: ok ? "success" : "warning", nf: nf, iso: s.iso, e: s.entry, onde: progCargaRotulo(s.iso, s.entry, c) };
       } else {
         var pk0 = normalizePedidoNum(pedidoEfetivo(nf)), at0 = atribNotas();
         r = { k: "semprog", ic: "⚠️", txt: "Nota sem programação", tone: "warning", nf: nf, onde:
@@ -5088,7 +5103,7 @@
     if (!nfSoRegistro(nf)){
       if (m && m.entry){
         var c = cargaDaNota(nf, m.entry), cs = cargasDaLinha(m.entry), pos = c ? c.idx : -1;
-        var por = m.matchedBy === "pedido" ? (m.viaPuzl ? "nº do pedido (o pedido veio da PUZL)" : "nº do pedido da nota") : m.matchedBy === "descarga_dia" ? "sem pedido: descarregou no dia programado, mesma usina, fábrica e material" : m.matchedBy === "manual" ? "ligação manual (Controle de Pedidos)" : "usina + dia";
+        var por = m.matchedBy === "pedido" ? (m.viaPuzl ? "nº do pedido (o pedido veio da PUZL)" : "nº do pedido da nota") : m.matchedBy === "descarga_dia" ? "sem pedido: descarregou no dia programado, mesma usina, fábrica e material" : m.matchedBy === "manual" ? "ligação manual (Controle de Pedidos)" : m.matchedBy === "conf" ? "conferência manual (✋) com o nº desta NF" : "usina + dia";
         var dist = distPedidos().get(nf), qtdMesmoPed = 0;
         if (dist){ Object.keys(cementScheduleByDate).forEach(function(iso){ progAtivos(cementScheduleByDate[iso]).forEach(function(e){ cargasDaLinha(e).forEach(function(x){ if (cargaTemPedido(x, pedEf)) qtdMesmoPed++; }); }); }); }
         var placaTxt = s.placaOk === true ? '✅ confere' : s.placaOk === false ? '⚠️ diferente da programada (' + esc(c ? c.placa : m.entry.carretas) + ') — por isso fica "Sem certeza"' : '<span class="faint">não comparada' + (nf.placa ? " (a Programação não tem placa nessa carga)" : " (a nota não trouxe placa)") + '</span>';
@@ -5156,6 +5171,7 @@
     if (m.matchedBy === "manual"){ var lm = ligManual(nf); return { txt: "ligação manual" + (lm && lm.man.por ? " (por " + lm.man.por + ")" : "") + (lm && lm.man.motivo ? " · “" + lm.man.motivo + "”" : ""), forte: true, manual: true }; }
     if (m.matchedBy === "pedido" && !m.viaPuzl) return { txt: "nº do pedido da nota", forte: true };
     if (m.matchedBy === "pedido") return { txt: "nº do pedido que veio da PUZL (a nota não tem pedido)", forte: false };
+    if (m.matchedBy === "conf") return { txt: "conferência manual (✋ com o nº desta NF)", forte: true, manual: true, conf: true };
     if (m.matchedBy === "descarga_dia") return { txt: "sem pedido: descarregou no dia programado, mesma usina, fábrica e material", forte: false };
     if (m.matchedBy === "usina_placa_data") return { txt: "placa + usina (a nota não tem pedido)", forte: false };
     return { txt: "só usina + dia (a placa não bate ou não veio)", forte: false };
@@ -5177,7 +5193,8 @@
         linha("Entrada na usina", en ? esc(brDate(en.data)) + " · " + esc(en.usina) : '<span class="faint">ainda não lançada na PUZL</span>') +
         linha("Ligada por", esc(como.txt) + (como.forte ? ' <span class="badge success">forte</span>' : ' <span class="badge warning">fraca</span>')),
         acoes: '<button class="btn-ghost btn-xs" data-lg="ver" data-nf="' + esc(nf.numero) + '">Ver caminho da nota</button>' +
-          (pode && como.manual ? '<button class="btn-ghost btn-xs" data-lg="desman" data-nf="' + esc(nf.numero) + '" style="color:var(--danger);">✂️ Remover ligação manual</button>' : '') +
+          (como.conf ? '<span class="faint" style="font-size:11px;">Para mudar, use o ✏️ da conferência.</span>' : '') +
+          (pode && como.manual && !como.conf ? '<button class="btn-ghost btn-xs" data-lg="desman" data-nf="' + esc(nf.numero) + '" style="color:var(--danger);">✂️ Remover ligação manual</button>' : '') +
           (como.manual ? '' : (pode && !como.forte ? '<button class="btn-ghost btn-xs" data-lg="desf" data-nf="' + esc(nf.numero) + '" style="color:var(--danger);">✂️ Desconectar desta carga</button>' : '') +
           (pode && como.forte ? '<button class="btn-ghost btn-xs" data-lg="forte" data-nf="' + esc(nf.numero) + '" style="color:var(--danger);" title="A nota tem o nº do pedido desta carga: só desconecte com uma justificativa">✂️ Desconectar (pede justificativa)</button>' +
             '<div class="lg-just" data-nfj="' + esc(nf.numero) + '" hidden><label>Justificativa (obrigatória)<textarea rows="2" placeholder="ex.: pedido digitado errado na nota; a carga certa é a do dia 28"></textarea></label>' +
