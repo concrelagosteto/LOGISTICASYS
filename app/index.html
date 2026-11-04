@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-03-7">
+<meta name="app-versao" content="2026-11-04-1">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -3645,7 +3645,7 @@
       // o pedido da nota está em OUTRA carga (e não nesta): a conferência não "rouba" a nota — só se ela sobrar (passo 4)
       if (pkC && porPed.has(pkC) && sl.peds.indexOf(pkC) === -1){ confDepois.push({ nf: nfC, sl: sl }); return; }
       res.set(nfC, { entry: sl.entry, iso: sl.iso, idx: sl.idx, por: "conf" });
-      if (pkC && sl.peds.indexOf(pkC) !== -1) ocup.add(sub(sl, pkC));
+      ocup.add(sub(sl, pkC && sl.peds.indexOf(pkC) !== -1 ? pkC : null));   // a carga conferida já tem a sua nota
     }); });
     // 2) com pedido
     var custo = function(nf, s){
@@ -4913,6 +4913,10 @@
     }).join("");
     var lista = linhas.filter(function(l){ return aba[2](l) || PED_CONF.fixas[pedConfChave(l)]; });
     var statusBadge = function(l){
+      var mao = l.status === "descarregada" && (l.conf || l.nfs.some(pedPorMao)) ? ' <span class="badge info" title="Não foi ligação automática: a Logística conferiu ou ligou esta nota à mão' + (l.conf ? " — " + esc(progConfDica(l.conf)) : "") + '">✋ conferida</span>' : '';
+      return statusBadge0(l) + mao;
+    };
+    var statusBadge0 = function(l){
       return l.desvio ? badgeDesvio(l.desvio) : l.status === "descarregada" ? '<span class="badge success">✅ Descarregada</span>' + (l.desviada ? ' <span class="badge info" title="Uma nota desta carga foi desviada para ' + esc(l.desviada.para) + '; outra nota foi ligada e descarregou aqui">🔀 +1 desviada</span>' : '')
         : l.status === "conferida" || l.status === "nao_realizada" ? BADGE_CONF(l.conf)
         : l.status === "emitida" ? '<span class="badge warning">Emitida</span>'
@@ -4925,7 +4929,7 @@
     if (PED_CONF.lista !== lista && PED_CONF.aberto >= 0){ var lAnt = PED_CONF.lista[PED_CONF.aberto]; PED_CONF.aberto = lAnt ? lista.findIndex(function(x){ return x.e === lAnt.e && x.c.idx === lAnt.c.idx && x.iso === lAnt.iso; }) : -1; }
     PED_CONF.lista = lista;
     var rows = lista.map(function(l, i){
-      var nfTxt = l.nfs.length ? l.nfs.map(function(nf){ return '<button type="button" class="nf-rastro-link xl-ignore" data-rastronum="' + esc(nf.numero) + '" title="Ver a ligação desta nota">' + esc(nf.numero) + '</button><span style="display:none">' + esc(nf.numero) + '</span>'; }).join(", ") : (l.ents && l.ents.length ? l.ents.map(function(en){ var nf0 = entradaNFStatus(en).nf; return nf0 ? '<button type="button" class="nf-rastro-link xl-ignore" data-rastronum="' + esc(nf0.numero) + '" title="Ver a ligação desta nota">' + esc(nf0.numero) + '</button><span style="display:none">' + esc(nf0.numero) + '</span>' : '<span title="Documento da entrada na PUZL (a nota ainda não está no Efit)">' + esc(en.documento) + ' <span class="faint" style="font-size:10.5px;">(PUZL)</span></span>'; }).join(", ") : (l.conf && l.conf.nf ? '<span title="NF informada na conferência manual">✋ ' + esc(l.conf.nf) + '</span>' : '<span class="faint">—</span>'));
+      var nfTxt = l.nfs.length ? l.nfs.map(function(nf){ var pm = pedPorMao(nf); return (pm ? '<span title="' + (pm === "conf" ? "Ligada pela conferência manual (✋)" : "Ligada à mão (Ligar outra nota)") + '">' + (pm === "conf" ? "✋" : "🔗") + '</span>' : '') + '<button type="button" class="nf-rastro-link xl-ignore" data-rastronum="' + esc(nf.numero) + '" title="Ver a ligação desta nota">' + esc(nf.numero) + '</button><span style="display:none">' + esc(nf.numero) + '</span>'; }).join(", ") : (l.ents && l.ents.length ? l.ents.map(function(en){ var nf0 = entradaNFStatus(en).nf; return nf0 ? '<button type="button" class="nf-rastro-link xl-ignore" data-rastronum="' + esc(nf0.numero) + '" title="Ver a ligação desta nota">' + esc(nf0.numero) + '</button><span style="display:none">' + esc(nf0.numero) + '</span>' : '<span title="Documento da entrada na PUZL (a nota ainda não está no Efit)">' + esc(en.documento) + ' <span class="faint" style="font-size:10.5px;">(PUZL)</span></span>'; }).join(", ") : (l.conf && l.conf.nf ? '<span title="NF informada na conferência manual">✋ ' + esc(l.conf.nf) + '</span>' : '<span class="faint">—</span>'));
       if (l.canc.length) nfTxt += ' <span class="badge danger" title="Nota cancelada no Efit">🚫 '+l.canc.map(function(nf){ return esc(nf.numero); }).join(", ")+'</span>';
       if (l.incertas && l.incertas.length) nfTxt = (l.nfs.length || l.ents.length || l.conf ? nfTxt + " " : "") + l.incertas.map(function(nf){ return '<button type="button" class="nf-rastro-link xl-ignore" data-rastronum="' + esc(nf.numero) + '" title="Nota do pedido desta carga, mas a placa é diferente da programada: confira">⚠️ ' + esc(nf.numero) + '</button><span style="display:none">' + esc(nf.numero) + '</span>'; }).join(", ");
       var emis = l.nfs.length ? esc(brDate(l.nfs.map(function(nf){ return nf.emissao; }).sort()[0])) : '<span class="faint">—</span>';
@@ -4939,7 +4943,7 @@
         '<td>'+progBadge(l.progSt)+'</td>' +
         '<td style="white-space:nowrap;">'+nfTxt+'</td>' +
         '<td style="white-space:nowrap;">'+emis+'</td>' +
-        '<td><div style="display:flex;align-items:center;gap:6px;white-space:nowrap;"><button type="button" class="nf-rastro-btn" data-cglig="' + i + '" title="Ver a ligação desta carga (nota, entrada e como ligou)">'+statusBadge(l)+'</button>' + (!podeConf ? '' : l.status === "conferida" || l.status === "nao_realizada" ? '<button class="btn-ghost btn-xs xl-ignore" data-conf="' + i + '" title="Editar ou desfazer a conferência">✏️</button>'
+        '<td><div style="display:flex;align-items:center;gap:6px;white-space:nowrap;"><button type="button" class="nf-rastro-btn" data-cglig="' + i + '" title="Ver a ligação desta carga (nota, entrada e como ligou)">'+statusBadge(l)+'</button>' + (!podeConf ? '' : l.status === "conferida" || l.status === "nao_realizada" || (l.conf && l.status === "descarregada") ? '<button class="btn-ghost btn-xs xl-ignore" data-conf="' + i + '" title="Editar ou desfazer a conferência">✏️</button>'
           : (["sem_nota", "emitida", "cancelada"].indexOf(l.status) !== -1 ? '<button class="btn-ghost btn-xs xl-ignore" data-conf="' + i + '" title="Marcar como descarregada (conferida pela Logística), com o nº da NF">✋ Conferir</button>' : '')) + '</div></td>' +
         '<td style="white-space:nowrap;">'+(l.descarga ? esc(brDate(l.descarga)) : '<span class="faint">—</span>')+'</td>' +
         '<td style="white-space:nowrap;'+(l.atrasada ? 'color:var(--danger);font-weight:700;' : '')+'">'+(esc(l.atraso) || '<span class="faint">—</span>')+'</td>' +
@@ -5322,6 +5326,8 @@
     return "";
   }
   // aviso: a NF digitada já está ligada a outra carga (nota do Efit, outra conferência ou entrada da PUZL)
+  // nota ligada à mão (conferência ✋ com o nº da NF, ou "Ligar outra nota")? -> "conf" | "manual" | ""
+  function pedPorMao(nf){ var mm = nfProgMatch(nf); return mm && (mm.matchedBy === "conf" || mm.matchedBy === "manual") ? mm.matchedBy : ""; }
   function pedConfAvisoHtml(l, nf){
     nf = String(nf || "").trim();
     var cx = nf ? nfConexoes(nf, { e: l.e, idx: l.c.idx }) : [];
