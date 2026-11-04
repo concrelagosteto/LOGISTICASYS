@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-04-2">
+<meta name="app-versao" content="2026-11-04-3">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -3461,7 +3461,13 @@
     entradasParaProgEntry(progEntry).forEach(function(en){ if (entradaNFStatus(en).status === "confirmada") add(desvioDaEntrada(en, progEntry)); });
     return out;
   }
-  function badgeDesvio(d){ return '<span class="badge info" title="Programada para esta usina, mas descarregou em ' + esc(d.para) + (d.data ? ' em ' + esc(brDate(d.data)) : "") + (d.doc ? ' (NF ' + esc(d.doc) + ')' : "") + '">🔀 Desviada → ' + esc(d.para) + (d.data ? ' · ' + esc(brDate(d.data).slice(0, 5)) : "") + '</span>'; }
+  function badgeDesvio(d){ return '<span class="badge info" title="Programada para esta usina, mas descarregou em ' + esc(d.para) + (d.data ? ' em ' + esc(brDate(d.data)) : "") + (d.doc ? ' (NF ' + esc(d.doc) + ')' : "") + (d.confirmado ? ' — desvio CONFIRMADO' + (d.confirmado.por ? ' por ' + esc(d.confirmado.por) : '') + (d.confirmado.motivo ? ' · ' + esc(d.confirmado.motivo) : '') : ' — desvio detectado pelo sistema (ainda não confirmado)') + '">🔀 Desviada → ' + esc(d.para) + (d.data ? ' · ' + esc(brDate(d.data).slice(0, 5)) : "") + (d.confirmado ? ' ✔' : '') + '</span>'; }
+  // Desvios confirmados pela Logística (Ligação da carga › Confirmar desvio / Marcar como desviada)
+  var DESV_CONF = new Map();   // data|USINA|linha|ordem -> {data, usina, linha, ordem, nf, para, paraData, motivo, por}
+  function desvChave(iso, usina, linha, ordem){ return String(iso).slice(0, 10) + "|" + String(usina || "").trim().toUpperCase() + "|" + linha + "|" + ordem; }
+  function desvioConfirmado(e, iso, idx){ if (!DESV_CONF.size || !e) return null; return DESV_CONF.get(desvChave(iso, e.usina, progLinhaN(iso, e), idx + 1)) || null; }
+  function desviosConfDaNota(num){ var k = nfNumNorm(num), out = []; DESV_CONF.forEach(function(v){ if (nfNumNorm(v.nf) === k) out.push(v); }); return out; }
+  function isoDaEntry(e){ var m = atribNotas().isoDe; if (m && m.has(e)) return m.get(e); var r = null; Object.keys(cementScheduleByDate).some(function(iso){ if (cementScheduleByDate[iso].entries.indexOf(e) !== -1){ r = iso; return true; } return false; }); return r; }
   // Status da NF de cada carga de uma linha com várias cargas (só ligações firmes, notas ativas).
   function progNFPorCarga(progEntry){
     var cs = cargasDaLinha(progEntry);
@@ -3491,6 +3497,19 @@
       var d = desvioPorReprog(progEntry, r.carga);
       if (d){ r.status = "confirmada"; r.desvio = d.desvio; r.nfs.push({ nf: d.nf, st: "confirmada", reprog: true }); }
     });
+    if (DESV_CONF.size){
+      var isoE = isoDaEntry(progEntry);
+      res.forEach(function(r){
+        var dc = isoE ? desvioConfirmado(progEntry, isoE, r.carga.idx) : null; if (!dc) return;
+        if (!r.desvio){
+          if (r.status === "confirmada" && r.local) return;     // descarregou aqui de verdade: o desvio confirmado não apaga isso
+          var nfD = cementNFes.find(function(x){ return nfNumNorm(x.numero) === nfNumNorm(dc.nf); });
+          r.status = "confirmada"; r.desvio = { para: dc.para, data: dc.paraData || "", doc: dc.nf };
+          if (nfD && !r.nfs.some(function(x){ return x.nf === nfD; })) r.nfs.push({ nf: nfD, st: "confirmada" });
+        }
+        r.desvio = Object.assign({}, r.desvio, { confirmado: dc });
+      });
+    }
     return res;
   }
   function desvioPorReprog(e, c){
@@ -3641,9 +3660,10 @@
   function atribNotas(){
     if (typeof __passo !== "undefined" && __passo && __passo.atrib) return __passo.atrib;
     if ((typeof __passo === "undefined" || !__passo) && __atribCache) return __atribCache;
-    var res = new Map(), ocup = new Set(), ids = new Map(), porPed = new Map(), porDiaUsina = new Map();
+    var res = new Map(), ocup = new Set(), ids = new Map(), porPed = new Map(), porDiaUsina = new Map(), isoDe = new Map();
     Object.keys(cementScheduleByDate).forEach(function(iso){
       if (!toIsoDate(iso)) return;
+      cementScheduleByDate[iso].entries.forEach(function(e){ isoDe.set(e, iso); });
       progAtivos(cementScheduleByDate[iso]).forEach(function(e){
         if (!ids.has(e)) ids.set(e, ids.size + 1);
         cargasDaLinha(e).forEach(function(c){
@@ -3727,7 +3747,7 @@
     });
     // 4) nota de conferência que o pedido não levou para nenhuma carga: fica na carga conferida
     confDepois.forEach(function(x){ if (!res.has(x.nf)) res.set(x.nf, { entry: x.sl.entry, iso: x.sl.iso, idx: x.sl.idx, por: "conf" }); });
-    res.multi = multi; res.pedidos = porPed; res.porPedNf = porPedNf;
+    res.multi = multi; res.pedidos = porPed; res.porPedNf = porPedNf; res.isoDe = isoDe;
     if (typeof __passo !== "undefined" && __passo) __passo.atrib = res; else __atribCache = res;
     return res;
   }
@@ -5091,6 +5111,9 @@
         else r = { k: "sem", ic: "❌", txt: "Sem nota no Efit", tone: "danger", onde: "a nota " + (p.documento || "") + " ainda não foi importada do Efit" };
       }
     }
+    var dcs = desviosConfDaNota(p.documento);
+    if (dcs.length){ var dc0 = dcs[0], eO = (cementScheduleByDate[dc0.data] || { entries: [] }).entries.find(function(x){ return usinaIgual(x.usina, dc0.usina) && progLinhaN(dc0.data, x) === dc0.linha; });
+      r = { k: "desvio", ic: "🔀", txt: "Desviada (confirmada)", tone: "info", nf: r.nf || nf, iso: dc0.data, e: eO || r.e, onde: dc0.usina + " · " + brDate(dc0.data) + " → " + dc0.para + (dc0.paraData ? " em " + brDate(dc0.paraData) : "") + (r.onde && r.k !== "sem" && r.k !== "semprog" ? " · também: " + r.onde : "") }; }
     var tudo = nfConexoes(p.documento);
     r.qtd = tudo.length; r.todas = tudo;
     return r;
@@ -5171,6 +5194,9 @@
         passos.push({ ic: "🏭", t: "Entrada na usina (PUZL)", ok: false, corpo: '<div class="rz-aviso">Ainda não há lançamento da PUZL com o documento ' + esc(nf.numero) + '. Fica como "Aguardando entrada" até a usina lançar (ou até a conferência manual no Controle de Pedidos).</div>' });
       }
     }
+    desviosConfDaNota(nf.numero).forEach(function(dc){
+      passos.push({ ic: "🔀", t: "Desvio confirmado", ok: true, corpo: linha("Programada para", esc(dc.usina) + " · " + esc(brDate(dc.data))) + linha("Descarregou em", esc(dc.para) + (dc.paraData ? " · " + esc(brDate(dc.paraData)) : "")) + linha("Confirmado por", esc(dc.por || "—") + (dc.motivo ? " · “" + esc(dc.motivo) + "”" : "")) });
+    });
     var html = '<div id="nfRastro" class="pw-modal" role="dialog" aria-modal="true"><div class="pw-box rz-box">' +
       '<div class="rz-head"><h2>Ligação da nota ' + esc(nf.numero) + '</h2><button class="btn-ghost" data-rz="x">✕</button></div>' +
       '<p class="pw-sub">A ordem em que o sistema liga esta nota: nota → programação → entrada na usina.</p>' +
@@ -5252,6 +5278,16 @@
         acoes: (nf0 ? '<button class="btn-ghost btn-xs" data-lg="ver" data-nf="' + esc(nf0.numero) + '">Ver caminho da nota</button>' : '') +
           (pode ? '<button class="btn-ghost btn-xs" data-lg="desf" data-nf="' + esc(en.documento) + '" style="color:var(--danger);">✂️ Desconectar desta carga</button>' : '') });
     });
+    var dcf = desvioConfirmado(l.e, l.iso, l.c.idx);
+    if (l.desvio && l.desvio.confirmado) blocos.push({ ic: "🔀", t: "Desvio confirmado", ok: true, corpo:
+      '<div class="rz-aviso info">NF ' + esc(l.desvio.doc || "") + ' → ' + esc(l.desvio.para) + (l.desvio.data ? ' em ' + esc(brDate(l.desvio.data)) : '') + ' · confirmado' + (dcf && dcf.por ? ' por ' + esc(dcf.por) : '') + (dcf && dcf.motivo ? ' · “' + esc(dcf.motivo) + '”' : '') + '</div>',
+      acoes: pode ? '<button class="btn-ghost btn-xs" data-lg="desv-desfaz" style="color:var(--danger);">↩ Desfazer confirmação</button>' : '' });
+    else if (l.desvio && pode) blocos.push({ ic: "🔀", t: "Desvio detectado — confirmar?", ok: false, corpo:
+      '<div class="rz-aviso">O sistema detectou: NF ' + esc(l.desvio.doc || "") + ' descarregou em <b>' + esc(l.desvio.para) + '</b>' + (l.desvio.data ? ' em ' + esc(brDate(l.desvio.data)) : '') + '. Confirmando, o desvio passa a aparecer também em Notas Puzl, no caminho da nota e na Programação.</div>' +
+      '<div class="lg-man"><input id="lgDesvObs" placeholder="Observação (opcional)"><button class="btn-primary btn-xs" data-lg="desv-ok" data-nf="' + esc(l.desvio.doc || "") + '" data-para="' + esc(l.desvio.para) + '" data-pdata="' + esc(l.desvio.data || "") + '">✔ Confirmar desvio</button></div>' });
+    else if (pode && l.status !== "adiado") blocos.push({ ic: "🔀", t: "Marcar como desviada", ok: true, corpo:
+      '<div class="faint" style="font-size:11.5px;">A nota desta carga descarregou em outra usina e o sistema não percebeu? Informe a NF; a usina de destino vem da entrada na PUZL (ou escreva).</div>' +
+      '<div class="lg-man"><input id="lgDesvNF" placeholder="Nº da NF" inputmode="numeric"><input id="lgDesvPara" placeholder="Usina de destino"><input id="lgDesvObs" placeholder="Observação (opcional)"><button class="btn-primary btn-xs" data-lg="desv-man">Marcar desviada</button></div><div id="lgDesvAviso"></div>' });
     if (l.desviada) blocos.push({ ic: "🔀", t: "Nota desviada", ok: true, corpo: '<div class="rz-aviso info">A NF ' + esc(l.desviada.doc) + ' desta carga descarregou em ' + esc(l.desviada.para) + (l.desviada.data ? ' em ' + esc(brDate(l.desviada.data)) : '') + '. Outra nota foi ligada e descarregou aqui, então a carga conta como descarregada.</div>' });
     if (pode && l.status !== "adiado") blocos.push({ ic: "➕", t: "Ligar outra nota a esta carga", ok: true, corpo:
       '<div class="faint" style="font-size:11.5px;">Ex.: a nota do pedido foi desviada e a usina recebeu outra nota. A nota informada fica ligada a esta carga (as duas aparecem).</div>' +
@@ -5283,6 +5319,24 @@
       if (a === "x") return fechar();
       if (a === "prog"){ fechar(); return progIrPara(l.iso, l.e); }
       if (a === "ver"){ var nf = nfByNumero(b.dataset.nf); if (nf){ fechar(); nfRastroAbrir(nf); } return; }
+      if (a === "desv-ok" || a === "desv-man" || a === "desv-desfaz"){
+        var dNf = b.dataset.nf || "", dPara = b.dataset.para || "", dData = b.dataset.pdata || "", dObs = (el("lgDesvObs") || {}).value || "";
+        if (a === "desv-man"){
+          dNf = ((el("lgDesvNF") || {}).value || "").trim(); dPara = ((el("lgDesvPara") || {}).value || "").trim();
+          var nfX = dNf ? cementNFes.find(function(x){ return nfNumNorm(x.numero) === nfNumNorm(dNf); }) : null, enX = nfX ? nfEntradaMatch(nfX) : (dNf ? cementEntradas.find(function(x){ return nfNumNorm(x.documento) === nfNumNorm(dNf); }) : null);
+          if (!dPara && enX) dPara = enX.usina; if (enX && enX.data) dData = enX.data;
+          var avD = el("lgDesvAviso");
+          if (!dNf || !dPara){ if (avD) avD.innerHTML = '<span class="vpo-erro">' + (!dNf ? "Informe o nº da NF." : "Não achei a entrada dessa NF na PUZL: escreva a usina de destino.") + '</span>'; return; }
+          if (usinaIgual(dPara, l.e.usina)){ if (avD) avD.innerHTML = '<span class="vpo-erro">A usina de destino é a própria usina da carga: isso não é desvio.</span>'; return; }
+        }
+        b.disabled = true;
+        var erroV = await desvSalvar(a !== "desv-desfaz", l, dNf, dPara, dData, dObs);
+        PED_CONF.fixas[pedConfChave(l)] = 1;
+        fechar(); paintPedidosProg();
+        var lV = PED_CONF.lista.find(function(x){ return x.e === l.e && x.c.idx === l.c.idx && x.iso === l.iso; }) || l;
+        PED_LIG_MSG = erroV ? "Não consegui salvar: " + erroV : (a === "desv-desfaz" ? "Confirmação do desvio desfeita." : "Desvio confirmado: NF " + dNf + " → " + dPara + ".");
+        return pedLigAbrir(lV);
+      }
       if (a === "man"){
         var nfIn = el("lgManNF"), num = nfIn ? nfIn.value.trim() : "", nfM = num ? cementNFes.find(function(x){ return nfNumNorm(x.numero) === nfNumNorm(num) && !nfSoRegistro(x); }) : null;
         var av = el("lgManAviso");
@@ -5334,6 +5388,18 @@
     });
   }
   var PED_LIG_MSG = "";
+  async function desvSalvar(confirmar, l, nf, para, paraData, motivo){
+    var v = { data: l.iso, usina: String(l.e.usina || "").trim(), linha: progLinhaN(l.iso, l.e), ordem: l.c.idx + 1, nf: nfNumNorm(nf), para: String(para || "").trim(), paraData: toIsoDate(paraData) || "", motivo: String(motivo || "").trim(), por: (ME && ME.nome) || "" }, r;
+    var k = desvChave(v.data, v.usina, v.linha, v.ordem);
+    try {
+      if (confirmar) r = await sb.from("desvios_confirmados").upsert({ empresa_id: ME.empresa_id, data: v.data, usina: v.usina, linha: v.linha, ordem: v.ordem, nf: v.nf, para: v.para, para_data: v.paraData || null, motivo: v.motivo || null, por_nome: v.por }, { onConflict: "empresa_id,data,usina,linha,ordem" });
+      else r = await sb.from("desvios_confirmados").delete().eq("data", v.data).eq("usina", v.usina).eq("linha", v.linha).eq("ordem", v.ordem);
+    } catch (x){ r = { error: x }; }
+    if (r && r.error) return dbErr(r.error);
+    if (confirmar) DESV_CONF.set(k, v); else DESV_CONF.delete(k);
+    __atribCache = null; if (typeof __passo !== "undefined" && __passo) __passo = {};
+    return "";
+  }
   async function ligManSalvar(ligar, num, l, motivo){
     var k = nfNumNorm(num), r, v = { nf: k, data: l.iso, usina: String(l.e.usina || "").trim(), linha: progLinhaN(l.iso, l.e), ordem: l.c.idx + 1, motivo: String(motivo || "").trim(), por: (ME && ME.nome) || "" };
     try {
@@ -7032,12 +7098,15 @@
       sb.from("historico_importacoes").select("id,arquivo,modulo,registros,total,usuario,created_at").is("deleted_at", null).order("created_at", { ascending: false }).limit(300).then(function(r){ return r.error ? [] : r.data; }),
       sb.from("materiais_ignorados").select("chave").then(function(r){ return r.error ? [] : r.data; }, function(){ return []; }),
       sb.from("ligacoes_desfeitas").select("nf,data,usina,por_nome,motivo,forte").then(function(r){ return r.error ? [] : r.data; }, function(){ return []; }),
-      sb.from("ligacoes_manuais").select("nf,data,usina,linha,ordem,motivo,por_nome").then(function(r){ return r.error ? [] : r.data; }, function(){ return []; })
+      sb.from("ligacoes_manuais").select("nf,data,usina,linha,ordem,motivo,por_nome").then(function(r){ return r.error ? [] : r.data; }, function(){ return []; }),
+      sb.from("desvios_confirmados").select("data,usina,linha,ordem,nf,para,para_data,motivo,por_nome").then(function(r){ return r.error ? [] : r.data; }, function(){ return []; })
     ]);
     var uRows = res[0], nRows = res[1], pRows = res[2], pdRows = res[3], piRows = res[4], vdRows = res[5], veRows = res[6], catRows = res[7], fabRows = res[8], histRows = res[9], ignRows = res[10] || [];
     // materiais "possivelmente novos" que alguém já mandou ignorar (fica salvo no banco, vale para todos)
     Object.keys(materiaisIgnorados).forEach(function(k){ delete materiaisIgnorados[k]; });
     ignRows.forEach(function(r){ if (r && r.chave) materiaisIgnorados[r.chave] = true; });
+    DESV_CONF = new Map();
+    (res[13] || []).forEach(function(r){ if (r && r.nf) DESV_CONF.set(desvChave(r.data, r.usina, r.linha || 1, r.ordem || 1), { data: String(r.data).slice(0, 10), usina: r.usina, linha: r.linha || 1, ordem: r.ordem || 1, nf: r.nf, para: r.para, paraData: r.para_data ? String(r.para_data).slice(0, 10) : "", motivo: r.motivo || "", por: r.por_nome || "" }); });
     LIG_MAN = new Map();
     (res[12] || []).forEach(function(r){ if (r && r.nf) LIG_MAN.set(nfNumNorm(r.nf), { nf: nfNumNorm(r.nf), data: String(r.data).slice(0, 10), usina: r.usina, linha: r.linha || 1, ordem: r.ordem || 1, motivo: r.motivo || "", por: r.por_nome || "" }); });
     LIG_DESF = new Map();
