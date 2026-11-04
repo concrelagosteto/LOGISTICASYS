@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-04-3">
+<meta name="app-versao" content="2026-11-04-4">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -974,6 +974,9 @@
   .imp-pend .nomecad{border:1px solid var(--border-strong); border-radius:6px; padding:7px 10px; font-size:12.5px; background:var(--surface); color:var(--text); min-width:0;}
   .imp-pend .nomecad.erro{border-color:var(--danger);}
 
+  .sr-only{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;}
+  .zoom-ctl{display:inline-flex; align-items:center;} .zoom-ctl .btn-mini{border-radius:0; margin-left:-1px; min-width:28px;} .zoom-ctl .btn-mini:first-child{border-radius:6px 0 0 6px;} .zoom-ctl .btn-mini:last-child{border-radius:0 6px 6px 0;} .zoom-ctl .zoom-val{min-width:48px; font-variant-numeric:tabular-nums;}
+  #btnModo{font-size:15px; padding:3px 8px; line-height:1;}
   .btn-mini{background:var(--surface-2); color:var(--text); border:1px solid var(--border-strong); border-radius:6px; padding:5px 10px; font-size:11.5px; font-weight:600; cursor:pointer;}
   .btn-mini:hover{background:var(--surface-3);}
   #loadingOverlay{position:fixed; inset:0; z-index:9999; background:var(--bg); display:none; align-items:center; justify-content:center; font-size:14px; color:var(--text-muted);}
@@ -1124,7 +1127,7 @@
         <h1 id="viewTitle">Programação de Cimento</h1>
         <p class="crumb" id="viewCrumb"></p>
       </div>
-      <div class="user-chip"><span id="presChip" class="pres-chip" hidden></span><span id="syncChip" style="font-size:11.5px;font-weight:600;color:var(--success)">● Salvo</span><button type="button" id="btnAtualizar" class="btn-mini" title="Buscar de novo os dados do banco">↻ Atualizar</button><div class="modo-menu"><button type="button" id="btnModo" class="btn-mini" title="Trocar o modo de aparência" aria-haspopup="true" aria-expanded="false">🎨 <span id="modoNome">Noturno</span> ▾</button><div class="modo-pop" id="modoPop" hidden></div></div><div class="avatar" id="whoAvatar">--</div><div class="who"><b id="whoName">—</b><small id="whoRole">—</small></div><button type="button" id="btnSenha" class="btn-mini" title="Trocar a minha senha">Trocar senha</button><button type="button" id="btnSair" class="btn-mini">Sair</button></div>
+      <div class="user-chip"><span id="presChip" class="pres-chip" hidden></span><span id="syncChip" style="font-size:11.5px;font-weight:600;color:var(--success)">● Salvo</span><button type="button" id="btnAtualizar" class="btn-mini" title="Buscar de novo os dados do banco">↻ Atualizar</button><div class="zoom-ctl" id="zoomCtl" title="Zoom desta tela (cada tela guarda o seu)"><button type="button" class="btn-mini" data-zoom="-" aria-label="Diminuir zoom">−</button><button type="button" class="btn-mini zoom-val" data-zoom="0" title="Voltar a 100%">100%</button><button type="button" class="btn-mini" data-zoom="+" aria-label="Aumentar zoom">+</button></div><div class="modo-menu"><button type="button" id="btnModo" class="btn-mini" title="Aparência: Noturno" aria-label="Trocar o modo de aparência" aria-haspopup="true" aria-expanded="false">🎨<span id="modoNome" class="sr-only">Noturno</span></button><div class="modo-pop" id="modoPop" hidden></div></div><div class="avatar" id="whoAvatar">--</div><div class="who"><b id="whoName">—</b><small id="whoRole">—</small></div><button type="button" id="btnSenha" class="btn-mini" title="Trocar a minha senha">Trocar senha</button><button type="button" id="btnSair" class="btn-mini">Sair</button></div>
     </div>
     <div class="content">
 
@@ -2156,12 +2159,30 @@
   });
   applyNavCollapse();
 
+  // Zoom por tela (guardado neste navegador): 50%–150%
+  var ZOOM_VIEW = "";
+  function zoomLer(id){ try { var z = parseFloat(localStorage.getItem("zoom_" + id)); return z >= 0.5 && z <= 1.5 ? z : 1; } catch (e){ return 1; } }
+  function zoomAplicar(id){
+    ZOOM_VIEW = id || ZOOM_VIEW; var v = el("view-" + ZOOM_VIEW); if (!v) return;
+    var z = zoomLer(ZOOM_VIEW); v.style.zoom = z === 1 ? "" : String(z);
+    var lab = document.querySelector("#zoomCtl .zoom-val"); if (lab) lab.textContent = Math.round(z * 100) + "%";
+  }
+  function zoomMudar(acao){
+    if (!ZOOM_VIEW) return;
+    var z = zoomLer(ZOOM_VIEW), passos = [0.5, 0.6, 0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.35, 1.5];
+    var i = passos.reduce(function(best, p, k){ return Math.abs(p - z) < Math.abs(passos[best] - z) ? k : best; }, 6);
+    z = acao === "0" ? 1 : passos[Math.max(0, Math.min(passos.length - 1, i + (acao === "+" ? 1 : -1)))];
+    try { if (z === 1) localStorage.removeItem("zoom_" + ZOOM_VIEW); else localStorage.setItem("zoom_" + ZOOM_VIEW, String(z)); } catch (e){}
+    zoomAplicar();
+  }
+  document.addEventListener("click", function(ev){ var b = ev.target.closest && ev.target.closest("#zoomCtl [data-zoom]"); if (b) zoomMudar(b.dataset.zoom); });
   function showView(id){
     if (typeof podeVerAba === "function" && !podeVerAba(id)){ var alt = primeiraAbaPermitida(); if (alt && alt !== id) return showView(alt); }
     document.querySelectorAll(".nav-item").forEach(function(n){ n.classList.toggle("active", n.dataset.view === id); });
     if (typeof navAbrirSubDe === "function") navAbrirSubDe(id);
     document.querySelectorAll(".view").forEach(function(v){ v.classList.remove("active"); });
     el("view-" + id).classList.add("active");
+    zoomAplicar(id);
     el("viewTitle").textContent = TITLES[id];
     el("viewCrumb").innerHTML = CRUMBS[id] || "";
     // As 3 telas (Programação, Base de Dados, Controle de Pedidos) se cruzam:
@@ -9340,6 +9361,7 @@
   function aparMenuNome(){
     var n = el("modoNome"); if (!n) return;
     var m = aparModoAtual(); n.textContent = m ? m.nome.replace(/^[^0-9A-Za-zÀ-ÿ]+/, "") : "Ajustado";
+    var bm = el("btnModo"); if (bm) bm.title = "Aparência: " + n.textContent + " (clique para trocar)";
   }
   function aparMudou(){ APAR.modo = null; }   // ajuste feito à mão: ainda não é um modo salvo
   async function aparUsarModo(id){
