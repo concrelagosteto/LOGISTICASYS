@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-04-1">
+<meta name="app-versao" content="2026-11-04-2">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -3485,7 +3485,37 @@
       else if (r.status === "none") r.status = "emitida";
     });
     res.forEach(function(r){ if (r.local && r.desvio){ r.desviada = r.desvio; r.desvio = null; } });   // a nota desviada foi reposta por outra que chegou aqui
+    // Desvio por reprogramação: o pedido desta carga foi reprogramado para OUTRA usina e a nota (emitida para esta usina) descarregou lá
+    res.forEach(function(r){
+      if (r.status !== "none" || progEntry.status === "adiado" || progConfDe(progEntry, r.carga.idx)) return;
+      var d = desvioPorReprog(progEntry, r.carga);
+      if (d){ r.status = "confirmada"; r.desvio = d.desvio; r.nfs.push({ nf: d.nf, st: "confirmada", reprog: true }); }
+    });
     return res;
+  }
+  function desvioPorReprog(e, c){
+    var at = atribNotas(); if (!at.porPedNf) return null;
+    var peds = (c.pedidos || []).map(normalizePedidoNum).filter(Boolean);
+    for (var i = 0; i < peds.length; i++){
+      var nfs = at.porPedNf.get(peds[i]) || [];
+      for (var j = 0; j < nfs.length; j++){
+        var nf = nfs[j], a = at.get(nf);
+        if (!a || a.entry === e || !nf.usina || !usinaIgual(nf.usina, e.usina) || usinaIgual(a.entry.usina, e.usina)) continue;
+        var en = nfEntradaMatch(nf);
+        return { nf: nf, desvio: { para: a.entry.usina, data: en && en.data ? en.data : "", doc: nf.numero, reprog: true } };
+      }
+    }
+    return null;
+  }
+  // a nota desta carga foi emitida para outra usina (veio desviada de lá)?
+  function veioDesviadaDe(e, nfs){
+    var at = atribNotas();
+    var x = (nfs || []).find(function(nf){
+      if (!nf.usina || usinaIgual(nf.usina, e.usina)) return false;
+      var pk = normalizePedidoNum(pedidoEfetivo(nf)), sl = pk && at.pedidos ? at.pedidos.get(pk) : null;
+      return !!sl && sl.some(function(x2){ return usinaIgual(x2.entry.usina, nf.usina); });   // o mesmo pedido estava programado para a usina da nota
+    });
+    return x ? x.usina : "";
   }
   // "Pendente": a linha está TODA preenchida (placa, fábrica e pedido em cada carga), não está adiada
   // e ainda não tem nota emitida no Efit nem correspondência na PUZL.
@@ -3697,7 +3727,7 @@
     });
     // 4) nota de conferência que o pedido não levou para nenhuma carga: fica na carga conferida
     confDepois.forEach(function(x){ if (!res.has(x.nf)) res.set(x.nf, { entry: x.sl.entry, iso: x.sl.iso, idx: x.sl.idx, por: "conf" }); });
-    res.multi = multi; res.pedidos = porPed;
+    res.multi = multi; res.pedidos = porPed; res.porPedNf = porPedNf;
     if (typeof __passo !== "undefined" && __passo) __passo.atrib = res; else __atribCache = res;
     return res;
   }
@@ -4914,7 +4944,8 @@
     var lista = linhas.filter(function(l){ return aba[2](l) || PED_CONF.fixas[pedConfChave(l)]; });
     var statusBadge = function(l){
       var mao = l.status === "descarregada" && (l.conf || l.nfs.some(pedPorMao)) ? ' <span class="badge info" title="Não foi ligação automática: a Logística conferiu ou ligou esta nota à mão' + (l.conf ? " — " + esc(progConfDica(l.conf)) : "") + '">✋ conferida</span>' : '';
-      return statusBadge0(l) + mao;
+      var veio = l.status === "descarregada" && !l.desvio ? veioDesviadaDe(l.e, l.nfs) : "";
+      return statusBadge0(l) + mao + (veio ? ' <span class="badge info" title="A nota foi emitida para ' + esc(veio) + ' e descarregou aqui (pedido reprogramado)">🔀 veio de ' + esc(veio) + '</span>' : '');
     };
     var statusBadge0 = function(l){
       return l.desvio ? badgeDesvio(l.desvio) : l.status === "descarregada" ? '<span class="badge success">✅ Descarregada</span>' + (l.desviada ? ' <span class="badge info" title="Uma nota desta carga foi desviada para ' + esc(l.desviada.para) + '; outra nota foi ligada e descarregou aqui">🔀 +1 desviada</span>' : '')
