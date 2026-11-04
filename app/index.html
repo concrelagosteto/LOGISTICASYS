@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-04-4">
+<meta name="app-versao" content="2026-11-04-5">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -3479,7 +3479,7 @@
     var resD = progNFPorCarga(progEntry);
     resD.forEach(function(r){ if (r.desvio) add(r.desvio); });
     if (resD.some(function(r){ return r.local; })) return out;               // outra nota já descarregou aqui: não é mais desvio
-    entradasParaProgEntry(progEntry).forEach(function(en){ if (entradaNFStatus(en).status === "confirmada") add(desvioDaEntrada(en, progEntry)); });
+    entradasParaProgEntry(progEntry).forEach(function(en){ if (entradaNFStatus(en).status !== "cancelada") add(desvioDaEntrada(en, progEntry)); });
     return out;
   }
   function badgeDesvio(d){ return '<span class="badge info" title="Programada para esta usina, mas descarregou em ' + esc(d.para) + (d.data ? ' em ' + esc(brDate(d.data)) : "") + (d.doc ? ' (NF ' + esc(d.doc) + ')' : "") + (d.confirmado ? ' — desvio CONFIRMADO' + (d.confirmado.por ? ' por ' + esc(d.confirmado.por) : '') + (d.confirmado.motivo ? ' · ' + esc(d.confirmado.motivo) : '') : ' — desvio detectado pelo sistema (ainda não confirmado)') + '">🔀 Desviada → ' + esc(d.para) + (d.data ? ' · ' + esc(brDate(d.data).slice(0, 5)) : "") + (d.confirmado ? ' ✔' : '') + '</span>'; }
@@ -3623,7 +3623,7 @@
       var st = entradaNFStatus(en).status;
       if (st === "cancelada") best = "cancelada";
       else if (st === "confirmada" && best !== "cancelada") best = "confirmada";
-      else if (st === "emitida" && best !== "confirmada" && best !== "cancelada") best = "emitida";
+      else if (st === "emitida" && best !== "cancelada") best = "confirmada";   // entrada na PUZL sem a nota no Efit: já descarregou
     });
     // Cadeia pela nota do Efit (ligação firme com ESTA linha da programação)
     var ped = pedidoListFrom(progEntry.pedido).map(normalizePedidoNum);
@@ -4914,10 +4914,11 @@
               if (!daCarga) return;
               var est = entradaNFStatus(en).status;
               if (est === "cancelada") return;
-              if (status === "descarregada" || (status === "emitida" && est !== "confirmada")) return;   // esta carga já tem a sua
+              // a entrada na PUZL (sem a nota no Efit ainda) já é a descarga. Carga com pedido complementar: a 2ª entrada (do outro pedido) também aparece
+              var outroPed = status === "descarregada" && en.pedido && (c.pedidos || []).length > 1 && cargaTemPedido(c, en.pedido) && !nfs.some(function(nf){ return normalizePedidoNum(pedidoEfetivo(nf)) === normalizePedidoNum(en.pedido); });
+              if (status === "descarregada" && !outroPed) return;   // esta carga já tem a sua
               enUsadas.add(en); ents.push(en);
-              if (est === "confirmada"){ status = "descarregada"; if (en.data && en.data > descarga) descarga = en.data; if (!desvio) desvio = desvioDaEntrada(en, e); }
-              else if (status === "sem_nota") status = "emitida";
+              status = "descarregada"; if (en.data && en.data > descarga) descarga = en.data; if (!desvio) desvio = desvioDaEntrada(en, e);
             });
           }
           var incertas = adC ? [] : nfsCandidatas(e).filter(function(nf){ if (nfSoRegistro(nf)) return false; var s0 = nfSituacao(nf); if (s0.entry !== e || s0.situacao !== "sem_certeza") return false; var cn = cargaDaNota(nf, e); return cn ? cn.idx === c.idx : cs.length === 1; });
@@ -5001,7 +5002,7 @@
     if (PED_CONF.lista !== lista && PED_CONF.aberto >= 0){ var lAnt = PED_CONF.lista[PED_CONF.aberto]; PED_CONF.aberto = lAnt ? lista.findIndex(function(x){ return x.e === lAnt.e && x.c.idx === lAnt.c.idx && x.iso === lAnt.iso; }) : -1; }
     PED_CONF.lista = lista;
     var rows = lista.map(function(l, i){
-      var nfTxt = l.nfs.length ? l.nfs.map(function(nf){ var pm = pedPorMao(nf); return (pm ? '<span title="' + (pm === "conf" ? "Ligada pela conferência manual (✋)" : "Ligada à mão (Ligar outra nota)") + '">' + (pm === "conf" ? "✋" : "🔗") + '</span>' : '') + '<button type="button" class="nf-rastro-link xl-ignore" data-rastronum="' + esc(nf.numero) + '" title="Ver a ligação desta nota">' + esc(nf.numero) + '</button><span style="display:none">' + esc(nf.numero) + '</span>'; }).join(", ") : (l.ents && l.ents.length ? l.ents.map(function(en){ var nf0 = entradaNFStatus(en).nf; return nf0 ? '<button type="button" class="nf-rastro-link xl-ignore" data-rastronum="' + esc(nf0.numero) + '" title="Ver a ligação desta nota">' + esc(nf0.numero) + '</button><span style="display:none">' + esc(nf0.numero) + '</span>' : '<span title="Documento da entrada na PUZL (a nota ainda não está no Efit)">' + esc(en.documento) + ' <span class="faint" style="font-size:10.5px;">(PUZL)</span></span>'; }).join(", ") : (l.conf && l.conf.nf ? '<span title="NF informada na conferência manual">✋ ' + esc(l.conf.nf) + '</span>' : '<span class="faint">—</span>'));
+      var nfTxt = (l.nfs.length || (l.ents && l.ents.length)) ? [l.nfs.map(function(nf){ var pm = pedPorMao(nf); return (pm ? '<span title="' + (pm === "conf" ? "Ligada pela conferência manual (✋)" : "Ligada à mão (Ligar outra nota)") + '">' + (pm === "conf" ? "✋" : "🔗") + '</span>' : '') + '<button type="button" class="nf-rastro-link xl-ignore" data-rastronum="' + esc(nf.numero) + '" title="Ver a ligação desta nota">' + esc(nf.numero) + '</button><span style="display:none">' + esc(nf.numero) + '</span>'; }).join(", "), (l.ents && l.ents.length ? l.ents.map(function(en){ var nf0 = entradaNFStatus(en).nf; return nf0 ? '<button type="button" class="nf-rastro-link xl-ignore" data-rastronum="' + esc(nf0.numero) + '" title="Ver a ligação desta nota">' + esc(nf0.numero) + '</button><span style="display:none">' + esc(nf0.numero) + '</span>' : '<span title="Documento da entrada na PUZL (a nota ainda não está no Efit)">' + esc(en.documento) + ' <span class="faint" style="font-size:10.5px;">(PUZL)</span></span>'; }).join(", ") : "")].filter(Boolean).join(", ") : (l.conf && l.conf.nf ? '<span title="NF informada na conferência manual">✋ ' + esc(l.conf.nf) + '</span>' : '<span class="faint">—</span>');
       if (l.canc.length) nfTxt += ' <span class="badge danger" title="Nota cancelada no Efit">🚫 '+l.canc.map(function(nf){ return esc(nf.numero); }).join(", ")+'</span>';
       if (l.incertas && l.incertas.length) nfTxt = (l.nfs.length || l.ents.length || l.conf ? nfTxt + " " : "") + l.incertas.map(function(nf){ return '<button type="button" class="nf-rastro-link xl-ignore" data-rastronum="' + esc(nf.numero) + '" title="Nota do pedido desta carga, mas a placa é diferente da programada: confira">⚠️ ' + esc(nf.numero) + '</button><span style="display:none">' + esc(nf.numero) + '</span>'; }).join(", ");
       var emis = l.nfs.length ? esc(brDate(l.nfs.map(function(nf){ return nf.emissao; }).sort()[0])) : '<span class="faint">—</span>';
