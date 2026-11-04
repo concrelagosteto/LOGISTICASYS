@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-04-5">
+<meta name="app-versao" content="2026-11-04-6">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -208,6 +208,7 @@
   .fb-reg{font-size:12.5px;} .fb-reg.atual{font-weight:600;} .fb-mais{color:var(--danger); font-size:11.5px;} .fb-menos{color:var(--info); font-size:11.5px;}
   tr.fb-aberta td{background:var(--accent-soft);}
   .ped-conf-aviso{padding:8px 10px; border:1px solid var(--warning); border-radius:6px; background:var(--warning-soft); color:var(--text); font-size:12.5px;} .ped-conf-aviso ul{margin:4px 0 4px 18px; padding:0;}
+  .ped-partes{display:flex; gap:8px; font-size:10.5px; margin-top:2px; white-space:nowrap;} .ped-partes .falta{color:var(--danger);} .ped-partes .ok{color:var(--text-muted);}
   .pz-onde{font-size:11px; margin-top:2px; max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .nf-rastro-btn{border:0; background:transparent; padding:0; cursor:pointer; display:inline-flex; align-items:center; gap:4px;} .nf-rastro-btn:hover .badge{filter:brightness(1.15); outline:1px solid currentColor;}
   .nf-rastro-i{font-size:12px; color:var(--text-faint);}
@@ -4924,12 +4925,24 @@
           var incertas = adC ? [] : nfsCandidatas(e).filter(function(nf){ if (nfSoRegistro(nf)) return false; var s0 = nfSituacao(nf); if (s0.entry !== e || s0.situacao !== "sem_certeza") return false; var cn = cargaDaNota(nf, e); return cn ? cn.idx === c.idx : cs.length === 1; });
           var canc = cancAll.filter(function(nf){ var cn = cargaDaNota(nf, e); return cn ? cn.idx === c.idx : cs.length === 1; });
           if (status === "sem_nota" && canc.length && !adC) status = "cancelada";
+          // pedido + complementar: cada pedido precisa da sua descarga (nota com entrada, ou entrada na PUZL)
+          var partes = null;
+          if (!adC && (c.pedidos || []).length > 1){
+            partes = c.pedidos.map(function(p, k){
+              var pk = normalizePedidoNum(p);
+              var nf = nfs.find(function(x){ return normalizePedidoNum(pedidoEfetivo(x)) === pk; });
+              var en = !nf ? ents.find(function(x){ return normalizePedidoNum(x.pedido) === pk; }) : null;
+              var enNf = nf ? nfEntradaMatch(nf) : null;
+              return { tipo: k === 0 ? "Principal" : "Complementar", ped: p, doc: nf ? nf.numero : (en ? en.documento : ""), desc: !!(enNf || en), data: enNf ? enNf.data : (en ? en.data : "") };
+            });
+            if (status === "descarregada" && !partes.every(function(x){ return x.desc; })) status = "parcial";
+          }
           var conf = adC ? null : progConfDe(e, c.idx);
           if (conf && status !== "descarregada"){ if (conf.tipo === "nao_realizada") status = "nao_realizada"; else { status = "conferida"; descarga = conf.descarga || descarga; } }
           var atraso = "";
           if ((status === "descarregada" || status === "conferida") && descarga){ var d = diasEntre(iso, descarga); atraso = d === 0 ? "no dia" : (d > 0 ? "+" + d + " dia(s)" : Math.abs(d) + " dia(s) antes"); }
-          else if ((status === "sem_nota" || status === "emitida") && iso < hoje){ var a2 = diasEntre(iso, hoje); atraso = "atrasada " + a2 + " dia(s)"; }
-          out.push({iso: iso, e: e, c: c, status: status, progSt: cst, conf: conf, nfs: nfs, ents: ents, incertas: incertas, canc: canc, desviada: r && r.desviada ? r.desviada : null, descarga: descarga, atraso: atraso, atrasada: /^atrasada/.test(atraso), desvio: status === "descarregada" ? desvio : null});
+          else if ((status === "sem_nota" || status === "emitida" || status === "parcial") && iso < hoje){ var a2 = diasEntre(iso, hoje); atraso = "atrasada " + a2 + " dia(s)"; }
+          out.push({iso: iso, e: e, c: c, status: status, progSt: cst, conf: conf, nfs: nfs, ents: ents, partes: partes, incertas: incertas, canc: canc, desviada: r && r.desviada ? r.desviada : null, descarga: descarga, atraso: atraso, atrasada: /^atrasada/.test(atraso), desvio: status === "descarregada" ? desvio : null});
         });
       });
     });
@@ -4959,6 +4972,9 @@
   }
   var PED_CONF = { lista: [], aberto: -1, erro: "", fixas: {}, rasc: null, okNF: "" };   // fixas: cargas mexidas nesta aba (continuam à vista até trocar de aba)
   function pedConfChave(l){ return l.iso + "|" + entryKey(l.e) + "|" + l.c.idx; }
+  function pedPartesHtml(l){
+    return l.partes ? '<div class="ped-partes xl-ignore">' + l.partes.map(function(x){ return '<span class="' + (x.desc ? "ok" : "falta") + '" title="' + esc(x.tipo + " " + x.ped + (x.doc ? " · NF " + x.doc : " · sem nota") + (x.data ? " · descarregou " + brDate(x.data) : "")) + '">' + (x.desc ? "✅" : "❌") + " " + (x.tipo === "Principal" ? "Princ." : "Compl.") + (x.doc ? " " + esc(x.doc) : "") + '</span>'; }).join("") + '</div>' : '';
+  }
   var PED_PROG_ABAS = [
     ["todas", "Todas", function(){ return true; }],
     ["acomp", "Acompanhamento", function(l){ return l.status !== "adiado" && !(l.progSt === "ok" && l.status === "sem_nota"); }],
@@ -4966,7 +4982,7 @@
     ["desviada", "🔀 Desviadas", function(l){ return !!l.desvio; }],
     ["conferida", "✋ Conferência manual", function(l){ return l.status === "conferida"; }],
     ["naorealizada", "🚫 Não realizadas", function(l){ return l.status === "nao_realizada"; }],
-    ["emitida", "Emitidas — falta descarregar", function(l){ return l.status === "emitida"; }],
+    ["emitida", "Emitidas — falta descarregar", function(l){ return l.status === "emitida" || l.status === "parcial"; }],
     ["semnota", "Sem nota", function(l){ return l.status === "sem_nota" || l.status === "cancelada"; }],
     ["atrasada", "⏰ Atrasadas", function(l){ return l.atrasada; }],
     ["oksem", "Tudo OK sem nota", function(l){ return l.progSt === "ok" && l.status === "sem_nota"; }],
@@ -4993,6 +5009,7 @@
       return l.desvio ? badgeDesvio(l.desvio) : l.status === "descarregada" ? '<span class="badge success">✅ Descarregada</span>' + (l.desviada ? ' <span class="badge info" title="Uma nota desta carga foi desviada para ' + esc(l.desviada.para) + '; outra nota foi ligada e descarregou aqui">🔀 +1 desviada</span>' : '')
         : l.status === "conferida" || l.status === "nao_realizada" ? BADGE_CONF(l.conf)
         : l.status === "emitida" ? '<span class="badge warning">Emitida</span>'
+        : l.status === "parcial" ? '<span class="badge warning" title="Carga com pedido complementar: só uma das duas partes descarregou">◐ Parcial</span>'
         : l.status === "cancelada" ? '<span class="badge danger">🚫 NF cancelada</span>'
         : l.status === "adiado" ? '<span class="badge warning">Adiado</span>'
         : '<span class="badge '+(l.atrasada ? 'danger' : 'neutral')+'">Sem nota</span>';
@@ -5017,7 +5034,7 @@
         '<td style="white-space:nowrap;">'+nfTxt+'</td>' +
         '<td style="white-space:nowrap;">'+emis+'</td>' +
         '<td><div style="display:flex;align-items:center;gap:6px;white-space:nowrap;"><button type="button" class="nf-rastro-btn" data-cglig="' + i + '" title="Ver a ligação desta carga (nota, entrada e como ligou)">'+statusBadge(l)+'</button>' + (!podeConf ? '' : l.status === "conferida" || l.status === "nao_realizada" || (l.conf && l.status === "descarregada") ? '<button class="btn-ghost btn-xs xl-ignore" data-conf="' + i + '" title="Editar ou desfazer a conferência">✏️</button>'
-          : (["sem_nota", "emitida", "cancelada"].indexOf(l.status) !== -1 ? '<button class="btn-ghost btn-xs xl-ignore" data-conf="' + i + '" title="Marcar como descarregada (conferida pela Logística), com o nº da NF">✋ Conferir</button>' : '')) + '</div></td>' +
+          : (["sem_nota", "emitida", "cancelada", "parcial"].indexOf(l.status) !== -1 ? '<button class="btn-ghost btn-xs xl-ignore" data-conf="' + i + '" title="Marcar como descarregada (conferida pela Logística), com o nº da NF">✋ Conferir</button>' : '')) + '</div>' + pedPartesHtml(l) + '</td>' +
         '<td style="white-space:nowrap;">'+(l.descarga ? esc(brDate(l.descarga)) : '<span class="faint">—</span>')+'</td>' +
         '<td style="white-space:nowrap;'+(l.atrasada ? 'color:var(--danger);font-weight:700;' : '')+'">'+(esc(l.atraso) || '<span class="faint">—</span>')+'</td>' +
         '</tr>' + (podeConf && PED_CONF.aberto === i ? pedConfFormHtml(l, i) : '');
