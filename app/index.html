@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-04-6">
+<meta name="app-versao" content="2026-11-05-1">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -750,6 +750,7 @@
   .xl-pop-sort{display:flex; flex-direction:column; gap:2px; margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid var(--border);}
   .xl-pop-sort button{text-align:left; border:none; background:none; color:var(--text); font-size:11.5px; padding:5px 4px; border-radius:5px; cursor:pointer;}
   .xl-pop-sort button:hover{background:var(--surface-2);}
+  .xl-pop-mes{display:flex; gap:6px; margin-bottom:8px;} .xl-pop-mes button{flex:1; border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text); border-radius:6px; padding:5px 6px; font-size:11.5px; cursor:pointer;} .xl-pop-mes button:hover{border-color:var(--accent);} .xl-pop-mes button:disabled{opacity:.6; cursor:default;}
   .xl-pop-search{width:100%; border:1px solid var(--border-strong); border-radius:6px; padding:6px 8px; font-size:11.5px; background:var(--surface); color:var(--text); margin-bottom:8px;}
   .xl-pop-all{display:flex; align-items:center; gap:6px; font-size:11.5px; font-weight:600; padding:4px; border-bottom:1px solid var(--border); margin-bottom:4px; cursor:pointer;}
   .xl-pop-list{max-height:170px; overflow-y:auto; display:flex; flex-direction:column;}
@@ -1856,6 +1857,12 @@
     });
     var values = Object.keys(counts).sort(xlCmp);
     var allowed = state.filters[colIdx]; // undefined = tudo marcado
+    // coluna de datas? (a maioria dos valores é data) -> atalhos Mês atual / Mês anterior
+    var comData = values.filter(function(v){ return xlDataChave(v); }).length;
+    var ehData = values.length > 0 && comData >= Math.max(1, values.filter(function(v){ return String(v).trim(); }).length * 0.6);
+    var hojeM = new Date(), mesAtual = hojeM.getFullYear() + ("0" + (hojeM.getMonth() + 1)).slice(-2);
+    var antD = new Date(hojeM.getFullYear(), hojeM.getMonth() - 1, 1), mesAnt = antD.getFullYear() + ("0" + (antD.getMonth() + 1)).slice(-2);
+    var MESES = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
 
     var pop = document.createElement("div");
     pop.className = "xl-popover";
@@ -1864,6 +1871,7 @@
         '<button type="button" data-sort="asc">⬆ Classificar A→Z</button>' +
         '<button type="button" data-sort="desc">⬇ Classificar Z→A</button>' +
       '</div>' +
+      (ehData ? '<div class="xl-pop-mes"><button type="button" data-xlmes="' + mesAnt + '" title="Mostrar só ' + MESES[antD.getMonth()] + '">📅 Mês anterior</button><button type="button" data-xlmes="' + mesAtual + '" title="Mostrar só ' + MESES[hojeM.getMonth()] + '">📅 Mês atual</button></div>' : '') +
       '<input type="text" class="xl-pop-search" placeholder="Buscar e marcar (Enter marca se achar um só)"/>' +
       '<label class="xl-pop-all"><input type="checkbox" class="xl-pop-all-cb"/> (Selecionar tudo)</label>' +
       '<div class="xl-pop-list"></div>' +
@@ -1916,6 +1924,13 @@
       tudoInicial = false; paintList();
     });
     pop.addEventListener("click", function(e){ e.stopPropagation(); });
+    pop.querySelectorAll("[data-xlmes]").forEach(function(bm){
+      bm.addEventListener("click", function(){
+        var mes = bm.dataset.xlmes, doMes = values.filter(function(v){ var k = xlDataChave(v); return k && k.slice(0, 6) === mes; });
+        if (!doMes.length){ bm.textContent = "Nenhuma data nesse mês"; bm.disabled = true; return; }
+        sel = new Set(doMes); tudoInicial = false; txtAtual = ""; busca.value = ""; paintList(); okBtn.click();
+      });
+    });
     pop.querySelectorAll("[data-sort]").forEach(function(b){
       b.addEventListener("click", function(){
         state.sort = {col:colIdx, dir:b.dataset.sort};
