@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-05-3">
+<meta name="app-versao" content="2026-11-05-4">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -209,6 +209,7 @@
   tr.fb-aberta td{background:var(--accent-soft);}
   .ped-conf-aviso{padding:8px 10px; border:1px solid var(--warning); border-radius:6px; background:var(--warning-soft); color:var(--text); font-size:12.5px;} .ped-conf-aviso ul{margin:4px 0 4px 18px; padding:0;}
   .ped-conf-parte{display:flex; gap:10px; align-items:center; font-size:12px; color:var(--text-muted); flex-basis:100%;} .ped-conf-parte label{display:inline-flex; gap:4px; align-items:center; color:var(--text);}
+  .badge.semnec{background:color-mix(in srgb, var(--roxo) 18%, transparent); color:var(--roxo); border:1px solid color-mix(in srgb, var(--roxo) 45%, transparent);}
   .ped-partes{display:flex; gap:8px; font-size:10.5px; margin-top:2px; white-space:nowrap;} .ped-partes .falta{color:var(--danger);} .ped-partes .ok{color:var(--text-muted);}
   .pz-onde{font-size:11px; margin-top:2px; max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .nf-rastro-btn{border:0; background:transparent; padding:0; cursor:pointer; display:inline-flex; align-items:center; gap:4px;} .nf-rastro-btn:hover .badge{filter:brightness(1.15); outline:1px solid currentColor;}
@@ -4966,6 +4967,8 @@
             else if (alguma) status = "parcial";
           }
           if (conf && status !== "descarregada" && !(partes && confDesc && status === "parcial")){ if (conf.tipo === "nao_realizada") status = "nao_realizada"; else if (conf.tipo === "adiada") status = "adiado"; else { status = "conferida"; descarga = conf.descarga || descarga; } }
+          // marcada como "Sem necessidade" na Programação e sem nenhuma nota/entrada: não é "sem nota", é sem necessidade
+          if ((e.status === "sem_necessidade" || cst === "sem_necessidade") && (status === "sem_nota" || status === "cancelada")) status = "sem_necessidade";
           var atraso = "";
           if ((status === "descarregada" || status === "conferida") && descarga){ var d = diasEntre(iso, descarga); atraso = d === 0 ? "no dia" : (d > 0 ? "+" + d + " dia(s)" : Math.abs(d) + " dia(s) antes"); }
           else if ((status === "sem_nota" || status === "emitida" || status === "parcial") && iso < hoje){ var a2 = diasEntre(iso, hoje); atraso = "atrasada " + a2 + " dia(s)"; }
@@ -5004,7 +5007,7 @@
   }
   var PED_PROG_ABAS = [
     ["todas", "Todas", function(){ return true; }],
-    ["acomp", "Acompanhamento", function(l){ return l.status !== "adiado" && !(l.progSt === "ok" && l.status === "sem_nota"); }],
+    ["acomp", "Acompanhamento", function(l){ return l.status !== "adiado" && l.status !== "sem_necessidade" && !(l.progSt === "ok" && l.status === "sem_nota"); }],
     ["descarregada", "Descarregadas", function(l){ return l.status === "descarregada" && !l.desvio; }],
     ["desviada", "🔀 Desviadas", function(l){ return !!l.desvio; }],
     ["conferida", "✋ Conferência manual", function(l){ return l.status === "conferida"; }],
@@ -5013,7 +5016,8 @@
     ["semnota", "Sem nota", function(l){ return l.status === "sem_nota" || l.status === "cancelada"; }],
     ["atrasada", "⏰ Atrasadas", function(l){ return l.atrasada; }],
     ["oksem", "Tudo OK sem nota", function(l){ return l.progSt === "ok" && l.status === "sem_nota"; }],
-    ["adiado", "Adiadas", function(l){ return l.status === "adiado"; }]
+    ["adiado", "Adiadas", function(l){ return l.status === "adiado"; }],
+    ["semnec", "Sem necessidade", function(l){ return l.status === "sem_necessidade"; }]
   ];
   function paintPedidosProg(){
     pedidosPicker.updateLabel();
@@ -5039,9 +5043,10 @@
         : l.status === "parcial" ? '<span class="badge warning" title="Carga com pedido complementar: só uma das duas partes descarregou">◐ Parcial</span>'
         : l.status === "cancelada" ? '<span class="badge danger">🚫 NF cancelada</span>'
         : l.status === "adiado" ? '<span class="badge warning">Adiado</span>'
+        : l.status === "sem_necessidade" ? '<span class="badge semnec" title="Marcada como Sem necessidade na Programação">Sem necessidade</span>'
         : '<span class="badge '+(l.atrasada ? 'danger' : 'neutral')+'">Sem nota</span>';
     };
-    var progBadge = function(s){ return s === "ok" ? '<span class="badge success">Tudo OK</span>' : (s === "conferir" ? '<span class="badge warning">Conferir</span>' : (s === "adiado" ? '<span class="badge warning">Adiado</span>' : '<span class="faint">—</span>')); };
+    var progBadge = function(s){ return s === "ok" ? '<span class="badge success">Tudo OK</span>' : (s === "conferir" ? '<span class="badge warning">Conferir</span>' : (s === "adiado" ? '<span class="badge warning">Adiado</span>' : s === "sem_necessidade" ? '<span class="badge semnec">Sem necessidade</span>' : '<span class="faint">—</span>')); };
     var podeConf = modPodeEditar();
     if (PED_CONF.lista !== lista && PED_CONF.aberto >= 0){ var lAnt = PED_CONF.lista[PED_CONF.aberto]; PED_CONF.aberto = lAnt ? lista.findIndex(function(x){ return x.e === lAnt.e && x.c.idx === lAnt.c.idx && x.iso === lAnt.iso; }) : -1; }
     PED_CONF.lista = lista;
