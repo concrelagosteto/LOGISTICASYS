@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-05-2">
+<meta name="app-versao" content="2026-11-05-3">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -3733,7 +3733,7 @@
     // 1b) conferência manual com nº da NF (✋ Descarregada): a nota fica ligada àquela carga em todas as telas
     var porNum = null;
     porDiaUsina.forEach(function(lst){ lst.forEach(function(sl){
-      var cf = progConfDe(sl.entry, sl.idx); if (!cf || !cf.nf || cf.tipo === "nao_realizada") return;
+      var cf = progConfDe(sl.entry, sl.idx); if (!cf || !cf.nf || cf.tipo === "nao_realizada" || cf.tipo === "adiada") return;
       if (!porNum){ porNum = new Map(); notas.forEach(function(nf){ var k = nfNumNorm(nf.numero); if (k && !porNum.has(k)) porNum.set(k, nf); }); }
       var nfC = porNum.get(nfNumNorm(cf.nf)); if (!nfC || res.has(nfC)) return;
       var pkC = normalizePedidoNum(pedidoEfetivo(nfC));
@@ -4950,7 +4950,7 @@
           if (status === "sem_nota" && canc.length && !adC) status = "cancelada";
           // pedido + complementar: cada pedido precisa da sua descarga (nota com entrada, ou entrada na PUZL)
           var partes = null, conf = adC ? null : progConfDe(e, c.idx);
-          var confDesc = conf && conf.tipo !== "nao_realizada" ? conf : null;
+          var confDesc = conf && conf.tipo !== "nao_realizada" && conf.tipo !== "adiada" ? conf : null;
           if (!adC && (c.pedidos || []).length > 1){
             partes = c.pedidos.map(function(p, k){
               var pk = normalizePedidoNum(p);
@@ -4965,7 +4965,7 @@
             if (todas){ if (status !== "descarregada"){ status = "descarregada"; partes.forEach(function(x){ if (x.data && x.data > descarga) descarga = x.data; }); } }
             else if (alguma) status = "parcial";
           }
-          if (conf && status !== "descarregada" && !(partes && confDesc && status === "parcial")){ if (conf.tipo === "nao_realizada") status = "nao_realizada"; else { status = "conferida"; descarga = conf.descarga || descarga; } }
+          if (conf && status !== "descarregada" && !(partes && confDesc && status === "parcial")){ if (conf.tipo === "nao_realizada") status = "nao_realizada"; else if (conf.tipo === "adiada") status = "adiado"; else { status = "conferida"; descarga = conf.descarga || descarga; } }
           var atraso = "";
           if ((status === "descarregada" || status === "conferida") && descarga){ var d = diasEntre(iso, descarga); atraso = d === 0 ? "no dia" : (d > 0 ? "+" + d + " dia(s)" : Math.abs(d) + " dia(s) antes"); }
           else if ((status === "sem_nota" || status === "emitida" || status === "parcial") && iso < hoje){ var a2 = diasEntre(iso, hoje); atraso = "atrasada " + a2 + " dia(s)"; }
@@ -4983,8 +4983,8 @@
     return cf.some(Boolean) ? cf : null;
   }
   function progConfDe(e, idx){ return (e && e.conf && e.conf[idx]) || null; }
-  function progConfDica(cf){ if (cf.tipo === "nao_realizada") return "Viagem não realizada" + (cf.por ? " — marcado por " + cf.por : "") + (cf.em ? " em " + brDate(String(cf.em).slice(0, 10)) : "") + (cf.obs ? " · " + cf.obs : ""); return "Conferência manual" + (cf.por ? " por " + cf.por : "") + (cf.em ? " em " + brDate(String(cf.em).slice(0, 10)) : "") + (cf.nf ? " · NF " + cf.nf : "") + (cf.obs ? " · " + cf.obs : ""); }
-  var BADGE_CONF = function(cf){ if (cf.tipo === "nao_realizada") return '<span class="badge neutral" title="' + esc(progConfDica(cf)) + '">🚫 Viagem não realizada</span>'; return '<span class="badge info" title="' + esc(progConfDica(cf)) + '">✋ Descarregada (conferência)</span>'; };
+  function progConfDica(cf){ if (cf.tipo === "adiada") return "Adiada" + (cf.por ? " — marcado por " + cf.por : "") + (cf.em ? " em " + brDate(String(cf.em).slice(0, 10)) : "") + (cf.obs ? " · " + cf.obs : ""); if (cf.tipo === "nao_realizada") return "Viagem não realizada" + (cf.por ? " — marcado por " + cf.por : "") + (cf.em ? " em " + brDate(String(cf.em).slice(0, 10)) : "") + (cf.obs ? " · " + cf.obs : ""); return "Conferência manual" + (cf.por ? " por " + cf.por : "") + (cf.em ? " em " + brDate(String(cf.em).slice(0, 10)) : "") + (cf.nf ? " · NF " + cf.nf : "") + (cf.obs ? " · " + cf.obs : ""); }
+  var BADGE_CONF = function(cf){ if (cf.tipo === "adiada") return '<span class="badge warning" title="' + esc(progConfDica(cf)) + '">⏸ Adiada (conferência)</span>'; if (cf.tipo === "nao_realizada") return '<span class="badge neutral" title="' + esc(progConfDica(cf)) + '">🚫 Viagem não realizada</span>'; return '<span class="badge info" title="' + esc(progConfDica(cf)) + '">✋ Descarregada (conferência)</span>'; };
   // nº da linha desta usina no dia (mesma contagem do salvamento: só linhas preenchidas, na ordem da tela)
   function progLinhaN(iso, e){
     var d = cementScheduleByDate[iso], k = String(e.usina || "").trim().toUpperCase(), n = 0;
@@ -5034,7 +5034,7 @@
     };
     var statusBadge0 = function(l){
       return l.desvio ? badgeDesvio(l.desvio) : l.status === "descarregada" ? '<span class="badge success">✅ Descarregada</span>' + (l.desviada ? ' <span class="badge info" title="Uma nota desta carga foi desviada para ' + esc(l.desviada.para) + '; outra nota foi ligada e descarregou aqui">🔀 +1 desviada</span>' : '')
-        : l.status === "conferida" || l.status === "nao_realizada" ? BADGE_CONF(l.conf)
+        : l.status === "conferida" || l.status === "nao_realizada" || (l.status === "adiado" && l.conf && l.conf.tipo === "adiada") ? BADGE_CONF(l.conf)
         : l.status === "emitida" ? '<span class="badge warning">Emitida</span>'
         : l.status === "parcial" ? '<span class="badge warning" title="Carga com pedido complementar: só uma das duas partes descarregou">◐ Parcial</span>'
         : l.status === "cancelada" ? '<span class="badge danger">🚫 NF cancelada</span>'
@@ -5060,7 +5060,7 @@
         '<td>'+progBadge(l.progSt)+'</td>' +
         '<td style="white-space:nowrap;">'+nfTxt+'</td>' +
         '<td style="white-space:nowrap;">'+emis+'</td>' +
-        '<td><div style="display:flex;align-items:center;gap:6px;white-space:nowrap;"><button type="button" class="nf-rastro-btn" data-cglig="' + i + '" title="Ver a ligação desta carga (nota, entrada e como ligou)">'+statusBadge(l)+'</button>' + (!podeConf ? '' : l.status === "conferida" || l.status === "nao_realizada" || (l.conf && l.status === "descarregada") ? '<button class="btn-ghost btn-xs xl-ignore" data-conf="' + i + '" title="Editar ou desfazer a conferência">✏️</button>'
+        '<td><div style="display:flex;align-items:center;gap:6px;white-space:nowrap;"><button type="button" class="nf-rastro-btn" data-cglig="' + i + '" title="Ver a ligação desta carga (nota, entrada e como ligou)">'+statusBadge(l)+'</button>' + (!podeConf ? '' : l.status === "conferida" || l.status === "nao_realizada" || (l.conf && (l.status === "descarregada" || l.status === "adiado")) ? '<button class="btn-ghost btn-xs xl-ignore" data-conf="' + i + '" title="Editar ou desfazer a conferência">✏️</button>'
           : (["sem_nota", "emitida", "cancelada", "parcial"].indexOf(l.status) !== -1 ? '<button class="btn-ghost btn-xs xl-ignore" data-conf="' + i + '" title="Marcar como descarregada (conferida pela Logística), com o nº da NF">✋ Conferir</button>' : '')) + '</div>' + pedPartesHtml(l) + '</td>' +
         '<td style="white-space:nowrap;">'+(l.descarga ? esc(brDate(l.descarga)) : '<span class="faint">—</span>')+'</td>' +
         '<td style="white-space:nowrap;'+(l.atrasada ? 'color:var(--danger);font-weight:700;' : '')+'">'+(esc(l.atraso) || '<span class="faint">—</span>')+'</td>' +
@@ -5356,7 +5356,7 @@
       '<div class="faint" style="font-size:11.5px;">Ex.: a nota do pedido foi desviada e a usina recebeu outra nota. A nota informada fica ligada a esta carga (as duas aparecem).</div>' +
       '<div class="lg-man"><input id="lgManNF" placeholder="Nº da NF (Efit)" inputmode="numeric"><input id="lgManObs" placeholder="Observação (opcional)"><button class="btn-primary btn-xs" data-lg="man">Ligar</button></div>' +
       '<div id="lgManAviso"></div>' });
-    if (l.conf) blocos.push({ ic: "✋", t: l.conf.tipo === "nao_realizada" ? "Viagem não realizada" : "Conferência manual" + (l.conf.parte && pedsL.length > 1 ? " · " + (l.conf.parte === 1 ? "Principal" : "Complementar") : ""), ok: true, corpo: '<div class="lg-sub">' + esc(progConfDica(l.conf)) + ' · mudar: ✏️ ao lado da Situação</div>' });
+    if (l.conf) blocos.push({ ic: "✋", t: l.conf.tipo === "nao_realizada" ? "Viagem não realizada" : l.conf.tipo === "adiada" ? "Adiada" : "Conferência manual" + (l.conf.parte && pedsL.length > 1 ? " · " + (l.conf.parte === 1 ? "Principal" : "Complementar") : ""), ok: true, corpo: '<div class="lg-sub">' + esc(progConfDica(l.conf)) + ' · mudar: ✏️ ao lado da Situação</div>' });
     var desf = [];
     LIG_DESF.forEach(function(v, k){ if (v.data === l.iso && usinaIgual(v.usina, l.e.usina)) desf.push(v); });
     if (desf.length) blocos.push({ ic: "✂️", t: "Ligações desfeitas nesta linha (" + desf.length + ")", ok: true, corpo: desf.map(function(v){
@@ -5522,6 +5522,7 @@
       '<label class="grow">Observação <input id="pedConfObs" value="' + esc(rs.obs != null ? rs.obs : (cf.obs || "")) + '" placeholder="ex.: confirmado com o encarregado por telefone"></label>' +
       '<div id="pedConfAviso" style="flex-basis:100%;">' + pedConfAvisoHtml(l, nf0) + '</div>' +
       '<button class="btn-primary btn-inline" data-confacao="salvar">' + (PED_CONF.okNF ? "Salvar mesmo assim" : "Salvar") + '</button>' +
+      (l.conf && l.conf.tipo === "adiada" ? '' : '<button class="btn-ghost" data-confacao="adiada" title="A carga ficou para outro dia (use a Observação para dizer quando/por quê)">⏸ Adiada</button>') +
       (l.conf && l.conf.tipo === "nao_realizada" ? '' : '<button class="btn-ghost" data-confacao="naorealizada" title="A carga foi programada mas a viagem não aconteceu (use a Observação para o motivo)">🚫 Viagem não realizada</button>') +
       (l.conf ? '<button class="btn-ghost" data-confacao="desfazer" title="Volta a valer só o que está no sistema">Desfazer conferência</button>' : '') +
       '<button class="btn-ghost" data-confacao="cancelar">Cancelar</button>' +
@@ -5532,7 +5533,7 @@
   async function pedConfSalvar(acao){
     var l = PED_CONF.lista[PED_CONF.aberto]; if (!l) return;
     if (acao === "cancelar"){ PED_CONF.aberto = -1; PED_CONF.erro = ""; PED_CONF.rasc = null; PED_CONF.okNF = ""; paintPedidosProg(); return; }
-    var desfazer = acao === "desfazer", naoReal = acao === "naorealizada";
+    var desfazer = acao === "desfazer", naoReal = acao === "naorealizada" || acao === "adiada", tipoEsp = acao === "adiada" ? "adiada" : "nao_realizada";
     var rp = document.querySelector('input[name="pedConfParte"]:checked'), parte = rp ? +rp.value : null;
     var data = desfazer ? null : (naoReal ? l.iso : (el("pedConfData").value || "")), nf = desfazer || naoReal ? "" : el("pedConfNF").value.trim(), obs = desfazer ? "" : el("pedConfObs").value.trim();
     if (!desfazer) PED_CONF.rasc = { data: data, nf: nf, obs: obs, parte: parte };
@@ -5542,11 +5543,11 @@
       PED_CONF.erro = "Essa NF já está ligada em outro lugar (veja acima). Se estiver certo mesmo, clique em “Salvar mesmo assim”.";
       paintPedidosProg(); return;
     }
-    var r; try { r = await sb.rpc("programacao_carga_conferir", { p_data: l.iso, p_usina: String(l.e.usina || "").trim(), p_n: progLinhaN(l.iso, l.e), p_ordem: l.c.idx + 1, p_descarga: data, p_nf: nf, p_obs: obs, p_tipo: naoReal ? "nao_realizada" : ("descarregada" + (parte ? ":" + parte : "")) }); } catch (x) { r = { error: x }; }
+    var r; try { r = await sb.rpc("programacao_carga_conferir", { p_data: l.iso, p_usina: String(l.e.usina || "").trim(), p_n: progLinhaN(l.iso, l.e), p_ordem: l.c.idx + 1, p_descarga: data, p_nf: nf, p_obs: obs, p_tipo: naoReal ? tipoEsp : ("descarregada" + (parte ? ":" + parte : "")) }); } catch (x) { r = { error: x }; }
     var erro = r.error ? dbErr(r.error) : (r.data && r.data.erro);
     if (erro){ PED_CONF.erro = erro; paintPedidosProg(); return; }
     if (!l.e.conf) l.e.conf = [];
-    l.e.conf[l.c.idx] = desfazer ? null : { descarga: data, nf: nf, obs: obs, por: (ME && ME.nome) || "", em: new Date().toISOString(), tipo: naoReal ? "nao_realizada" : "", parte: naoReal ? null : parte };
+    l.e.conf[l.c.idx] = desfazer ? null : { descarga: data, nf: nf, obs: obs, por: (ME && ME.nome) || "", em: new Date().toISOString(), tipo: naoReal ? tipoEsp : "", parte: naoReal ? null : parte };
     if (!l.e.conf.some(Boolean)) delete l.e.conf;
     PED_CONF.fixas[pedConfChave(l)] = 1;
     PED_CONF.aberto = -1; PED_CONF.erro = ""; PED_CONF.rasc = null; PED_CONF.okNF = "";
