@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-06-5">
+<meta name="app-versao" content="2026-11-06-6">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -710,6 +710,8 @@
   .multi-row input.ped-compl{border:1px dashed var(--info) !important; color:var(--info);}
   .ped-compl-x{flex:0 0 auto; width:16px; height:20px; border:0; background:transparent; color:var(--info); cursor:pointer; font-size:12px; padding:0;}
   .ped-compl-x:hover{color:#e05555;}
+  .ped-compl-add{flex:0 0 auto; height:20px; border:1px dashed var(--info); border-radius:5px; background:transparent; color:var(--info); cursor:pointer; font-size:10.5px; font-weight:700; padding:0 4px; opacity:.35; white-space:nowrap;}
+  .multi-row:hover .ped-compl-add, .multi-row:focus-within .ped-compl-add, .ped-compl-add:focus{opacity:1;} .ped-compl-add:hover{background:var(--accent-soft);}
   .ped-menu{position:absolute; z-index:60; min-width:230px; background:var(--surface); border:1px solid var(--border-strong); border-radius:10px; box-shadow:0 12px 30px rgba(0,0,0,.35); padding:6px; display:flex; flex-direction:column; gap:2px;}
   .ped-menu button{display:flex; flex-direction:column; align-items:flex-start; gap:1px; text-align:left; border:0; background:transparent; color:var(--text); padding:7px 10px; border-radius:7px; cursor:pointer; font-size:12.5px;}
   .ped-menu button span{font-size:11px; color:var(--text-faint);}
@@ -2802,12 +2804,13 @@
       var compl = null;
       if (field === "pedido" && /\+/.test(v)){ var pp = v.split("+"); v = pp[0].trim(); compl = pp.slice(1).map(function(x){ return x.trim(); }).join(" + "); }
       return '<div class="multi-row"><input value="'+esc(v)+'" placeholder="'+esc(placeholder||"")+'" style="'+MULTI_INPUT_STYLE+'" ' +
-        'onfocus="this.style.borderColor=\'var(--accent)\'" onblur="this.style.borderColor=\'transparent\'"/>' + (compl !== null ? pedComplHtml(compl) : "") + addBtn + removeBtn + '</div>';
+        'onfocus="this.style.borderColor=\'var(--accent)\'" onblur="this.style.borderColor=\'transparent\'"/>' + (compl !== null ? pedComplHtml(compl) : (field === "pedido" ? PED_COMPL_ADD : "")) + addBtn + removeBtn + '</div>';
     }).join("");
     return '<td class="'+(tdClass||"")+'" style="padding:4px 6px;"><div class="multi-field" data-iso="'+iso+'" data-key="'+esc(key)+'" data-field="'+field+'" data-max="'+max+'" data-placeholder="'+esc(placeholder||"")+'">' + rows + '</div></td>';
   }
   // Pedido complementar: 2 pedidos na MESMA viagem (mesma carreta). Fica na mesma linha do pedido principal,
   // guardado como "principal + complementar" naquela posição (no banco: programacao_cargas.pedido_compl).
+  var PED_COMPL_ADD = '<button type="button" class="ped-compl-add" title="Adicionar pedido complementar a este pedido (mesma viagem)">+C</button>';
   function pedComplHtml(v){
     return '<span class="ped-compl-sep" title="Pedido complementar (mesma viagem)">+</span><input class="ped-compl" value="' + esc(v || "") + '" placeholder="complementar" title="Pedido complementar desta mesma viagem" style="' + MULTI_INPUT_STYLE + '"/>' +
       '<button type="button" class="ped-compl-x" title="Tirar o pedido complementar">×</button>';
@@ -2835,6 +2838,7 @@
       ev.stopPropagation(); pedMenuFechar();
       if (b.dataset.op === "novo"){ addBtn.dataset.direto = "1"; addBtn.click(); return; }
       var row = rows[+b.dataset.i]; if (!row || row.querySelector(".ped-compl")) return;
+      var pa = row.querySelector(".ped-compl-add"); if (pa) pa.remove();
       row.querySelector("input").insertAdjacentHTML("afterend", pedComplHtml(""));
       var ci = row.querySelector(".ped-compl"); ci.focus();
       syncMultiField(container);
@@ -2878,6 +2882,16 @@
         e.preventDefault();
         var rw = cx.closest(".multi-row");
         rw.querySelectorAll(".ped-compl-sep, .ped-compl, .ped-compl-x").forEach(function(x){ x.remove(); });
+        rw.querySelector("input").insertAdjacentHTML("afterend", PED_COMPL_ADD);
+        syncMultiField(container); return;
+      }
+      // "+C" ao lado de cada pedido: complementar direto naquele pedido, mesmo com outros pedidos embaixo
+      var ca = e.target.closest(".ped-compl-add");
+      if (ca){
+        e.preventDefault(); e.stopPropagation();
+        var rc = ca.closest(".multi-row"); ca.remove();
+        if (!rc.querySelector(".ped-compl")) rc.querySelector("input").insertAdjacentHTML("afterend", pedComplHtml(""));
+        var ci2 = rc.querySelector(".ped-compl"); if (ci2) ci2.focus();
         syncMultiField(container); return;
       }
       var addBtn = e.target.closest(".multi-add-btn");
@@ -2895,6 +2909,7 @@
         var div = document.createElement("div");
         div.className = "multi-row";
         div.appendChild(novo);
+        if (container.dataset.field === "pedido" && container.closest("#progBlocks")) novo.insertAdjacentHTML("afterend", PED_COMPL_ADD);
         if (rows.length + 1 < max){
           var newBtn = document.createElement("button");
           newBtn.type = "button"; newBtn.className = "multi-add-btn"; newBtn.title = "Adicionar mais um"; newBtn.textContent = "+";
