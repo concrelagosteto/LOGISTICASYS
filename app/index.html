@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-06-7">
+<meta name="app-versao" content="2026-11-06-8">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -198,6 +198,8 @@
   .cons-tab.tab-ajustavel th{font-size:10px; letter-spacing:0; padding-right:8px;} .cons-tab.tab-ajustavel th .xl-th-label{overflow-wrap:normal; word-break:normal; hyphens:none;}
   .cons-tab.tab-ajustavel th .xl-filter-btn{margin-left:3px; vertical-align:middle;} .cons-dif{font-size:10.5px;}
   .col-arraste{position:absolute; top:0; right:-3px; width:7px; height:100%; cursor:col-resize; z-index:3;} th:last-child > .col-arraste{right:0; width:5px;} .col-arraste:hover, body.arrastando-col .col-arraste{background:var(--accent-soft);}
+  .col-arraste::after{content:""; position:absolute; top:18%; bottom:18%; left:2px; width:3px; border-left:1px solid var(--text-faint); border-right:1px solid var(--text-faint); opacity:1; pointer-events:none;}
+  th:last-child > .col-arraste::after{left:1px;} .col-arraste:hover::after, body.arrastando-col .col-arraste::after{border-color:var(--accent); opacity:1; top:0; bottom:0;}
   body.arrastando-col{cursor:col-resize; user-select:none;} .cons-tile.on{outline:2px solid var(--stat-accent); outline-offset:-2px;}
   .cons-grupos{display:flex; gap:8px; margin-bottom:8px; font-size:11.5px; font-weight:700;} .cons-grupos .g{padding:3px 10px; border-radius:20px; border:1px solid currentColor;}
   .cons-grupos .g-nota, .cons-tab th.g-nota{color:var(--accent-strong);} .cons-grupos .g-transp, .cons-tab th.g-transp{color:var(--warning);} .cons-grupos .g-custo, .cons-tab th.g-custo{color:var(--success);}
