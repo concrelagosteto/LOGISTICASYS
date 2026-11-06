@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-06-6">
+<meta name="app-versao" content="2026-11-06-7">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -2633,7 +2633,7 @@
           progMultiFabricaSelect(iso, key, e.fabrica, 99, e.usina) +
           progMultiInput(iso, key, "pedido", e.pedido) +
           progPeriodoCell(iso, key) +
-          progInput(iso, key, "obs", e.obs, "ex: OK, CEDO, TARDE") +
+          progObsMulti(iso, key, e.obs) +
           nfCell +
           statusSelect + '</tr>';
       }).join("");
@@ -2770,6 +2770,17 @@
       'onfocus="this.style.borderColor=\'var(--accent)\'" onblur="this.style.borderColor=\'transparent\'"/></td>';
   }
 
+  // Observação com várias linhas (+ para adicionar outra). Guardada no mesmo campo, uma por linha (separadas por quebra de linha,
+  // não por "/", para não partir observações como "24/10").
+  function progObsMulti(iso, key, value){
+    var vals = String(value || "").split("\n"); if (!vals.length) vals = [""];
+    var rows = vals.map(function(v, idx){
+      var addBtn = idx === vals.length - 1 ? '<button type="button" class="multi-add-btn" title="Adicionar outra observação">+</button>' : "";
+      return '<div class="multi-row"><input value="' + esc(v) + '" placeholder="' + (idx === 0 ? "ex: OK, CEDO, TARDE" : "outra observação") + '" style="' + MULTI_INPUT_STYLE + '" ' +
+        'onfocus="this.style.borderColor=\'var(--accent)\'" onblur="this.style.borderColor=\'transparent\'"/>' + addBtn + '<button type="button" class="multi-remove-btn" title="Apagar">×</button></div>';
+    }).join("");
+    return '<td style="padding:4px 6px;"><div class="multi-field" data-iso="' + iso + '" data-key="' + esc(key) + '" data-field="obs" data-max="20">' + rows + '</div></td>';
+  }
   // Campos que podem ter até 3 valores na mesma coluna (ex: até 3 placas, 3
   // fábricas ou 3 pedidos por linha da Programação) — continuam guardados
   // como uma única string separada por "/" (mesmo formato que já era aceito
@@ -2957,6 +2968,7 @@
       return v;
     });
     if (container.dataset.field === "statusCg"){ progStatusSync(container, entry, vals); return; }
+    if (container.dataset.field === "obs"){ var vo = vals.map(function(x){ return String(x || "").trim(); }); while (vo.length > 1 && !vo[vo.length - 1]) vo.pop(); entry.obs = vo.join("\n"); return; }
     entry[container.dataset.field] = multiJoin(vals);
     if (container.dataset.field === "carretas" && container.closest("#progBlocks") && typeof progAutoFabrica === "function") progAutoFabrica(container);
   }
