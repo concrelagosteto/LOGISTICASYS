@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-06-2">
+<meta name="app-versao" content="2026-11-06-3">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -5133,7 +5133,8 @@
         '<td style="white-space:nowrap;">'+esc(brDate(l.iso))+'</td>' +
         '<td class="cell-strong">'+esc(l.e.usina)+'</td>' +
         '<td>'+esc(l.c.fabrica)+'</td>' +
-        '<td>'+esc((l.c.pedidos && l.c.pedidos.length ? l.c.pedidos : [l.c.pedido]).join(" + "))+'</td>' +
+        '<td>'+esc((l.c.pedidos && l.c.pedidos.length ? l.c.pedidos : [l.c.pedido]).join(" + ")) + pedAltMarca(l) +
+          (podeConf ? ' <button type="button" class="lg-link xl-ignore" data-pedalt="' + i + '" title="Alterar o pedido desta carga (com justificativa)">✏️</button>' : '') + '</td>' +
         '<td>'+esc(l.c.placa)+'</td>' +
         '<td>'+progBadge(l.progSt)+'</td>' +
         '<td style="white-space:nowrap;">'+nfTxt+'</td>' +
@@ -5160,6 +5161,7 @@
     var cardPP = el("pedProgCard");
     if (!cardPP.__soltar){ cardPP.__soltar = 1; cardPP.addEventListener("xl-soltar", function(){
       var ab = PED_CONF.lista[PED_CONF.aberto]; PED_CONF.fixas = {}; if (ab) PED_CONF.fixas[pedConfChave(ab)] = 1; }); }
+    el("pedProgCard").querySelectorAll("[data-pedalt]").forEach(function(b){ b.addEventListener("click", function(ev){ ev.stopPropagation(); var l = PED_CONF.lista[+b.dataset.pedalt]; if (l) pedAltAbrir(l); }); });
     el("pedProgCard").querySelectorAll("[data-cglig]").forEach(function(b){ b.addEventListener("click", function(ev){ ev.stopPropagation(); var l = PED_CONF.lista[+b.dataset.cglig]; if (l) pedLigAbrir(l); }); });
     el("pedProgCard").querySelectorAll("[data-confacao]").forEach(function(b){
       b.addEventListener("click", function(ev){ ev.stopPropagation(); pedConfSalvar(b.dataset.confacao); });
@@ -5568,6 +5570,48 @@
     return "";
   }
   // aviso: a NF digitada já está ligada a outra carga (nota do Efit, outra conferência ou entrada da PUZL)
+  // ---- Alterar o pedido de uma carga (com justificativa) ----
+  function pedAltMarca(l){
+    var pa = l.e.pedAlt && l.e.pedAlt[l.c.idx]; if (!pa) return "";
+    return ' <span class="badge neutral xl-ignore" style="font-size:10px;" title="' + esc("Pedido alterado de " + pa.de + " por " + pa.por + " em " + brDate(String(pa.em).slice(0, 10)) + " — " + pa.motivo) + '">✎ alterado</span>';
+  }
+  function pedAltAbrir(l){
+    var velho = el("nfRastro"); if (velho) velho.remove();
+    var peds = (l.c.pedidos && l.c.pedidos.length ? l.c.pedidos : [l.c.pedido]).filter(Boolean), pa = l.e.pedAlt && l.e.pedAlt[l.c.idx];
+    document.body.insertAdjacentHTML("beforeend", '<div id="nfRastro" class="pw-modal" role="dialog" aria-modal="true"><div class="pw-box rz-box lg-box">' +
+      '<div class="rz-head"><h2>Alterar pedido</h2><button class="btn-ghost" data-pa="x">✕</button></div>' +
+      '<div class="lg-resumo"><b>' + esc(l.e.usina) + '</b> · ' + esc(brDate(l.iso)) + ' · ' + esc(l.c.fabrica || "—") + ' · placa ' + (esc(l.c.placa) || "—") + '</div>' +
+      (pa ? '<div class="rz-aviso info">Já alterado antes: de ' + esc(pa.de) + ' por ' + esc(pa.por) + ' em ' + esc(brDate(String(pa.em).slice(0, 10))) + ' — “' + esc(pa.motivo) + '”</div>' : '') +
+      '<div class="nota-form" style="padding:0;">' +
+        '<div class="nota-form-l"><label class="nota-rot">Pedido <input id="paPed" value="' + esc(peds[0] || "") + '" style="width:150px"></label><label class="nota-rot">Complementar <input id="paCompl" value="' + esc(peds[1] || "") + '" placeholder="(não tem)" style="width:150px"></label></div>' +
+        '<label class="nota-rot" style="flex-direction:column;align-items:stretch;">Justificativa (obrigatória)<textarea id="paMotivo" rows="2" placeholder="ex.: pedido digitado errado; o certo é o da nota 244947"></textarea></label>' +
+        '<div class="faint" style="font-size:11.5px;">Muda o pedido também na Programação de Cimento. As ligações com as notas são refeitas na hora.</div>' +
+        '<div class="nota-form-l"><button class="btn-primary btn-inline" data-pa="ok">Salvar</button><button class="btn-ghost" data-pa="x">Cancelar</button><span class="vpo-erro" id="paErro"></span></div>' +
+      '</div></div></div>');
+    var box = el("nfRastro");
+    box.addEventListener("click", async function(ev){
+      if (ev.target === box) return box.remove();
+      var b = ev.target.closest("[data-pa]"); if (!b) return;
+      if (b.dataset.pa === "x") return box.remove();
+      var ped = el("paPed").value.trim(), compl = el("paCompl").value.trim(), mot = el("paMotivo").value.trim();
+      if (mot.length < 5){ el("paErro").textContent = "Escreva a justificativa (pelo menos 5 letras)."; return; }
+      if (!ped && compl){ el("paErro").textContent = "Preencha o pedido principal."; return; }
+      if (ped === (peds[0] || "") && compl === (peds[1] || "")){ el("paErro").textContent = "O pedido não mudou."; return; }
+      b.disabled = true; el("paErro").textContent = "Salvando…";
+      var r; try { r = await sb.rpc("programacao_carga_alterar_pedido", { p_data: l.iso, p_usina: String(l.e.usina || "").trim(), p_n: progLinhaN(l.iso, l.e), p_ordem: l.c.idx + 1, p_pedido: ped, p_compl: compl, p_motivo: mot }); } catch (x){ r = { error: x }; }
+      var erro = r && r.error ? dbErr(r.error) : (r && r.data && r.data.erro ? r.data.erro : "");
+      if (erro){ b.disabled = false; el("paErro").textContent = erro; return; }
+      // atualiza na memória (Controle e Programação) sem esperar recarregar
+      var cs = cargasDaLinha(l.e), arr = cs.map(function(c){ return (c.pedidos || []).join(" + "); });
+      arr[l.c.idx] = ped + (compl ? " + " + compl : "");
+      l.e.pedido = cs.length > 1 ? arr.join(" / ") : arr[0];
+      if (!l.e.pedAlt) l.e.pedAlt = [];
+      l.e.pedAlt[l.c.idx] = { de: peds.join(" + ") || "—", motivo: mot, por: (ME && ME.nome) || "", em: new Date().toISOString() };
+      __atribCache = null; if (typeof __passo !== "undefined" && __passo) __passo = {};
+      PED_CONF.fixas[pedConfChave(l)] = 1;
+      box.remove(); paintPedidosProg();
+    });
+  }
   // nota ligada à mão (conferência ✋ com o nº da NF, ou "Ligar outra nota")? -> "conf" | "manual" | ""
   function pedPorMao(nf){ var mm = nfProgMatch(nf); return mm && (mm.matchedBy === "conf" || mm.matchedBy === "manual") ? mm.matchedBy : ""; }
   function pedConfAvisoHtml(l, nf){
@@ -7458,7 +7502,7 @@
       fetchAll(function(){ return live("notas_sefaz", "*")().order("seq"); }),
       fetchAll(function(){ return live("lancamentos_puzl", "*")().order("seq"); }),
       fetchAll(function(){ return live("programacao_dias", "id,data,referencia,excecao")().order("data"); }),
-      fetchAll(function(){ return live("programacao_itens", "dia_id,ordem,usina_nome,obs,status,programacao_cargas(ordem,placa,fabrica_nome,pedido,pedido_compl,status,conf_descarga,conf_nf,conf_obs,conf_por,conf_em,conf_tipo,conf_parte)")().is("programacao_cargas.deleted_at", null).order("dia_id").order("ordem"); }),
+      fetchAll(function(){ return live("programacao_itens", "dia_id,ordem,usina_nome,obs,status,programacao_cargas(ordem,placa,fabrica_nome,pedido,pedido_compl,status,conf_descarga,conf_nf,conf_obs,conf_por,conf_em,conf_tipo,conf_parte,ped_alt_de,ped_alt_motivo,ped_alt_por,ped_alt_em)")().is("programacao_cargas.deleted_at", null).order("dia_id").order("ordem"); }),
       fetchAll(function(){ return live("vpo_dias", "id,data,excecao")().order("data"); }),
       fetchAll(function(){ return live("vpo_entradas", "dia_id,ordem,rota1_usina,rota1_fabrica,rota2_usina,rota2_fabrica,obs,status,extra,frota(codigo)")().order("dia_id").order("ordem"); }),
       fetchAll(function(){ return sb.from("catalogo_cimento").select("termo,excluir").order("termo"); }),
@@ -7522,6 +7566,7 @@
       var stc = cg.map(function(c){ return c.status || ""; });
       if (cg.length > 1 && stc.some(Boolean)) e.statusCg = multiJoin(stc);   // uma caixa de status por carga
       var cfs = progConfDasCargas(cg); if (cfs) e.conf = cfs;
+      var pas = cg.map(function(c){ return c.ped_alt_em ? { de: c.ped_alt_de || "", motivo: c.ped_alt_motivo || "", por: c.ped_alt_por || "", em: c.ped_alt_em } : null; }); if (pas.some(Boolean)) e.pedAlt = pas;
       if (!e.usina) e.__key = "extra-db-" + it.dia_id.slice(0, 6) + "-" + it.ordem;
       dia.entries.push(e);
     });
@@ -8493,13 +8538,14 @@
     var stc = cg.map(function(c){ return c.status || ""; });
     if (cg.length > 1 && stc.some(Boolean)) e.statusCg = multiJoin(stc);
     var cfs = progConfDasCargas(cg); if (cfs) e.conf = cfs;
+    var pas = cg.map(function(c){ return c.ped_alt_em ? { de: c.ped_alt_de || "", motivo: c.ped_alt_motivo || "", por: c.ped_alt_por || "", em: c.ped_alt_em } : null; }); if (pas.some(Boolean)) e.pedAlt = pas;
     return e;
   }
   async function fetchProgRemoto(){
     var live = function(t, cols){ return sb.from(t).select(cols).is("deleted_at", null); };
     var r = await Promise.all([
       fetchAll(function(){ return live("programacao_dias", "id,data,referencia,excecao").order("data"); }),
-      fetchAll(function(){ return live("programacao_itens", "dia_id,ordem,usina_nome,obs,status,editado_por,editado_em,programacao_cargas(ordem,placa,fabrica_nome,pedido,pedido_compl,status,conf_descarga,conf_nf,conf_obs,conf_por,conf_em,conf_tipo,conf_parte)").is("programacao_cargas.deleted_at", null).order("dia_id").order("ordem"); })
+      fetchAll(function(){ return live("programacao_itens", "dia_id,ordem,usina_nome,obs,status,editado_por,editado_em,programacao_cargas(ordem,placa,fabrica_nome,pedido,pedido_compl,status,conf_descarga,conf_nf,conf_obs,conf_por,conf_em,conf_tipo,conf_parte,ped_alt_de,ped_alt_motivo,ped_alt_por,ped_alt_em)").is("programacao_cargas.deleted_at", null).order("dia_id").order("ordem"); })
     ]);
     var data = {}, out = {};
     r[0].forEach(function(d){ data[d.id] = d.data; out[d.data] = { ref: nz(d.referencia), exc: !!d.excecao, rows: [] }; });
@@ -8538,7 +8584,7 @@
     var R = chaveLinhas(rem.rows.map(function(x){ return { it: x.it, e: x.e, por: x.por, em: x.em }; }));
     var loc2 = (loc.entries || []).map(function(e){ return { it: dbItem(e), e: e }; }).filter(function(x){ return !itemVazio(x.it); });
     var L = chaveLinhas(loc2);
-    R.order.forEach(function(kk){ var rr0 = R.map[kk], rl0 = L.map[kk]; if (rl0 && rr0.e) { if (rr0.e.conf) rl0.e.conf = rr0.e.conf; else delete rl0.e.conf; } });
+    R.order.forEach(function(kk){ var rr0 = R.map[kk], rl0 = L.map[kk]; if (rl0 && rr0.e) { if (rr0.e.conf) rl0.e.conf = rr0.e.conf; else delete rl0.e.conf; if (rr0.e.pedAlt) rl0.e.pedAlt = rr0.e.pedAlt; else delete rl0.e.pedAlt; } });
     var sujo = false, uniao = {};
     B.order.concat(R.order, L.order).forEach(function(kk){ uniao[kk] = 1; });
     Object.keys(uniao).forEach(function(kk){
