@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-06-1">
+<meta name="app-versao" content="2026-11-06-2">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -857,6 +857,7 @@
   .xl-filter-btn.filtered::after{content:"●"; font-size:7px; margin-left:3px;}
   .xl-clear-bar{display:flex; align-items:center; justify-content:flex-end; gap:10px; padding:6px 12px; border-bottom:1px solid var(--border); background:var(--surface);}
   .xl-clear-info{font-size:11px; color:var(--text-faint);}
+  .xl-hist{display:inline-flex; gap:2px; margin-right:auto;} .xl-hist button{border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text); border-radius:6px; width:28px; height:26px; font-size:14px; cursor:pointer; line-height:1;} .xl-hist button:disabled{opacity:.35; cursor:default;}
   .xl-clear-bar.on .xl-clear-info{color:var(--warning); font-weight:700;}
   .xl-clear-btn{border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text-faint); border-radius:7px; padding:4px 10px; font-size:11.5px; font-weight:700; cursor:default; opacity:.7;}
   .xl-clear-bar.on .xl-clear-btn{cursor:pointer; opacity:1; color:var(--warning); border-color:var(--warning); background:var(--warning-soft);}
@@ -1859,8 +1860,48 @@
     });
     xlAtualizaBarra(table, state);
   }
+  // ---- Desfazer / refazer filtros (↶ ↷, Ctrl+Z / Ctrl+Y) — por tabela, só nesta tela aberta ----
+  var XL_HIST = {}, XL_ULT = null, XL_TAB = {};   // XL_TAB: chave -> tabela atual (a tela é repintada e a tabela muda)
+  function xlSer(st){ var f = {}; Object.keys(st.filters).sort().forEach(function(k){ f[k] = Array.from(st.filters[k]).sort(); }); return JSON.stringify({ f: f, s: st.sort || null, b: st.busca || "" }); }
+  function xlHistRegistra(table, key, st){
+    var ser = xlSer(st), h = XL_HIST[key];
+    if (!h){ XL_HIST[key] = { undo: [], redo: [], last: ser, t: 0, soBusca: false }; return; }
+    if (h.aplicando || h.last === ser) return;
+    var antes = JSON.parse(h.last), agora = JSON.parse(ser);
+    var soBusca = JSON.stringify(antes.f) === JSON.stringify(agora.f) && JSON.stringify(antes.s) === JSON.stringify(agora.s);
+    if (soBusca && h.soBusca && Date.now() - h.t < 1500){ h.last = ser; h.t = Date.now(); return; }   // digitando na busca: vira um passo só
+    h.undo.push(h.last); if (h.undo.length > 60) h.undo.shift();
+    h.redo = []; h.last = ser; h.t = Date.now(); h.soBusca = soBusca;
+  }
+  function xlHistAplica(table, key, dir){
+    var h = XL_HIST[key]; if (!h) return false;
+    var de = dir < 0 ? h.undo : h.redo, para = dir < 0 ? h.redo : h.undo;
+    if (!de.length) return false;
+    para.push(h.last); var alvo = de.pop(), o = JSON.parse(alvo), st = xlGetState(key);
+    st.filters = {}; Object.keys(o.f).forEach(function(k){ st.filters[k] = new Set(o.f[k]); });
+    st.sort = o.s; st.busca = o.b;
+    var bb = table.__xlBar && table.__xlBar.querySelector(".xl-busca"); if (bb) bb.value = o.b || "";
+    h.last = alvo; h.aplicando = true; h.soBusca = false;
+    xlCloseAllPopovers(); xlSoltarFixas(table);
+    try { xlApplyState(table, key); } finally { h.aplicando = false; }
+    return true;
+  }
+  document.addEventListener("keydown", function(ev){
+    if (!(ev.ctrlKey || ev.metaKey) || ev.altKey) return;
+    var k = String(ev.key || "").toLowerCase(); if (k !== "z" && k !== "y") return;
+    var a = document.activeElement; if (a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable)) return;   // dentro de um campo: deixa o Ctrl+Z normal
+    var tb = XL_ULT && XL_TAB[XL_ULT.key];
+    if (!tb || !document.body.contains(tb) || !tb.offsetParent) return;
+    var dir = k === "y" || ev.shiftKey ? 1 : -1;
+    if (xlHistAplica(tb, XL_ULT.key, dir)) ev.preventDefault();
+  });
   function xlAtualizaBarra(table, state){
     var bar = table.__xlBar; if (!bar) return;
+    if (table.__xlKey){
+      xlHistRegistra(table, table.__xlKey, state);
+      var h = XL_HIST[table.__xlKey], bu = bar.querySelector(".xl-undo"), br = bar.querySelector(".xl-redo");
+      if (bu) bu.disabled = !(h && h.undo.length); if (br) br.disabled = !(h && h.redo.length);
+    }
     var nf = Object.keys(state.filters).length, ord = !!state.sort;
     var partes = [];
     if (nf) partes.push(nf + (nf === 1 ? " filtro ativo" : " filtros ativos"));
@@ -1872,6 +1913,7 @@
 
   function xlOpenPopover(table, colIdx, key, btn){
     xlCloseAllPopovers();
+    XL_ULT = { table: table, key: key };
     xlOpenKey = key;
     btn.classList.add("active");
     var state = xlGetState(key);
@@ -2010,8 +2052,15 @@
     bar.className = "xl-clear-bar";
     bar.innerHTML = '<input type="search" class="xl-busca" placeholder="🔎 Buscar nesta tabela (usina, placa, pedido…)" aria-label="Buscar nesta tabela"><span class="xl-clear-info">Sem filtros</span><button type="button" class="xl-clear-btn" title="Remove todos os filtros e a ordenação desta tabela">✕ Limpar filtros</button>';
     var busca = bar.querySelector(".xl-busca"); busca.value = xlGetState(key).busca || "";
-    busca.addEventListener("input", function(){ xlGetState(key).busca = busca.value; xlApplyState(table, key, skipCols); });
+    busca.addEventListener("input", function(){ XL_ULT = { table: table, key: key }; xlGetState(key).busca = busca.value; xlApplyState(table, key, skipCols); });
     busca.addEventListener("click", function(e){ e.stopPropagation(); });
+    table.__xlKey = key; XL_TAB[key] = table;
+    var hist = document.createElement("span"); hist.className = "xl-hist";
+    hist.innerHTML = '<button type="button" class="xl-undo" title="Desfazer filtro (Ctrl+Z)" aria-label="Desfazer filtro">↶</button><button type="button" class="xl-redo" title="Refazer filtro (Ctrl+Y)" aria-label="Refazer filtro">↷</button>';
+    bar.insertBefore(hist, bar.querySelector(".xl-clear-info"));
+    hist.querySelector(".xl-undo").addEventListener("click", function(e){ e.stopPropagation(); XL_ULT = { table: table, key: key }; xlHistAplica(table, key, -1); });
+    hist.querySelector(".xl-redo").addEventListener("click", function(e){ e.stopPropagation(); XL_ULT = { table: table, key: key }; xlHistAplica(table, key, 1); });
+    bar.addEventListener("click", function(){ XL_ULT = { table: table, key: key }; });
     bar.querySelector(".xl-clear-btn").addEventListener("click", function(e){
       e.stopPropagation();
       var st = xlGetState(key);
