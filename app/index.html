@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-06-4">
+<meta name="app-versao" content="2026-11-06-5">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -759,7 +759,7 @@
   .xl-pop-sort{display:flex; flex-direction:column; gap:2px; margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid var(--border);}
   .xl-pop-sort button{text-align:left; border:none; background:none; color:var(--text); font-size:11.5px; padding:5px 4px; border-radius:5px; cursor:pointer;}
   .xl-pop-sort button:hover{background:var(--surface-2);}
-  .xl-pop-mes{display:flex; gap:6px; margin-bottom:8px;} .xl-pop-mes button{flex:1; border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text); border-radius:6px; padding:5px 6px; font-size:11.5px; cursor:pointer;} .xl-pop-mes button:hover{border-color:var(--accent);} .xl-pop-mes button:disabled{opacity:.6; cursor:default;}
+  .xl-pop-mes{display:flex; gap:6px; margin-bottom:8px;} .xl-pop-mes button{flex:1; border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text); border-radius:6px; padding:5px 6px; font-size:11.5px; cursor:pointer;} .xl-pop-mes button:hover{border-color:var(--accent);} .xl-pop-mes button:disabled{opacity:.6; cursor:default;} .xl-pop-mes button.on{border-color:var(--accent); background:var(--accent); color:#fff; font-weight:600;}
   .xl-pop-search{width:100%; border:1px solid var(--border-strong); border-radius:6px; padding:6px 8px; font-size:11.5px; background:var(--surface); color:var(--text); margin-bottom:8px;}
   .xl-pop-all{display:flex; align-items:center; gap:6px; font-size:11.5px; font-weight:600; padding:4px; border-bottom:1px solid var(--border); margin-bottom:4px; cursor:pointer;}
   .xl-pop-list{max-height:170px; overflow-y:auto; display:flex; flex-direction:column;}
@@ -1748,6 +1748,14 @@
   var xlState = {}; // key -> { filters:{colIdx:Set}, sort:{col,dir} }
   var xlOpenKey = null; // popover aberto no momento (fecha ao clicar fora)
 
+  // Filtro "Mês atual / Mês anterior": é uma regra (qualquer data daquele mês), não a lista de dias que apareciam
+  // na hora do clique — assim trocar outro filtro (ex.: a usina) continua mostrando o mês inteiro.
+  function xlFiltroMes(mes){
+    var f = new Set(["__mes:" + mes]); f.mes = mes;
+    f.has = function(v){ var k = xlDataChave(v); return !!k && k.slice(0, 6) === mes; };
+    return f;
+  }
+  function xlFiltroDe(arr){ var m = arr.length === 1 && /^__mes:(\d{6})$/.exec(arr[0]); return m ? xlFiltroMes(m[1]) : new Set(arr); }
   function xlGetState(key){
     if (!xlState[key]) xlState[key] = { filters:{}, sort:null };
     return xlState[key];
@@ -1878,7 +1886,7 @@
     var de = dir < 0 ? h.undo : h.redo, para = dir < 0 ? h.redo : h.undo;
     if (!de.length) return false;
     para.push(h.last); var alvo = de.pop(), o = JSON.parse(alvo), st = xlGetState(key);
-    st.filters = {}; Object.keys(o.f).forEach(function(k){ st.filters[k] = new Set(o.f[k]); });
+    st.filters = {}; Object.keys(o.f).forEach(function(k){ st.filters[k] = xlFiltroDe(o.f[k]); });
     st.sort = o.s; st.busca = o.b;
     var bb = table.__xlBar && table.__xlBar.querySelector(".xl-busca"); if (bb) bb.value = o.b || "";
     h.last = alvo; h.aplicando = true; h.soBusca = false;
@@ -1957,7 +1965,8 @@
     // Seleção de trabalho do filtro: fica guardada enquanto você busca — dá para buscar a placa 1, marcar,
     // buscar a placa 2, marcar… e no OK filtra pelas marcadas. Sem filtro ainda, a 1ª busca começa do zero
     // (só o que você marcar); com filtro já aplicado, o que marcar na busca é somado a ele.
-    var sel = allowed ? new Set(allowed) : new Set(), tudoInicial = false, txtAtual = "";   // sem filtro: começa tudo desmarcado
+    var mexeu = false;
+    var sel = allowed ? (allowed.mes ? new Set(values.filter(function(v){ return allowed.has(v); })) : new Set(allowed)) : new Set(), tudoInicial = false, txtAtual = "";   // sem filtro: começa tudo desmarcado
     var listEl = pop.querySelector(".xl-pop-list"), allCb = pop.querySelector(".xl-pop-all-cb"), allLbl = pop.querySelector(".xl-pop-all");
     var chips = document.createElement("div"); chips.className = "xl-pop-chips"; listEl.parentNode.insertBefore(chips, listEl);
     var okBtn = pop.querySelector(".xl-pop-ok");
@@ -1987,22 +1996,22 @@
     busca.addEventListener("keydown", function(e){
       if (e.key !== "Enter") return; e.preventDefault();
       var vis = visiveis();
-      if (vis.length === 1 && txtAtual){ sel.add(vis[0]); busca.value = ""; txtAtual = ""; paintList(); busca.focus(); }   // Enter com um resultado só: marca e limpa a busca para a próxima
+      if (vis.length === 1 && txtAtual){ mexeu = true; sel.add(vis[0]); busca.value = ""; txtAtual = ""; paintList(); busca.focus(); }   // Enter com um resultado só: marca e limpa a busca para a próxima
       else if (!txtAtual && sel.size) okBtn.click();
     });
     busca.addEventListener("click", function(e){ e.stopPropagation(); });
-    listEl.addEventListener("change", function(e){ var cb = e.target; if (cb.type !== "checkbox") return; if (cb.checked) sel.add(cb.value); else sel.delete(cb.value); tudoInicial = false; paintList(); });
-    chips.addEventListener("click", function(e){ var c = e.target.closest(".xl-chip"); if (!c) return; sel.delete(c.dataset.v); tudoInicial = false; paintList(); });
+    listEl.addEventListener("change", function(e){ var cb = e.target; if (cb.type !== "checkbox") return; if (cb.checked) sel.add(cb.value); else sel.delete(cb.value); tudoInicial = false; mexeu = true; paintList(); });
+    chips.addEventListener("click", function(e){ var c = e.target.closest(".xl-chip"); if (!c) return; sel.delete(c.dataset.v); tudoInicial = false; mexeu = true; paintList(); });
     allCb.addEventListener("change", function(e){
       visiveis().forEach(function(v){ if (e.target.checked) sel.add(v); else sel.delete(v); });
-      tudoInicial = false; paintList();
+      tudoInicial = false; mexeu = true; paintList();
     });
     pop.addEventListener("click", function(e){ e.stopPropagation(); });
     pop.querySelectorAll("[data-xlmes]").forEach(function(bm){
+      if (allowed && allowed.mes === bm.dataset.xlmes){ bm.classList.add("on"); bm.title += " (filtro ativo: o mês inteiro)"; }
       bm.addEventListener("click", function(){
-        var mes = bm.dataset.xlmes, doMes = values.filter(function(v){ var k = xlDataChave(v); return k && k.slice(0, 6) === mes; });
-        if (!doMes.length){ bm.textContent = "Nenhuma data nesse mês"; bm.disabled = true; return; }
-        sel = new Set(doMes); tudoInicial = false; txtAtual = ""; busca.value = ""; paintList(); okBtn.click();
+        state.filters[colIdx] = xlFiltroMes(bm.dataset.xlmes);   // regra do mês inteiro (não só os dias que aparecem agora)
+        xlSoltarFixas(table); xlApplyState(table, key); xlCloseAllPopovers();
       });
     });
     pop.querySelectorAll("[data-sort]").forEach(function(b){
@@ -2020,6 +2029,7 @@
     });
     okBtn.addEventListener("click", function(){
       if (!sel.size){ xlCloseAllPopovers(); return; }
+      if (allowed && allowed.mes && !mexeu){ xlCloseAllPopovers(); return; }   // abriu e deu OK sem mexer: continua o filtro do mês inteiro
       if (values.every(function(v){ return sel.has(v); })) delete state.filters[colIdx];   // tudo o que aparece marcado = sem filtro nesta coluna (como no Excel)
       else state.filters[colIdx] = new Set(sel);
       xlSoltarFixas(table);
