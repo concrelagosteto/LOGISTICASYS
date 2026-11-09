@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-09-1">
+<meta name="app-versao" content="2026-11-09-2">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -992,6 +992,18 @@
 
   .alarmes-btn{position:relative; font-size:14px; padding:3px 8px;} .alarmes-btn .alarme-n:not(:empty){position:absolute; top:-6px; right:-6px; background:var(--danger); color:#fff; border-radius:9px; font-size:10px; font-weight:800; min-width:16px; height:16px; line-height:16px; padding:0 4px;}
   .alarmes-btn.tocando{animation:alarmePulso 1.2s ease-in-out infinite;} @keyframes alarmePulso{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb, var(--danger) 50%, transparent);} 50%{box-shadow:0 0 0 6px transparent;}}
+  /* Anotações em janela flutuante (post-it): fica por cima de qualquer tela, dá para arrastar e redimensionar */
+  #notaPainel{position:fixed; z-index:950; display:none; flex-direction:column; width:420px; height:70vh; min-width:300px; min-height:220px; max-width:calc(100vw - 16px); max-height:calc(100vh - 16px);
+    background:var(--surface); border:1px solid #d9b73c; border-radius:10px; box-shadow:0 14px 40px rgba(0,0,0,.35); resize:both; overflow:hidden;}
+  #notaPainel.aberto{display:flex;}
+  .nota-ph{display:flex; align-items:center; gap:8px; padding:7px 10px; background:#ffe56b; color:#3b3000; font-weight:800; cursor:move; user-select:none; flex:0 0 auto;}
+  .nota-ph .sp{flex:1;} .nota-ph button{border:0; background:transparent; color:#3b3000; font-size:16px; line-height:1; cursor:pointer; padding:2px 6px; border-radius:4px;} .nota-ph button:hover{background:rgba(0,0,0,.1);}
+  .nota-ph .nota-ph-n:empty{display:none;} .nota-ph .nota-ph-n{font-size:11px; font-weight:700; background:rgba(0,0,0,.12); border-radius:999px; padding:1px 7px;}
+  #view-anotacoes{flex:1; overflow:auto; padding:8px; background:color-mix(in srgb, #ffe56b 6%, var(--bg));}
+  #view-anotacoes .card{margin-bottom:8px;} #view-anotacoes .nota-topo{padding:8px;}
+  #view-anotacoes .nota-card{background:color-mix(in srgb, #ffe56b 14%, var(--surface)); box-shadow:0 1px 3px rgba(0,0,0,.18);}
+  #view-anotacoes .nota-grupo{margin:10px 2px 5px;}
+  .nav-item[data-view="anotacoes"].nota-on{background:var(--accent-soft); font-weight:700;}
   .nota-wrap{max-width:980px;} .nota-topo{display:flex; gap:10px; flex-wrap:wrap; align-items:center; padding:10px 12px;}
   .nota-filtros{display:flex; gap:6px; flex-wrap:wrap;} .chip-f{border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text); border-radius:999px; padding:4px 11px; font-size:12px; cursor:pointer;} .chip-f.on{border-color:var(--accent); color:var(--accent-strong); font-weight:700;}
   .nota-busca{flex:1; min-width:180px; height:32px; border-radius:6px; border:1px solid var(--border-strong); background:var(--surface); color:var(--text); padding:0 10px;}
@@ -1178,7 +1190,6 @@
       <section class="view" id="view-controle-pedidos-cimento"></section>
       <section class="view" id="view-consultas"></section>
       <section class="view" id="view-dashboard"></section>
-      <section class="view" id="view-anotacoes"></section>
       <section class="view" id="view-operacoes"></section>
       <section class="view" id="view-vpo"></section>
       <section class="view" id="view-exececoes"></section>
@@ -2288,6 +2299,10 @@
   }
   document.addEventListener("click", function(ev){ var b = ev.target.closest && ev.target.closest("#zoomCtl [data-zoom]"); if (b) zoomMudar(b.dataset.zoom); });
   function showView(id){
+    if (id === "anotacoes"){   // Anotações não troca de tela: abre a janelinha de post-it por cima do que estiver aberto
+      var ev = window.event, doMenu = ev && ev.type === "click" && ev.target && ev.target.closest && ev.target.closest(".nav-item");
+      notasPainel(doMenu ? null : true); return;
+    }
     if (typeof podeVerAba === "function" && !podeVerAba(id)){ var alt = primeiraAbaPermitida(); if (alt && alt !== id) return showView(alt); }
     document.querySelectorAll(".nav-item").forEach(function(n){ n.classList.toggle("active", n.dataset.view === id); });
     if (typeof navAbrirSubDe === "function") navAbrirSubDe(id);
@@ -6236,7 +6251,53 @@
       NOTAS = r.data || []; NOTAS_ST.carregou = true;
     } catch (e) { NOTAS_ST.erro = "Não consegui carregar as anotações: " + (dbErr ? dbErr(e) : e); }
     notasAlarmeTick();
-    if (el("view-anotacoes") && el("view-anotacoes").classList.contains("active")) paintAnotacoes();
+    if (notasPainelAberto() && !NOTAS_ST.form) paintAnotacoes();   // não repinta no meio de uma anotação sendo escrita
+    if (!notasPainel.restaurou){ notasPainel.restaurou = true; var ab0 = null; try { ab0 = localStorage.getItem("notaPainelAberto"); } catch (e){} if (ab0 === "1") notasPainel(true); }
+  }
+  function notasPainelAberto(){ var p = el("notaPainel"); return !!(p && p.classList.contains("aberto")); }
+  function notasPainelCriar(){
+    var p = el("notaPainel"); if (p) return p;
+    p = document.createElement("div"); p.id = "notaPainel";
+    p.innerHTML = '<div class="nota-ph" title="Arraste para mudar de lugar · puxe o canto de baixo para mudar o tamanho">📝 Anotações <span class="nota-ph-n" id="notaPainelN"></span><span class="sp"></span>' +
+      '<button type="button" data-np="topo" title="Voltar para o canto">⇱</button><button type="button" data-np="fechar" title="Fechar (as anotações e alarmes continuam valendo)">✕</button></div>' +
+      '<section id="view-anotacoes"></section>';
+    document.body.appendChild(p);
+    var geo = null; try { geo = JSON.parse(localStorage.getItem("notaPainelGeo") || "null"); } catch (e){}
+    var aplicaGeo = function(g){
+      var W = window.innerWidth, H = window.innerHeight;
+      var w = Math.min(g && g.w || 420, W - 16), h = Math.min(g && g.h || Math.round(H * .7), H - 16);
+      var x = g && g.x != null ? g.x : W - w - 18, y = g && g.y != null ? g.y : 70;
+      p.style.width = w + "px"; p.style.height = h + "px";
+      p.style.left = Math.max(8, Math.min(x, W - w - 8)) + "px"; p.style.top = Math.max(8, Math.min(y, H - 60)) + "px";
+    };
+    aplicaGeo(geo);
+    var guarda = function(){ var r = p.getBoundingClientRect(); try { localStorage.setItem("notaPainelGeo", JSON.stringify({ x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) })); } catch (e){} };
+    if (window.ResizeObserver){ var t0 = null; new ResizeObserver(function(){ if (!notasPainelAberto()) return; clearTimeout(t0); t0 = setTimeout(guarda, 300); }).observe(p); }
+    // arrastar pelo cabeçalho amarelo
+    var h = p.querySelector(".nota-ph");
+    h.addEventListener("mousedown", function(ev){
+      if (ev.button !== 0 || ev.target.closest("button")) return;
+      ev.preventDefault();
+      var r = p.getBoundingClientRect(), dx = ev.clientX - r.left, dy = ev.clientY - r.top;
+      var mv = function(e){ p.style.left = Math.max(0, Math.min(e.clientX - dx, window.innerWidth - 80)) + "px"; p.style.top = Math.max(0, Math.min(e.clientY - dy, window.innerHeight - 40)) + "px"; };
+      var up = function(){ document.removeEventListener("mousemove", mv); document.removeEventListener("mouseup", up); guarda(); };
+      document.addEventListener("mousemove", mv); document.addEventListener("mouseup", up);
+    });
+    h.addEventListener("click", function(ev){
+      var b = ev.target.closest("[data-np]"); if (!b) return;
+      if (b.dataset.np === "fechar") notasPainel(false);
+      else { aplicaGeo(null); guarda(); }
+    });
+    window.addEventListener("resize", function(){ if (!notasPainelAberto()) return; var r = p.getBoundingClientRect(); aplicaGeo({ x: r.left, y: r.top, w: r.width, h: r.height }); });
+    return p;
+  }
+  // abrir (true), fechar (false) ou alternar (null) a janelinha de anotações
+  function notasPainel(abrir){
+    var p = notasPainelCriar(), ab = abrir == null ? !notasPainelAberto() : !!abrir;
+    p.classList.toggle("aberto", ab);
+    document.querySelectorAll('.nav-item[data-view="anotacoes"]').forEach(function(n){ n.classList.toggle("nota-on", ab); });
+    try { localStorage.setItem("notaPainelAberto", ab ? "1" : "0"); } catch (e){}
+    if (ab){ paintAnotacoes(); if (!NOTAS_ST.carregou) notasCarregar(); }
   }
   setInterval(function(){ if (typeof ME !== "undefined" && ME) notasCarregar(); }, 60000);
   function notaVencida(n){ return n.status === "aberta" && n.alarme_em && new Date(n.alarme_em).getTime() <= Date.now(); }
@@ -6326,6 +6387,7 @@
         '</span></div></div>';
     });
     v.innerHTML = '<div class="nota-wrap">' + html + '</div>';
+    var pn = el("notaPainelN"); if (pn) pn.textContent = cont.abertas ? cont.abertas + " aberta" + (cont.abertas > 1 ? "s" : "") : "";
     // eventos
     v.querySelectorAll("[data-notaf]").forEach(function(b){ b.addEventListener("click", function(){ st.filtro = b.dataset.notaf; paintAnotacoes(); }); });
     var bu = el("notaBusca"); if (bu) bu.addEventListener("input", function(){ st.busca = bu.value; var p = bu.selectionStart; paintAnotacoes(); var b2 = el("notaBusca"); if (b2){ b2.focus(); b2.setSelectionRange(p, p); } });
@@ -6339,7 +6401,7 @@
       if (a === "adiar15") return notaAdiar(n, 15);
       if (a === "adiar60") return notaAdiar(n, 60);
       if (a === "amanha") return notaAdiar(n, "amanha");
-      if (a === "editar"){ st.form = Object.assign({}, n); paintAnotacoes(); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+      if (a === "editar"){ st.form = Object.assign({}, n); paintAnotacoes(); v.scrollTo({ top: 0, behavior: "smooth" }); var t2 = el("notaTit"); if (t2) t2.focus(); return; }
       if (a === "apagar"){
         if (b.dataset.confirma !== "1"){ b.dataset.confirma = "1"; b.disabled = false; b.textContent = "Apagar?"; b.classList.add("perigo"); return; }
         var r; try { r = await sb.from("anotacoes").delete().eq("id", n.id); } catch (x){ r = { error: x }; }
