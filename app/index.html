@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-09-2">
+<meta name="app-versao" content="2026-11-09-3">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -5696,9 +5696,12 @@
     var cx = nf ? nfConexoes(nf, { e: l.e, idx: l.c.idx }) : [];
     // a nota existe no Efit? é desta usina / desta fábrica?
     var nE = nf ? cementNFes.find(function(x){ return nfNumNorm(x.numero) === nfNumNorm(nf) && !nfSoRegistro(x); }) : null;
+    // desvio já confirmado desta nota PARA esta carga: a ligação com a carga de origem e a usina diferente no Efit são esperadas, não é aviso
+    var desvAqui = nf ? desviosConfDaNota(nf).filter(function(d){ return usinaIgual(d.para, l.e.usina) && (!d.paraData || d.paraData === l.iso); }) : [];
+    if (desvAqui.length) cx = cx.filter(function(x){ return !desvAqui.some(function(d){ return x.iso === d.data && x.e && usinaIgual(x.e.usina, d.usina); }); });
     var dif = [];
     if (nE){
-      if (nE.usina && !usinaIgual(nE.usina, l.e.usina)) dif.push("é para a usina <b>" + esc(nE.usina) + "</b> (esta carga é " + esc(l.e.usina) + ")");
+      if (nE.usina && !usinaIgual(nE.usina, l.e.usina) && !desvAqui.length) dif.push("é para a usina <b>" + esc(nE.usina) + "</b> (esta carga é " + esc(l.e.usina) + ")");
       if (l.c.fabrica && !fabricaCompativel(nE, l.c.fabrica)) dif.push("é do fornecedor <b>" + esc(nE.fornecedor) + "</b> (a carga é " + esc(String(l.c.fabrica).split(/[—–]/)[0].trim()) + ")");
     }
     var info = nE ? '<div style="font-size:11.5px;margin-top:4px;">No Efit: NF ' + esc(nE.numero) + ' · ' + esc(nE.fornecedor || "—") + ' · emitida ' + esc(brDate(nE.emissao)) + ' · usina ' + esc(nE.usina || "—") + (nE.pedido ? ' · pedido ' + esc(nE.pedido) : '') + (nE.placa ? ' · placa ' + esc(nE.placa) : '') + '</div>' : '';
