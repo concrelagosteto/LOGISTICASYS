@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-10-2">
+<meta name="app-versao" content="2026-11-10-3">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -992,17 +992,44 @@
 
   .alarmes-btn{position:relative; font-size:14px; padding:3px 8px;} .alarmes-btn .alarme-n:not(:empty){position:absolute; top:-6px; right:-6px; background:var(--danger); color:#fff; border-radius:9px; font-size:10px; font-weight:800; min-width:16px; height:16px; line-height:16px; padding:0 4px;}
   .alarmes-btn.tocando{animation:alarmePulso 1.2s ease-in-out infinite;} @keyframes alarmePulso{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb, var(--danger) 50%, transparent);} 50%{box-shadow:0 0 0 6px transparent;}}
-  /* Anotações em janela flutuante (post-it): fica por cima de qualquer tela, dá para arrastar e redimensionar */
-  #notaPainel{position:fixed; z-index:950; display:none; flex-direction:column; width:420px; height:70vh; min-width:300px; min-height:220px; max-width:calc(100vw - 16px); max-height:calc(100vh - 16px);
-    background:var(--surface); border:1px solid #d9b73c; border-radius:10px; box-shadow:0 14px 40px rgba(0,0,0,.35); resize:both; overflow:hidden;}
+  /* Anotações em janela flutuante: fica por cima de qualquer tela, dá para arrastar e redimensionar. Usa as cores do tema escolhido. */
+  #notaPainel{position:fixed; z-index:950; display:none; flex-direction:column; width:400px; height:70vh; min-width:300px; min-height:220px; max-width:calc(100vw - 16px); max-height:calc(100vh - 16px);
+    background:var(--surface); border:1px solid var(--border-strong); border-top:3px solid var(--accent); border-radius:10px; box-shadow:0 16px 44px rgba(0,0,0,.4); resize:both; overflow:hidden;}
   #notaPainel.aberto{display:flex;}
-  .nota-ph{display:flex; align-items:center; gap:8px; padding:7px 10px; background:#ffe56b; color:#3b3000; font-weight:800; cursor:move; user-select:none; flex:0 0 auto;}
-  .nota-ph .sp{flex:1;} .nota-ph button{border:0; background:transparent; color:#3b3000; font-size:16px; line-height:1; cursor:pointer; padding:2px 6px; border-radius:4px;} .nota-ph button:hover{background:rgba(0,0,0,.1);}
-  .nota-ph .nota-ph-n:empty{display:none;} .nota-ph .nota-ph-n{font-size:11px; font-weight:700; background:rgba(0,0,0,.12); border-radius:999px; padding:1px 7px;}
-  #view-anotacoes{flex:1; overflow:auto; padding:8px; background:color-mix(in srgb, #ffe56b 6%, var(--bg));}
-  #view-anotacoes .card{margin-bottom:8px;} #view-anotacoes .nota-topo{padding:8px;}
-  #view-anotacoes .nota-card{background:color-mix(in srgb, #ffe56b 14%, var(--surface)); box-shadow:0 1px 3px rgba(0,0,0,.18);}
-  #view-anotacoes .nota-grupo{margin:10px 2px 5px;}
+  .nota-ph{display:flex; align-items:center; gap:8px; padding:8px 10px 8px 12px; background:var(--surface); color:var(--text); font-weight:700; font-size:13.5px; cursor:move; user-select:none; flex:0 0 auto; border-bottom:1px solid var(--border);}
+  .nota-ph .sp{flex:1;} .nota-ph button{border:0; background:transparent; color:var(--text-muted); font-size:14px; line-height:1; cursor:pointer; padding:4px 6px; border-radius:5px;} .nota-ph button:hover{background:var(--surface-2); color:var(--text);}
+  .nota-ph .nota-ph-n:empty{display:none;} .nota-ph .nota-ph-n{font-size:11px; font-weight:600; color:var(--text-muted);}
+  #view-anotacoes{flex:1; overflow:auto; padding:10px 12px 12px; background:var(--surface);}
+  #view-anotacoes .nota-wrap{max-width:none;}
+  .nt-bar{display:flex; gap:6px;} .nt-busca{flex:1; min-width:0; height:32px; border-radius:7px; border:1px solid var(--border); background:var(--surface-2); color:var(--text); padding:0 10px; font-size:13px;}
+  .nt-busca:focus{outline:none; border-color:var(--accent);}
+  .nt-nova{height:32px; border:0; border-radius:7px; background:var(--accent); color:#fff; font-weight:700; font-size:13px; padding:0 12px; cursor:pointer; white-space:nowrap;} .nt-nova:hover{filter:brightness(1.08);}
+  .nt-tabs{display:flex; gap:2px; flex-wrap:wrap; margin:8px 0 4px; border-bottom:1px solid var(--border);}
+  .nt-tab{border:0; background:transparent; color:var(--text-muted); font-size:12.5px; padding:6px 8px; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px;}
+  .nt-tab:hover{color:var(--text);} .nt-tab.on{color:var(--text); font-weight:700; border-bottom-color:var(--accent);}
+  .nt-tab .nt-n{font-size:11px; color:var(--text-faint); font-weight:600;} .nt-notif{margin-left:auto; font-size:11.5px;}
+  .nt-vazio{text-align:center; color:var(--text-faint); font-size:12.5px; padding:28px 8px;}
+  .nt-dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--border-strong); flex:0 0 auto;}
+  .nt-dot.prio-alta{background:var(--danger);} .nt-dot.prio-media{background:var(--warning);} .nt-dot.prio-baixa{background:var(--success);}
+  .nt-form{display:flex; flex-direction:column; gap:8px; padding:10px; margin:8px 0; border:1px solid var(--border); border-radius:8px; background:var(--surface-2);}
+  .nt-form input:not([type=radio]):not([type=checkbox]), .nt-form select, .nt-form textarea{height:30px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text); padding:0 8px; font-size:13px; font-family:inherit;}
+  .nt-form textarea{height:auto; padding:6px 8px; resize:vertical; width:100%;} .nt-form .nt-tit{width:100%; font-weight:700;}
+  .nt-form input:focus, .nt-form textarea:focus, .nt-form select:focus{outline:none; border-color:var(--accent);}
+  .nt-row{display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:12.5px; color:var(--text);} .nt-lbl{width:64px; flex:0 0 64px; font-size:12px; color:var(--text-muted);}
+  .nt-row #notaPara{flex:1; min-width:120px;}
+  .nt-seg{display:inline-flex; border:1px solid var(--border); border-radius:7px; overflow:hidden;}
+  .nt-seg .nota-pchip{display:inline-flex; align-items:center; gap:5px; border:0; border-radius:0; padding:4px 10px; font-size:12px; cursor:pointer; color:var(--text-muted); background:var(--surface);}
+  .nt-seg .nota-pchip + .nota-pchip{border-left:1px solid var(--border);} .nt-seg .nota-pchip input{display:none;} .nt-seg .nota-pchip.on{background:var(--accent-soft); color:var(--text); font-weight:700;}
+  .nt-chip{border:1px solid var(--border); background:transparent; color:var(--text-muted); border-radius:999px; padding:2px 9px; font-size:11.5px; cursor:pointer;} .nt-chip:hover{color:var(--text); border-color:var(--border-strong);}
+  .nt-mais summary{cursor:pointer; font-size:12px; color:var(--text-muted); padding:2px 0; list-style:none;} .nt-mais summary::before{content:"▸ ";} .nt-mais[open] summary::before{content:"▾ ";}
+  .nt-mais[open]{display:flex; flex-direction:column; gap:8px;} .nt-priv{cursor:pointer;}
+  .nt-pe{display:flex; align-items:center; gap:6px; justify-content:flex-end;} .nt-pe .vpo-erro{flex:1; font-size:12px;}
+  #view-anotacoes .nota-grupo{font-size:10.5px; font-weight:700; letter-spacing:.05em; color:var(--text-faint); margin:12px 2px 6px;}
+  #view-anotacoes .nota-card{background:var(--surface-2); border:1px solid var(--border); border-left:3px solid var(--border-strong); border-radius:8px; padding:8px 10px; margin-bottom:6px;}
+  #view-anotacoes .nota-card.prio-alta{border-left-color:var(--danger);} #view-anotacoes .nota-card.prio-media{border-left-color:var(--warning);} #view-anotacoes .nota-card.prio-baixa{border-left-color:var(--success);}
+  #view-anotacoes .nota-l1 .nt-dot{display:none;} #view-anotacoes .nota-tit{font-size:13.5px;} #view-anotacoes .nota-txt{font-size:12.5px; color:var(--text-muted);}
+  #view-anotacoes .nota-pe{margin-top:6px;}
+  @media (hover:hover){ #view-anotacoes .nota-acoes{opacity:0; transition:opacity .12s;} #view-anotacoes .nota-card:hover .nota-acoes, #view-anotacoes .nota-card:focus-within .nota-acoes, #view-anotacoes .nota-card.tocando .nota-acoes{opacity:1;} }
   .nav-item[data-view="anotacoes"].nota-on{background:var(--accent-soft); font-weight:700;}
   .nota-wrap{max-width:980px;} .nota-topo{display:flex; gap:10px; flex-wrap:wrap; align-items:center; padding:10px 12px;}
   .nota-filtros{display:flex; gap:6px; flex-wrap:wrap;} .chip-f{border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text); border-radius:999px; padding:4px 11px; font-size:12px; cursor:pointer;} .chip-f.on{border-color:var(--accent); color:var(--accent-strong); font-weight:700;}
@@ -6268,7 +6295,7 @@
   function notasPainelCriar(){
     var p = el("notaPainel"); if (p) return p;
     p = document.createElement("div"); p.id = "notaPainel";
-    p.innerHTML = '<div class="nota-ph" title="Arraste para mudar de lugar · puxe o canto de baixo para mudar o tamanho">📝 Anotações <span class="nota-ph-n" id="notaPainelN"></span><span class="sp"></span>' +
+    p.innerHTML = '<div class="nota-ph" title="Arraste para mudar de lugar · puxe o canto de baixo para mudar o tamanho">Anotações <span class="nota-ph-n" id="notaPainelN"></span><span class="sp"></span>' +
       '<button type="button" data-np="topo" title="Voltar para o canto">⇱</button><button type="button" data-np="fechar" title="Fechar (as anotações e alarmes continuam valendo)">✕</button></div>' +
       '<section id="view-anotacoes"></section>';
     document.body.appendChild(p);
@@ -6368,23 +6395,24 @@
       return grupo(a) - grupo(b) || NOTA_PRIO[a.prioridade].o - NOTA_PRIO[b.prioridade].o ||
         (a.alarme_em && b.alarme_em ? (a.alarme_em < b.alarme_em ? -1 : 1) : 0) || (a.created_at < b.created_at ? 1 : -1);
     });
-    var GR = ["⏰ Alarme tocando / atrasadas", "📅 Hoje", "🗓️ Próximos dias", "📝 Sem alarme", "✔ Feitas"];
+    var GR = ["Alarme tocando / atrasadas", "Hoje", "Próximos dias", "Sem alarme", "Feitas"];
     var cont = { abertas: NOTAS.filter(function(n){ return n.status === "aberta"; }).length, feitas: NOTAS.filter(function(n){ return n.status === "feita"; }).length };
-    var html = '<div class="card nota-topo">' +
-      '<button class="btn-primary btn-inline" data-nota="nova">＋ Nova anotação</button>' +
-      '<div class="nota-filtros">' + [["abertas", "Abertas (" + cont.abertas + ")"], ["minhas", "Minhas / para mim"], ["feitas", "Feitas (" + cont.feitas + ")"], ["todas", "Todas"]].map(function(f){ return '<button class="chip-f' + (st.filtro === f[0] ? ' on' : '') + '" data-notaf="' + f[0] + '">' + f[1] + '</button>'; }).join("") + '</div>' +
-      '<input class="nota-busca" id="notaBusca" placeholder="🔎 Buscar nas anotações" value="' + esc(st.busca) + '">' +
-      (typeof Notification !== "undefined" && Notification.permission === "default" ? '<button class="btn-ghost btn-xs" data-nota="permitir" title="Mostrar os alarmes também como notificação do Windows">🔔 Ativar notificações</button>' : '') +
+    var html = '<div class="nt-bar">' +
+      '<input class="nt-busca" id="notaBusca" placeholder="Buscar…" value="' + esc(st.busca) + '">' +
+      '<button class="nt-nova" data-nota="nova" title="Nova anotação">＋ Nova</button></div>' +
+      '<div class="nt-tabs">' + [["abertas", "Abertas", cont.abertas], ["minhas", "Para mim", null], ["feitas", "Feitas", cont.feitas], ["todas", "Todas", null]].map(function(f){
+        return '<button class="nt-tab' + (st.filtro === f[0] ? ' on' : '') + '" data-notaf="' + f[0] + '">' + f[1] + (f[2] ? ' <span class="nt-n">' + f[2] + '</span>' : '') + '</button>'; }).join("") +
+      (typeof Notification !== "undefined" && Notification.permission === "default" ? '<button class="nt-tab nt-notif" data-nota="permitir" title="Mostrar os alarmes também como notificação do Windows">🔔 Avisar no Windows</button>' : '') +
       '</div>' + (st.erro ? '<div class="rz-aviso">' + esc(st.erro) + '</div>' : '') +
       (st.form ? notaFormHtml(st.form) : '');
     var g0 = -1;
-    if (!lista.length) html += '<div class="card"><p class="muted" style="margin:0;">' + (NOTAS.length ? "Nada aqui com esse filtro." : "Nenhuma anotação ainda. Clique em ＋ Nova anotação.") + '</p></div>';
+    if (!lista.length && !st.form) html += '<div class="nt-vazio">' + (NOTAS.length ? "Nada aqui com esse filtro." : "Nenhuma anotação ainda. Clique em ＋ Nova.") + '</div>';
     lista.forEach(function(n){
       var g = grupo(n);
       if (g !== g0){ html += '<h3 class="nota-grupo">' + GR[g] + '</h3>'; g0 = g; }
       var P = NOTA_PRIO[n.prioridade] || NOTA_PRIO.media, venc = notaVencida(n);
       html += '<div class="nota-card prio-' + n.prioridade + (n.status === "feita" ? ' feita' : '') + (venc ? ' tocando' : '') + '" data-notaid="' + n.id + '">' +
-        '<div class="nota-l1"><span class="nota-prio" title="Prioridade ' + P.r + '">' + P.ic + '</span><b class="nota-tit">' + (esc(n.titulo) || '<span class="faint">(sem título)</span>') + '</b>' +
+        '<div class="nota-l1"><span class="nt-dot prio-' + n.prioridade + '" title="Prioridade ' + P.r + '"></span><b class="nota-tit">' + (esc(n.titulo) || '<span class="faint">(sem título)</span>') + '</b>' +
         (n.privada ? '<span class="badge neutral" title="Só você vê">🔒 privada</span>' : '') +
         (n.alarme_em && n.status === "aberta" ? '<span class="badge ' + (venc ? 'danger' : 'info') + '">⏰ ' + esc(notaQuando(n.alarme_em)) + (n.repetir ? ' · 🔁 ' + esc(NOTA_REP[n.repetir]) : '') + '</span>' : '') +
         (n.para ? '<span class="badge neutral">👤 ' + esc(n.para) + '</span>' : '') + '</div>' +
@@ -6423,22 +6451,20 @@
   }
   function notaLocalInput(iso){ if (!iso) return ""; var d = new Date(iso); return toISO(d) + "T" + pad2(d.getHours()) + ":" + pad2(d.getMinutes()); }
   function notaFormHtml(f){
-    return '<div class="card nota-form">' +
-      '<div class="nota-form-l"><input id="notaTit" placeholder="Título (ex.: Cobrar NF da Nassau)" value="' + esc(f.titulo || "") + '" maxlength="140"></div>' +
-      '<textarea id="notaTxt" rows="4" placeholder="Anotação…">' + esc(f.texto || "") + '</textarea>' +
-      '<div class="nota-form-l">' +
-        '<span class="nota-rot">Prioridade</span>' + ["alta", "media", "baixa"].map(function(p){ return '<label class="nota-pchip prio-' + p + (f.prioridade === p ? ' on' : '') + '"><input type="radio" name="notaPrio" value="' + p + '"' + (f.prioridade === p ? ' checked' : '') + '>' + NOTA_PRIO[p].ic + ' ' + NOTA_PRIO[p].r + '</label>'; }).join("") +
-      '</div>' +
-      '<div class="nota-form-l">' +
-        '<label class="nota-rot">⏰ Alarme <input type="datetime-local" id="notaAlarme" value="' + esc(notaLocalInput(f.alarme_em)) + '"></label>' +
-        '<span class="nota-atalhos">' + [["30", "+30 min"], ["60", "+1 h"], ["amanha", "amanhã 8h"], ["limpar", "sem alarme"]].map(function(x){ return '<button type="button" class="btn-ghost btn-xs" data-notaat="' + x[0] + '">' + x[1] + '</button>'; }).join("") + '</span>' +
-        '<label class="nota-rot">🔁 <select id="notaRep">' + Object.keys(NOTA_REP).map(function(k){ return '<option value="' + k + '"' + ((f.repetir || "") === k ? ' selected' : '') + '>' + NOTA_REP[k] + '</option>'; }).join("") + '</select></label>' +
-      '</div>' +
-      '<div class="nota-form-l">' +
-        '<label class="nota-rot">👤 Para <input id="notaPara" placeholder="quem vai resolver (opcional)" value="' + esc(f.para || "") + '"></label>' +
-        '<label class="nota-rot"><input type="checkbox" id="notaPriv"' + (f.privada ? ' checked' : '') + '> 🔒 Privada (só eu vejo)</label>' +
-      '</div>' +
-      '<div class="nota-form-l"><button class="btn-primary btn-inline" data-notafm="salvar">Salvar</button><button class="btn-ghost" data-notafm="cancelar">Cancelar</button><span class="vpo-erro" id="notaErro"></span></div>' +
+    var maisAberto = !!(f.repetir || f.para || f.privada);
+    return '<div class="nt-form">' +
+      '<input id="notaTit" class="nt-tit" placeholder="Título" value="' + esc(f.titulo || "") + '" maxlength="140">' +
+      '<textarea id="notaTxt" rows="3" placeholder="Escreva a anotação…">' + esc(f.texto || "") + '</textarea>' +
+      '<div class="nt-row"><span class="nt-lbl">Prioridade</span><span class="nt-seg">' + ["alta", "media", "baixa"].map(function(p){
+        return '<label class="nota-pchip' + (f.prioridade === p ? ' on' : '') + '"><input type="radio" name="notaPrio" value="' + p + '"' + (f.prioridade === p ? ' checked' : '') + '><span class="nt-dot prio-' + p + '"></span>' + NOTA_PRIO[p].r + '</label>'; }).join("") + '</span></div>' +
+      '<div class="nt-row"><span class="nt-lbl">Alarme</span><input type="datetime-local" id="notaAlarme" value="' + esc(notaLocalInput(f.alarme_em)) + '"></div>' +
+      '<div class="nt-row nt-atalhos"><span class="nt-lbl"></span>' + [["30", "+30 min"], ["60", "+1 h"], ["amanha", "Amanhã 8h"], ["limpar", "Sem alarme"]].map(function(x){ return '<button type="button" class="nt-chip" data-notaat="' + x[0] + '">' + x[1] + '</button>'; }).join("") + '</div>' +
+      '<details class="nt-mais"' + (maisAberto ? ' open' : '') + '><summary>Mais opções</summary>' +
+        '<div class="nt-row"><span class="nt-lbl">Repetir</span><select id="notaRep">' + Object.keys(NOTA_REP).map(function(k){ return '<option value="' + k + '"' + ((f.repetir || "") === k ? ' selected' : '') + '>' + NOTA_REP[k] + '</option>'; }).join("") + '</select></div>' +
+        '<div class="nt-row"><span class="nt-lbl">Para</span><input id="notaPara" placeholder="quem vai resolver (opcional)" value="' + esc(f.para || "") + '"></div>' +
+        '<label class="nt-row nt-priv"><span class="nt-lbl"></span><input type="checkbox" id="notaPriv"' + (f.privada ? ' checked' : '') + '> Privada (só eu vejo)</label>' +
+      '</details>' +
+      '<div class="nt-pe"><span class="vpo-erro" id="notaErro"></span><button class="btn-ghost btn-xs" data-notafm="cancelar">Cancelar</button><button class="btn-primary btn-inline" data-notafm="salvar">Salvar</button></div>' +
     '</div>';
   }
   function notaFormEventos(){
