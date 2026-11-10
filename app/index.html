@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-09-3">
+<meta name="app-versao" content="2026-11-10-1">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -860,7 +860,7 @@
   .xl-filter-btn.filtered{background:var(--warning); color:#1a1205; border-color:var(--warning);}
   .xl-filter-btn.filtered::after{content:"●"; font-size:7px; margin-left:3px;}
   .xl-clear-bar{display:flex; align-items:center; justify-content:flex-end; gap:10px; padding:6px 12px; border-bottom:1px solid var(--border); background:var(--surface);}
-  .xl-clear-info{font-size:11px; color:var(--text-faint);}
+  .xl-clear-info{font-size:11px; color:var(--text-faint);} .xl-cont{font-weight:800; color:var(--text);}
   .xl-hist{display:inline-flex; gap:2px; margin-right:auto;} .xl-hist button{border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text); border-radius:6px; width:28px; height:26px; font-size:14px; cursor:pointer; line-height:1;} .xl-hist button:disabled{opacity:.35; cursor:default;}
   .xl-clear-bar.on .xl-clear-info{color:var(--warning); font-weight:700;}
   .xl-clear-btn{border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text-faint); border-radius:7px; padding:4px 10px; font-size:11.5px; font-weight:700; cursor:default; opacity:.7;}
@@ -1931,7 +1931,12 @@
     if (state.busca) partes.push("busca");
     if (ord) partes.push("ordenada");
     bar.classList.toggle("on", !!(nf || ord || state.busca));
-    bar.querySelector(".xl-clear-info").textContent = partes.length ? partes.join(" · ") : "Sem filtros";
+    // quantas linhas aparecem (pra saber quantas faltam) — não conta linhas anexas (formulário aberto embaixo de uma linha)
+    var trs = table.tBodies[0] ? Array.from(table.tBodies[0].rows).filter(function(tr){ return !tr.dataset.xlapos && tr.cells.length > 1; }) : [];
+    var vis = trs.filter(function(tr){ return tr.style.display !== "none"; }).length, tot = trs.length;
+    var cont = (nf || state.busca) ? "Mostrando " + vis + " de " + tot + (tot === 1 ? " linha" : " linhas") : tot + (tot === 1 ? " linha" : " linhas");
+    var info = bar.querySelector(".xl-clear-info");
+    info.innerHTML = '<span class="xl-cont">' + cont + '</span>' + (partes.length ? " · " + esc(partes.join(" · ")) : " · Sem filtros");
   }
 
   function xlOpenPopover(table, colIdx, key, btn){
