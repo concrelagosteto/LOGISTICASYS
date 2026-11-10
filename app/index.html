@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-10-1">
+<meta name="app-versao" content="2026-11-10-2">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -229,7 +229,7 @@
   .lg-box{max-width:520px;} .lg-resumo{font-size:12.5px; color:var(--text-muted); line-height:1.5; margin:-4px 0 10px;} .lg-resumo b{color:var(--text);}
   .lg-card{border:1px solid var(--border); border-radius:8px; padding:8px 10px; margin-bottom:8px; background:var(--surface-2);} .lg-card.alerta{border-color:var(--warning);}
   .lg-tit{font-weight:700; font-size:13px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;} .lg-tit .badge{font-size:10.5px;}
-  .lg-sub{font-size:11.5px; color:var(--text-muted); margin-top:2px;} .lg-falta{color:var(--warning);}
+  .lg-sub{font-size:11.5px; color:var(--text-muted); margin-top:2px;} .lg-ped{display:inline-block; font-size:12.5px; font-weight:800; padding:1px 8px; border-radius:6px; background:var(--accent-soft); color:var(--text); border:1px solid var(--border-strong); vertical-align:middle;} .lg-ped.dif{border-color:var(--warning); color:var(--warning);} .lg-falta{color:var(--warning);}
   .lg-acoes{display:flex; gap:12px; flex-wrap:wrap; margin-top:4px; align-items:center;}
   .lg-link{border:0; background:none; padding:0; font-size:11.5px; color:var(--accent-strong); cursor:pointer; text-decoration:underline dotted;} .lg-link.perigo{color:var(--danger);}
   .lg-mais{margin:4px 0 8px;} .lg-mais summary{cursor:pointer; font-size:12px; color:var(--text-muted); margin-bottom:6px;}
@@ -5478,7 +5478,9 @@
     l.nfs.forEach(function(nf){
       var como = nfLigacaoComo(nf), en = nfEntradaMatch(nf);
       var pt = parteDe(nf);
-      blocos.push({ ic: "🧾", t: "NF " + nf.numero + (pt ? " · " + pt : ""), ok: como.forte, chip: como.forte ? '<span class="badge success">forte</span>' : '<span class="badge warning">fraca</span>', corpo:
+      var pedNf = pedidoEfetivo(nf) || nf.pedido || "", pedBate = pedNf && pedsL.some(function(x){ return normalizePedidoNum(x) === normalizePedidoNum(pedNf); });
+      var pedChip = '<span class="lg-ped' + (pedNf && !pedBate ? ' dif' : '') + '" title="' + (!pedNf ? 'A nota não tem pedido no Efit' : pedBate ? 'Pedido da nota (confere com a carga)' : 'Pedido da nota é diferente do pedido da carga') + '">📦 Pedido ' + (esc(pedNf) || "—") + '</span>';
+      blocos.push({ ic: "🧾", t: "NF " + nf.numero + (pt ? " · " + pt : ""), ok: como.forte, chip: pedChip + ' ' + (como.forte ? '<span class="badge success">forte</span>' : '<span class="badge warning">fraca</span>'), corpo:
         '<div class="lg-sub">emitida ' + esc(brDate(nf.emissao)) + (nf.placa ? ' · placa ' + esc(nf.placa) : '') + ' · ' + (en ? 'entrou em ' + esc(en.usina) + ' ' + esc(brDate(en.data)) : '<span class="lg-falta">sem entrada na PUZL</span>') + '</div>' +
         '<div class="lg-sub">ligada por: ' + esc(como.txt) + '</div>',
         acoes: '<button class="lg-link" data-lg="ver" data-nf="' + esc(nf.numero) + '">caminho da nota</button>' +
