@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-13-2">
+<meta name="app-versao" content="2026-11-13-3">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -10847,6 +10847,9 @@
   /* ---- Programação › Faltantes: a Programação do dia no formato da planilha, com a situação de cada usina ----
      Sem resposta (linha em branco) · Adiada · Sem necessidade (status ou ******) · Preenchida (tudo ok) */
   var FALT = { dia: null };
+  // só estas usinas, nesta ordem (a planilha de Faltantes da Logística)
+  var FALT_USINAS = ["SÃO GONÇALO", "MARICÁ", "TANGUÁ", "SAQUAREMA", "ARARUAMA", "SÃO PEDRO", "RIO DAS OSTRAS", "MACAE", "CAMPOS", "BOM JESUS", "ITALVA", "PÁDUA",
+    "CANTAGALO", "SERRA", "CARIACICA", "VILA VELHA", "ITAPERUNA", "CARANGOLA", "GUAÇUI", "IBATIBA", "REDUTO", "S.J. MANHUAÇU", "UBAPORANGA", "IPATINGA", "MURIAÉ"];
   var FALT_COND = { branco: ["Sem resposta", "branco"], adiada: ["Adiada", "adiada"], semnec: ["Sem necessidade", "semnec"], ok: ["Tudo OK", "ok"] };
   function faltSoAst(x){ x = String(x || ""); return /\*/.test(x) && !/[^\s*\/—–-]/.test(x); }
   function faltCond(e){
@@ -10858,12 +10861,11 @@
   function faltPintar(){
     var v = el("view-faltantes"); if (!v) return;
     if (!FALT.dia) FALT.dia = toISO(progPeriodoPadrao().de);
-    // mesmas linhas da Programação: todas as usinas da base, na mesma ordem (no domingo de exceção, só as que existem)
-    var dia = FALT.dia, dd = cementDayData(dia), byKey = {}, ents;
-    dd.entries.forEach(function(e){ byKey[entryKey(e)] = e; });
-    if (fromISO(dia).getDay() === 0) ents = dd.entries.slice();
-    else { ents = MASTER_USINAS.map(function(u){ return byKey[u] || { usina: u, carretas: "", fabrica: "", pedido: "" }; }); dd.entries.forEach(function(e){ if (MASTER_USINAS.indexOf(e.usina) === -1) ents.push(e); }); }
-    ents = ents.filter(function(e){ return String(e.usina || "").trim(); });
+    // só as usinas da lista das Faltantes, na ordem da lista, com o que estiver na Programação do dia
+    var dia = FALT.dia, dd = cementDayData(dia), byKey = {};
+    var nk = function(x){ return String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim().toUpperCase(); };
+    dd.entries.forEach(function(e){ var k = nk(e.usina); if (!byKey[k]) byKey[k] = e; });
+    var ents = FALT_USINAS.map(function(u){ return byKey[nk(u)] || { usina: u, carretas: "", fabrica: "", pedido: "" }; });
     var cont = { branco: 0, adiada: 0, semnec: 0, ok: 0 };
     var AST = "********************";
     var cel = function(x, c){ return temValor(x) ? esc(x) : (c === "semnec" ? AST : ""); };
