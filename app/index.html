@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-13-4">
+<meta name="app-versao" content="2026-11-13-5">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -7637,6 +7637,16 @@
      ====================================================================== */
   var CFG = window.CONFIG;
   var sb = window.supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: true, autoRefreshToken: true } });
+  // Saiu em outra aba/página deste navegador (ou a sessão caiu): sem isso a tela continuava aberta, mas o banco
+  // recusava tudo ("Você não tem permissão para salvar"). Agora avisa e volta para o login.
+  sb.auth.onAuthStateChange(function(ev, sess){
+    if (ev !== "SIGNED_OUT" || window.__sairMesmoAssim || typeof ME === "undefined" || !ME) return;
+    window.__sairMesmoAssim = true;
+    var b = document.createElement("div"); b.className = "aviso-versao"; b.setAttribute("role", "alert");
+    b.innerHTML = '🔒 Sua sessão foi encerrada (você saiu em outra aba ou página do sistema). <button type="button">Entrar de novo</button>';
+    b.querySelector("button").addEventListener("click", function(){ location.reload(); });
+    document.body.appendChild(b);
+  });
   var ME = null;
   var SNAP = null;          // retrato do que já está salvo no banco
   var syncChain = Promise.resolve();
@@ -7965,7 +7975,7 @@
     syncChain = syncChain.then(async function(){
       setSyncState("salvando");
       try { await syncOnce(); setSyncState("salvo"); }
-      catch (e) { setSyncState("erro", dbErr(e)); if (/sess/i.test(dbErr(e))) { try { await sb.auth.signOut(); } catch (x) { } } }
+      catch (e) { setSyncState("erro", dbErr(e)); if (/sess/i.test(dbErr(e))) { try { await sb.auth.signOut({ scope: "local" }); } catch (x) { } } }
     });
     return syncChain;
   }
@@ -8021,7 +8031,7 @@
   async function entrar(user){
     var r = await sb.from("membros").select("empresa_id,papel,nome,abas").eq("user_id", user.id).maybeSingle();
     if (r.error || !r.data){
-      await sb.auth.signOut();
+      await sb.auth.signOut({ scope: "local" });
       el("login").style.display = "flex"; el("app").classList.remove("active");
       loginMsg(r.error ? dbErr(r.error) : "Este usuário não tem acesso. Fale com o administrador.", true);
       return false;
@@ -8085,7 +8095,7 @@
     el("recBox").hidden = true; el("loginForm").hidden = false; recMsg("");
     ["recCodigo", "recNova", "recRep"].forEach(function(i){ el(i).value = ""; el(i).type = i === "recCodigo" ? "text" : "password"; });
     el("recVer").textContent = "Mostrar";
-    if (REC.verificado){ REC.verificado = false; try { sb.auth.signOut(); } catch (e) { } }
+    if (REC.verificado){ REC.verificado = false; try { sb.auth.signOut({ scope: "local" }); } catch (e) { } }
     REC.viaLink = false;
     if (REC.email) el("loginUser").value = REC.email;
     el("loginUser").focus();
@@ -8148,7 +8158,7 @@
     if ((syncState === "pendente" || syncState === "salvando" || syncState === "erro" || temMudanca()) && !window.__sairMesmoAssim){
       window.__sairMesmoAssim = true; el("btnSair").textContent = "Há alterações sem salvar — clique de novo para sair"; return;
     }
-    window.__sairMesmoAssim = true; try { await sb.auth.signOut(); } catch (e) { }
+    window.__sairMesmoAssim = true; try { await sb.auth.signOut({ scope: "local" }); } catch (e) { }
     location.reload();
   });
   el("btnAtualizar").addEventListener("click", async function(){
@@ -8665,7 +8675,7 @@
         clearInterval(idleTimer);
         try { if (ME.papel !== "leitura" && (syncState === "pendente" || syncState === "erro" || temMudanca())) await syncNow(); } catch (e) { }
         try { sessionStorage.setItem("ls_idle", "1"); } catch (e) { }
-        window.__sairMesmoAssim = true; try { await sb.auth.signOut(); } catch (e) { }
+        window.__sairMesmoAssim = true; try { await sb.auth.signOut({ scope: "local" }); } catch (e) { }
         location.reload();
       } else if (parado >= IDLE_MS - IDLE_AVISO_MS){ var a = el("idleAviso"); if (a) a.hidden = false; }
     }, 15000);
