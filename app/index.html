@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-13-1">
+<meta name="app-versao" content="2026-11-13-2">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -531,15 +531,18 @@
   .fab-cnpj td{padding:4px 6px !important;} .fab-cnpj input{width:100%;} .fab-cnpj input.mono{font-family:ui-monospace,monospace; min-width:160px;}
   .fab-rodape{margin-top:14px; padding-top:10px; border-top:1px solid var(--border); text-align:right;}
   .vpo-abas{position:sticky; top:-22px; z-index:5; display:flex; gap:4px; overflow-x:auto; background:var(--bg, var(--surface)); border-bottom:1px solid var(--border); margin:0 0 16px; padding-top:4px; scrollbar-width:thin;}
-  .falt{padding:14px 2px;} .falt-topo{display:flex; align-items:center; gap:6px; flex-wrap:wrap;} .falt-topo input{height:30px; border-radius:6px; border:1px solid var(--border-strong); background:var(--surface); color:var(--text); padding:0 8px;}
-  .falt-dia{font-weight:700; text-transform:capitalize; margin-left:6px;}
-  .falt-chips{display:flex; gap:6px; flex-wrap:wrap; margin:12px 0;}
-  .falt-f{border:1px solid var(--border); border-left:3px solid var(--fc, var(--border-strong)); background:var(--surface); color:var(--text-muted); border-radius:8px; padding:5px 12px; font-size:12.5px; cursor:pointer;}
-  .falt-f b{color:var(--text); font-size:14px; margin-right:2px;} .falt-f.on{background:var(--accent-soft); color:var(--text); border-color:var(--accent);}
-  .falt-f.falt-branco, .falt-l.falt-branco{--fc:var(--danger);} .falt-f.falt-adiada, .falt-l.falt-adiada{--fc:var(--warning);} .falt-f.falt-semnec, .falt-l.falt-semnec{--fc:var(--roxo);} .falt-f.falt-ok, .falt-l.falt-ok{--fc:var(--success);}
-  .falt-lista{display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:6px;}
-  .falt-l{display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; padding:8px 12px; background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--fc); border-radius:8px;}
-  .falt-u{font-weight:700; flex:1; min-width:0;} .falt-st{font-size:11.5px; font-weight:700; color:var(--fc);} .falt-det{flex-basis:100%; font-size:11.5px; color:var(--text-muted);}
+  .falt-topo{display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:12px;} .falt-topo input{height:30px; border-radius:6px; border:1px solid var(--border-strong); background:var(--surface); color:var(--text); padding:0 8px;}
+  .falt-stats{display:flex; gap:6px; flex-wrap:wrap; margin-left:10px;} .dstat.falt-s-branco{--dstat:var(--danger);}
+  .falt-card{padding:0; overflow:hidden;}
+  .falt-cab{display:grid; grid-template-columns:minmax(150px, 22%) 1fr; align-items:end; background:var(--surface-2); border-bottom:1px solid var(--border-strong);}
+  .falt-cab span{font-size:11px; font-weight:700; padding:8px 10px; text-align:center; border-right:1px solid var(--border-strong); color:var(--text-muted);}
+  .falt-cab b{font-size:15px; text-align:center; padding:10px; letter-spacing:.02em;}
+  .falt-tab{width:100%; border-collapse:collapse; font-size:13px;} .falt-tab th{text-align:center; text-transform:uppercase;}
+  .falt-tab td{border-bottom:1px solid var(--border); border-right:1px solid var(--border); padding:5px 10px; white-space:nowrap;}
+  .falt-tab td.falt-u{font-weight:600; border-left:3px solid var(--fc);}
+  .falt-tr.falt-branco{--fc:var(--danger);} .falt-tr.falt-adiada{--fc:var(--warning);} .falt-tr.falt-semnec{--fc:var(--roxo);} .falt-tr.falt-ok{--fc:var(--success);}
+  .falt-tr.falt-semnec td{color:var(--text-muted);}
+  .falt-st{display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; color:var(--fc); border:1px solid var(--fc); background:color-mix(in srgb, var(--fc) 12%, transparent);}
   .vpo-aba{flex:0 0 auto; background:none; border:0; border-bottom:2px solid transparent; color:var(--text-muted); font:inherit; font-size:13.5px; font-weight:600; padding:10px 16px; cursor:pointer; white-space:nowrap; margin-bottom:-1px;}
   .vpo-rotas-wrap{max-height:none !important; overflow:visible !important;} .vpo-rotas-card{overflow:visible !important;}
   .table-wrap.vpo-rotas-wrap thead th{top:var(--vpo-abas-h, 46px);}
@@ -1216,6 +1219,7 @@
     <div class="content">
 
       <section class="view active" id="view-programacao-cimento"></section>
+      <section class="view" id="view-faltantes"></section>
       <section class="view" id="view-solicitacoes"></section>
       <section class="view" id="view-base-dados-cimento"></section>
       <section class="view" id="view-bd-usinas"><p class="bd-lead">Uma linha por usina: os dados da usina (sigla, CNPJ, regional, contatos, nome na PUZL) e o <b>encarregado</b> responsável. Os encarregados (nome, WhatsApp, e-mail) ficam logo abaixo. É daqui que o sistema reconhece a usina nas notas e nas entradas, e o que cada encarregado vê no link de Solicitação de Cimento.</p><div id="usinasCadastroCard" style="margin-bottom:16px;"></div><div id="encarregadosCard" style="margin-bottom:16px;"></div></section>
@@ -1728,6 +1732,7 @@
     {sub:"Programação"},
     {id:"solicitacoes", label:"Solicitações", icon:"📥"},
     {id:"programacao-cimento", label:"Programação de Cimento", icon:"📋"},
+    {id:"faltantes", label:"Faltantes", icon:"📭"},
     {sub:"Controle"},
     {id:"controle-pedidos-cimento", label:"Controle de Pedidos", icon:"🚚"},
     {id:"silos", label:"Controle de cimento", icon:"🛢️"},
@@ -1757,7 +1762,7 @@
     {id:"exececoes", label:"Exceções", icon:"🛡️"}
   ];
   var TITLES = {
-    "solicitacoes":"Solicitações de Cimento", "programacao-cimento":"Programação de Cimento", "base-dados-cimento":"Importar arquivos", "bd-usinas":"Usinas e encarregados", "bd-fabricas":"Fábricas e cimentos",
+    "solicitacoes":"Solicitações de Cimento", "programacao-cimento":"Programação de Cimento", "faltantes":"Faltantes", "base-dados-cimento":"Importar arquivos", "bd-usinas":"Usinas e encarregados", "bd-fabricas":"Fábricas e cimentos",
     "notas-sefaz":"Efit", "lancamentos-puzl":"Notas Puzl", "silos":"Controle de cimento",
     "controle-pedidos-cimento":"Controle de Pedidos de Cimento", "consultas":"Consultas",
     dashboard:"Dashboard", anotacoes:"Anotações", operacoes:"Operação do dia", vpo:"VPO — Vale Pedágio Obrigatório", exececoes:"Fila de Exceções",
@@ -1767,6 +1772,7 @@
     "solicitacoes":"Cimento <b>›</b> Programação <b>›</b> Solicitações — o que cada usina precisa",
     "anotacoes":"Anotações — lembretes da equipe, com prioridade e alarme",
     "programacao-cimento":"Cimento <b>›</b> Programação <b>›</b> Programação de Cimento — envio diário por usina",
+    "faltantes":"Cimento <b>›</b> Programação <b>›</b> Faltantes — quem já respondeu a programação do dia",
     "base-dados-cimento":"Base de Dados <b>›</b> Importar arquivos — Efit, Efit completo, Notas Puzl, Fretes e Programação antiga, com o histórico",
     "bd-usinas":"Base de Dados <b>›</b> Usinas e encarregados — cada usina e quem responde por ela",
     "bd-fabricas":"Base de Dados <b>›</b> Fábricas e cimentos — fornecedores, materiais, catálogo e códigos",
@@ -2371,6 +2377,7 @@
     else if (id === "silos" && typeof siloCarregar === "function") siloCarregar();
     else if (id === "consultas" && typeof paintConsulta === "function") paintConsulta();
     else if (id === "programacao-cimento" && typeof progPicker !== "undefined" && progPicker) paintBlocks();
+    else if (id === "faltantes") faltPintar();
   }
 
   /* ---------------- Date helpers ---------------- */
@@ -7068,7 +7075,6 @@
     v.querySelectorAll(".vpo-aba").forEach(function(b){ var on = b.dataset.vpoaba === id; b.classList.toggle("on", on); b.setAttribute("aria-selected", on); });
     if (transp && typeof paintVpoBlocks === "function") paintVpoBlocks();
     if (id === "semcad" && typeof vptAbrir === "function") vptAbrir(id);
-    if (id === "faltantes" && typeof faltPintar === "function") faltPintar();
     if (id === "emitidos" && typeof vemPintar === "function"){ vemPintar(); if (!VEM.d) vemCarregar(); }
     if (typeof agendaFit === "function") agendaFit();
     if (window.__medirTopo) window.__medirTopo();
@@ -8175,6 +8181,7 @@
   }
   function podeVerAba(id){
     if (!ME || ME.papel === "admin" || !Array.isArray(ME.abas)) return true;
+    if (id === "faltantes" && ME.abas.indexOf("programacao-cimento") !== -1) return true;   // quem vê a Programação vê as Faltantes
     return ABAS_SEMPRE.indexOf(id) !== -1 || ME.abas.indexOf(id) !== -1;
   }
   function primeiraAbaPermitida(){
@@ -8909,7 +8916,7 @@
       Object.keys(rem).forEach(function(iso){ if (toIsoDate(iso)) todas = todas.concat(mergeDiaProg(iso, rem[iso])); });
       if (todas.length){
         todas.forEach(function(m){ PROG_TAGS[m.iso + "|" + m.key] = { por: m.por, ate: Date.now() + 9000 }; if (m.por) PROG_QUEM[m.iso + "|" + String(m.key).toUpperCase()] = { por: m.por, em: new Date().toISOString() }; });
-        progPintarSeguro(); if (typeof VPO_ABA !== "undefined" && VPO_ABA === "faltantes") faltPintar();
+        progPintarSeguro(); if (el("view-faltantes") && el("view-faltantes").classList.contains("active")) faltPintar();
         setTimeout(progDecorar, 9100);
       } else progDecorar();
       solProgCarregar().then(progDecorar);
@@ -10830,17 +10837,17 @@
     var ts = ((FRT.d && FRT.d.transportadoras) || []).filter(function(t){ return t.ativo !== false; }).sort(function(a, b){
       var pa = /^PACHECO/i.test(a.nome) ? 0 : 1, pb = /^PACHECO/i.test(b.nome) ? 0 : 1;   // a Pacheco (onde sai a maioria dos VPOs) vem primeiro
       return pa - pb || nAtivos(b) - nAtivos(a) || (a.nome < b.nome ? -1 : 1); });
-    VPO_ABAS = ts.map(function(t){ return ["t:" + t.id, "🚛 " + esc(t.nome)]; }).concat(ts.length ? [["faltantes", "📭 Faltantes"], ["emitidos", "🎟️ VPOs emitidos"], ["semcad", "❓ Placas sem cadastro"]] : [["dia", "📋 VPO"], ["faltantes", "📭 Faltantes"]], [["rotas", "🛣️ Rotas e pedágio"]]);
+    VPO_ABAS = ts.map(function(t){ return ["t:" + t.id, "🚛 " + esc(t.nome)]; }).concat(ts.length ? [["emitidos", "🎟️ VPOs emitidos"], ["semcad", "❓ Placas sem cadastro"]] : [["dia", "📋 VPO"]], [["rotas", "🛣️ Rotas e pedágio"]]);
     ab.outerHTML = vpoAbasHtml();
     var rotas = v.querySelector('.vpo-painel[data-vpop="rotas"]');
-    (ts.length ? ["faltantes", "emitidos", "semcad"] : ["faltantes"]).forEach(function(id){ if (v.querySelector('.vpo-painel[data-vpop="' + id + '"]')) return; var d = document.createElement("div"); d.className = "vpo-painel"; d.dataset.vpop = id; d.hidden = true; rotas.parentNode.insertBefore(d, rotas); });
+    if (ts.length) ["emitidos", "semcad"].forEach(function(id){ if (v.querySelector('.vpo-painel[data-vpop="' + id + '"]')) return; var d = document.createElement("div"); d.className = "vpo-painel"; d.dataset.vpop = id; d.hidden = true; rotas.parentNode.insertBefore(d, rotas); });
     var existe = function(id){ return VPO_ABAS.some(function(x){ return x[0] === id; }); };
     vpoAbaMostrar(existe(VPO_ABA) ? VPO_ABA : VPO_ABAS[0][0]);
   }
-  /* ---- VPO › Faltantes: situação de cada usina na Programação do dia ----
+  /* ---- Programação › Faltantes: a Programação do dia no formato da planilha, com a situação de cada usina ----
      Sem resposta (linha em branco) · Adiada · Sem necessidade (status ou ******) · Preenchida (tudo ok) */
-  var FALT = { dia: null, f: "" };
-  var FALT_COND = { branco: ["Sem resposta", "branco"], adiada: ["Adiada", "adiada"], semnec: ["Sem necessidade", "semnec"], ok: ["Preenchida", "ok"] };
+  var FALT = { dia: null };
+  var FALT_COND = { branco: ["Sem resposta", "branco"], adiada: ["Adiada", "adiada"], semnec: ["Sem necessidade", "semnec"], ok: ["Tudo OK", "ok"] };
   function faltSoAst(x){ x = String(x || ""); return /\*/.test(x) && !/[^\s*\/—–-]/.test(x); }
   function faltCond(e){
     if (e.status === "sem_necessidade" || faltSoAst(e.carretas) || faltSoAst(e.fabrica)) return "semnec";
@@ -10849,39 +10856,39 @@
     return "branco";
   }
   function faltPintar(){
-    var v = el("view-vpo"), p = v && v.querySelector('.vpo-painel[data-vpop="faltantes"]'); if (!p) return;
+    var v = el("view-faltantes"); if (!v) return;
     if (!FALT.dia) FALT.dia = toISO(progPeriodoPadrao().de);
-    // mesmas linhas da Programação: todas as usinas da base (no domingo de exceção, só as que existem)
+    // mesmas linhas da Programação: todas as usinas da base, na mesma ordem (no domingo de exceção, só as que existem)
     var dia = FALT.dia, dd = cementDayData(dia), byKey = {}, ents;
     dd.entries.forEach(function(e){ byKey[entryKey(e)] = e; });
     if (fromISO(dia).getDay() === 0) ents = dd.entries.slice();
     else { ents = MASTER_USINAS.map(function(u){ return byKey[u] || { usina: u, carretas: "", fabrica: "", pedido: "" }; }); dd.entries.forEach(function(e){ if (MASTER_USINAS.indexOf(e.usina) === -1) ents.push(e); }); }
     ents = ents.filter(function(e){ return String(e.usina || "").trim(); });
-    var ordem = ["branco", "adiada", "semnec", "ok"], cont = { branco: 0, adiada: 0, semnec: 0, ok: 0 };
-    var linhas = ents.map(function(e, i){ var c = faltCond(e); cont[c]++; return { e: e, c: c, i: i }; })
-      .sort(function(a, b){ return ordem.indexOf(a.c) - ordem.indexOf(b.c) || a.i - b.i; });
-    var vis = linhas.filter(function(l){ return !FALT.f || l.c === FALT.f; });
-    var chip = function(k, rot, n){ return '<button type="button" class="falt-f falt-' + (k || "todas") + (FALT.f === k ? ' on' : '') + '" data-faltf="' + k + '"><b>' + n + '</b> ' + rot + '</button>'; };
-    var val = function(x){ return temValor(x) ? esc(x) : '<span class="faint">—</span>'; };
-    p.innerHTML = '<div class="falt">' +
+    var cont = { branco: 0, adiada: 0, semnec: 0, ok: 0 };
+    var AST = "********************";
+    var cel = function(x, c){ return temValor(x) ? esc(x) : (c === "semnec" ? AST : ""); };
+    var linhas = ents.map(function(e){
+      var c = faltCond(e), k = FALT_COND[c]; cont[c]++;
+      return '<tr class="falt-tr falt-' + k[1] + '"><td class="falt-u">' + esc(e.usina) + '</td><td>' + cel(e.carretas, c) + '</td><td>' + cel(e.fabrica, c) + '</td><td>' + (temValor(e.pedido) ? esc(e.pedido) : '') + '</td>' +
+        '<td><span class="falt-st">' + k[0] + '</span></td></tr>';
+    }).join("");
+    var d0 = fromISO(dia), ontem = addDays(d0, -1);
+    var stat = function(k, cls){ return '<div class="dstat ' + cls + '"><b>' + cont[k] + '</b><span>' + FALT_COND[k][0] + '</span></div>'; };
+    var scroll = (v.querySelector(".table-wrap") || {}).scrollTop || 0;
+    v.innerHTML =
       '<div class="falt-topo"><button type="button" class="btn-ghost btn-xs" data-faltd="-1" title="Dia anterior">◀</button>' +
         '<input type="date" id="faltDia" value="' + dia + '"><button type="button" class="btn-ghost btn-xs" data-faltd="1" title="Próximo dia">▶</button>' +
-        '<span class="falt-dia">' + esc(weekdayLong(fromISO(dia))) + '</span></div>' +
-      (ents.length ? '<div class="falt-chips">' + chip("", "Todas", ents.length) + ordem.map(function(k){ return chip(k, FALT_COND[k][0], cont[k]); }).join("") + '</div>' +
-        '<div class="falt-lista">' + (vis.length ? vis.map(function(l){
-          var c = FALT_COND[l.c], det = l.c === "ok" ? '<span class="falt-det">' + val(l.e.carretas) + ' · ' + val(l.e.fabrica) + (temValor(l.e.pedido) ? ' · pedido ' + esc(l.e.pedido) : '') + '</span>' : '';
-          return '<div class="falt-l falt-' + c[1] + '"><span class="falt-u">' + esc(l.e.usina) + '</span><span class="falt-st">' + c[0] + '</span>' + det + '</div>';
-        }).join("") : '<div class="faint" style="padding:14px;">Nenhuma usina nessa situação.</div>') + '</div>'
-      : '<div class="notice" style="margin-top:12px;">A Programação de ' + esc(brDate(dia)) + ' ainda não foi criada.</div>') +
-    '</div>';
-    if (!p.__faltEv){
-      p.__faltEv = true;
-      p.addEventListener("click", function(ev){
-        var d = ev.target.closest("[data-faltd]"), f = ev.target.closest("[data-faltf]");
-        if (d){ FALT.dia = toISO(addDays(fromISO(FALT.dia), +d.dataset.faltd)); faltPintar(); }
-        else if (f){ FALT.f = FALT.f === f.dataset.faltf ? "" : f.dataset.faltf; faltPintar(); }
-      });
-      p.addEventListener("change", function(ev){ if (ev.target.id === "faltDia" && ev.target.value){ FALT.dia = ev.target.value; faltPintar(); } });
+        '<div class="falt-stats">' + stat("branco", "falt-s-branco") + stat("adiada", "adi") + stat("semnec", "semnec") + stat("ok", "ok") + '</div></div>' +
+      '<div class="card falt-card">' +
+        '<div class="falt-cab"><span>' + esc(fmtBR(ontem)) + ' (' + esc(weekdayLong(ontem).toUpperCase()) + ')</span><b>PROGRAMAÇÃO PARA O DIA ' + esc(fmtBR(d0)) + ' (' + esc(weekdayLong(d0).toUpperCase()) + ')</b></div>' +
+        '<div class="table-wrap"><table class="falt-tab"><thead><tr><th>Usina</th><th>Placa</th><th>Fábrica</th><th>Pedido</th><th>Situação</th></tr></thead><tbody>' + linhas + '</tbody></table></div>' +
+      '</div>';
+    xlEnhance(v.querySelector(".falt-card"), "faltantes");
+    var tw = v.querySelector(".table-wrap"); if (tw && scroll) tw.scrollTop = scroll;
+    if (!v.__faltEv){
+      v.__faltEv = true;
+      v.addEventListener("click", function(ev){ var d = ev.target.closest("[data-faltd]"); if (d){ FALT.dia = toISO(addDays(fromISO(FALT.dia), +d.dataset.faltd)); faltPintar(); } });
+      v.addEventListener("change", function(ev){ if (ev.target.id === "faltDia" && ev.target.value){ FALT.dia = ev.target.value; faltPintar(); } });
     }
   }
   async function vptCarregar(){
