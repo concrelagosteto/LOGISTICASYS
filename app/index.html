@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-10-3">
+<meta name="app-versao" content="2026-11-13-1">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -531,6 +531,15 @@
   .fab-cnpj td{padding:4px 6px !important;} .fab-cnpj input{width:100%;} .fab-cnpj input.mono{font-family:ui-monospace,monospace; min-width:160px;}
   .fab-rodape{margin-top:14px; padding-top:10px; border-top:1px solid var(--border); text-align:right;}
   .vpo-abas{position:sticky; top:-22px; z-index:5; display:flex; gap:4px; overflow-x:auto; background:var(--bg, var(--surface)); border-bottom:1px solid var(--border); margin:0 0 16px; padding-top:4px; scrollbar-width:thin;}
+  .falt{padding:14px 2px;} .falt-topo{display:flex; align-items:center; gap:6px; flex-wrap:wrap;} .falt-topo input{height:30px; border-radius:6px; border:1px solid var(--border-strong); background:var(--surface); color:var(--text); padding:0 8px;}
+  .falt-dia{font-weight:700; text-transform:capitalize; margin-left:6px;}
+  .falt-chips{display:flex; gap:6px; flex-wrap:wrap; margin:12px 0;}
+  .falt-f{border:1px solid var(--border); border-left:3px solid var(--fc, var(--border-strong)); background:var(--surface); color:var(--text-muted); border-radius:8px; padding:5px 12px; font-size:12.5px; cursor:pointer;}
+  .falt-f b{color:var(--text); font-size:14px; margin-right:2px;} .falt-f.on{background:var(--accent-soft); color:var(--text); border-color:var(--accent);}
+  .falt-f.falt-branco, .falt-l.falt-branco{--fc:var(--danger);} .falt-f.falt-adiada, .falt-l.falt-adiada{--fc:var(--warning);} .falt-f.falt-semnec, .falt-l.falt-semnec{--fc:var(--roxo);} .falt-f.falt-ok, .falt-l.falt-ok{--fc:var(--success);}
+  .falt-lista{display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:6px;}
+  .falt-l{display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; padding:8px 12px; background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--fc); border-radius:8px;}
+  .falt-u{font-weight:700; flex:1; min-width:0;} .falt-st{font-size:11.5px; font-weight:700; color:var(--fc);} .falt-det{flex-basis:100%; font-size:11.5px; color:var(--text-muted);}
   .vpo-aba{flex:0 0 auto; background:none; border:0; border-bottom:2px solid transparent; color:var(--text-muted); font:inherit; font-size:13.5px; font-weight:600; padding:10px 16px; cursor:pointer; white-space:nowrap; margin-bottom:-1px;}
   .vpo-rotas-wrap{max-height:none !important; overflow:visible !important;} .vpo-rotas-card{overflow:visible !important;}
   .table-wrap.vpo-rotas-wrap thead th{top:var(--vpo-abas-h, 46px);}
@@ -7059,6 +7068,7 @@
     v.querySelectorAll(".vpo-aba").forEach(function(b){ var on = b.dataset.vpoaba === id; b.classList.toggle("on", on); b.setAttribute("aria-selected", on); });
     if (transp && typeof paintVpoBlocks === "function") paintVpoBlocks();
     if (id === "semcad" && typeof vptAbrir === "function") vptAbrir(id);
+    if (id === "faltantes" && typeof faltPintar === "function") faltPintar();
     if (id === "emitidos" && typeof vemPintar === "function"){ vemPintar(); if (!VEM.d) vemCarregar(); }
     if (typeof agendaFit === "function") agendaFit();
     if (window.__medirTopo) window.__medirTopo();
@@ -8899,7 +8909,7 @@
       Object.keys(rem).forEach(function(iso){ if (toIsoDate(iso)) todas = todas.concat(mergeDiaProg(iso, rem[iso])); });
       if (todas.length){
         todas.forEach(function(m){ PROG_TAGS[m.iso + "|" + m.key] = { por: m.por, ate: Date.now() + 9000 }; if (m.por) PROG_QUEM[m.iso + "|" + String(m.key).toUpperCase()] = { por: m.por, em: new Date().toISOString() }; });
-        progPintarSeguro();
+        progPintarSeguro(); if (typeof VPO_ABA !== "undefined" && VPO_ABA === "faltantes") faltPintar();
         setTimeout(progDecorar, 9100);
       } else progDecorar();
       solProgCarregar().then(progDecorar);
@@ -10820,12 +10830,59 @@
     var ts = ((FRT.d && FRT.d.transportadoras) || []).filter(function(t){ return t.ativo !== false; }).sort(function(a, b){
       var pa = /^PACHECO/i.test(a.nome) ? 0 : 1, pb = /^PACHECO/i.test(b.nome) ? 0 : 1;   // a Pacheco (onde sai a maioria dos VPOs) vem primeiro
       return pa - pb || nAtivos(b) - nAtivos(a) || (a.nome < b.nome ? -1 : 1); });
-    VPO_ABAS = ts.map(function(t){ return ["t:" + t.id, "🚛 " + esc(t.nome)]; }).concat(ts.length ? [["emitidos", "🎟️ VPOs emitidos"], ["semcad", "❓ Placas sem cadastro"]] : [["dia", "📋 VPO"]], [["rotas", "🛣️ Rotas e pedágio"]]);
+    VPO_ABAS = ts.map(function(t){ return ["t:" + t.id, "🚛 " + esc(t.nome)]; }).concat(ts.length ? [["faltantes", "📭 Faltantes"], ["emitidos", "🎟️ VPOs emitidos"], ["semcad", "❓ Placas sem cadastro"]] : [["dia", "📋 VPO"], ["faltantes", "📭 Faltantes"]], [["rotas", "🛣️ Rotas e pedágio"]]);
     ab.outerHTML = vpoAbasHtml();
     var rotas = v.querySelector('.vpo-painel[data-vpop="rotas"]');
-    if (ts.length) ["emitidos", "semcad"].forEach(function(id){ if (v.querySelector('.vpo-painel[data-vpop="' + id + '"]')) return; var d = document.createElement("div"); d.className = "vpo-painel"; d.dataset.vpop = id; d.hidden = true; rotas.parentNode.insertBefore(d, rotas); });
+    (ts.length ? ["faltantes", "emitidos", "semcad"] : ["faltantes"]).forEach(function(id){ if (v.querySelector('.vpo-painel[data-vpop="' + id + '"]')) return; var d = document.createElement("div"); d.className = "vpo-painel"; d.dataset.vpop = id; d.hidden = true; rotas.parentNode.insertBefore(d, rotas); });
     var existe = function(id){ return VPO_ABAS.some(function(x){ return x[0] === id; }); };
     vpoAbaMostrar(existe(VPO_ABA) ? VPO_ABA : VPO_ABAS[0][0]);
+  }
+  /* ---- VPO › Faltantes: situação de cada usina na Programação do dia ----
+     Sem resposta (linha em branco) · Adiada · Sem necessidade (status ou ******) · Preenchida (tudo ok) */
+  var FALT = { dia: null, f: "" };
+  var FALT_COND = { branco: ["Sem resposta", "branco"], adiada: ["Adiada", "adiada"], semnec: ["Sem necessidade", "semnec"], ok: ["Preenchida", "ok"] };
+  function faltSoAst(x){ x = String(x || ""); return /\*/.test(x) && !/[^\s*\/—–-]/.test(x); }
+  function faltCond(e){
+    if (e.status === "sem_necessidade" || faltSoAst(e.carretas) || faltSoAst(e.fabrica)) return "semnec";
+    if (e.status === "adiado") return "adiada";
+    if (temValor(e.carretas) || temValor(e.fabrica) || temValor(e.pedido)) return "ok";
+    return "branco";
+  }
+  function faltPintar(){
+    var v = el("view-vpo"), p = v && v.querySelector('.vpo-painel[data-vpop="faltantes"]'); if (!p) return;
+    if (!FALT.dia) FALT.dia = toISO(progPeriodoPadrao().de);
+    // mesmas linhas da Programação: todas as usinas da base (no domingo de exceção, só as que existem)
+    var dia = FALT.dia, dd = cementDayData(dia), byKey = {}, ents;
+    dd.entries.forEach(function(e){ byKey[entryKey(e)] = e; });
+    if (fromISO(dia).getDay() === 0) ents = dd.entries.slice();
+    else { ents = MASTER_USINAS.map(function(u){ return byKey[u] || { usina: u, carretas: "", fabrica: "", pedido: "" }; }); dd.entries.forEach(function(e){ if (MASTER_USINAS.indexOf(e.usina) === -1) ents.push(e); }); }
+    ents = ents.filter(function(e){ return String(e.usina || "").trim(); });
+    var ordem = ["branco", "adiada", "semnec", "ok"], cont = { branco: 0, adiada: 0, semnec: 0, ok: 0 };
+    var linhas = ents.map(function(e, i){ var c = faltCond(e); cont[c]++; return { e: e, c: c, i: i }; })
+      .sort(function(a, b){ return ordem.indexOf(a.c) - ordem.indexOf(b.c) || a.i - b.i; });
+    var vis = linhas.filter(function(l){ return !FALT.f || l.c === FALT.f; });
+    var chip = function(k, rot, n){ return '<button type="button" class="falt-f falt-' + (k || "todas") + (FALT.f === k ? ' on' : '') + '" data-faltf="' + k + '"><b>' + n + '</b> ' + rot + '</button>'; };
+    var val = function(x){ return temValor(x) ? esc(x) : '<span class="faint">—</span>'; };
+    p.innerHTML = '<div class="falt">' +
+      '<div class="falt-topo"><button type="button" class="btn-ghost btn-xs" data-faltd="-1" title="Dia anterior">◀</button>' +
+        '<input type="date" id="faltDia" value="' + dia + '"><button type="button" class="btn-ghost btn-xs" data-faltd="1" title="Próximo dia">▶</button>' +
+        '<span class="falt-dia">' + esc(weekdayLong(fromISO(dia))) + '</span></div>' +
+      (ents.length ? '<div class="falt-chips">' + chip("", "Todas", ents.length) + ordem.map(function(k){ return chip(k, FALT_COND[k][0], cont[k]); }).join("") + '</div>' +
+        '<div class="falt-lista">' + (vis.length ? vis.map(function(l){
+          var c = FALT_COND[l.c], det = l.c === "ok" ? '<span class="falt-det">' + val(l.e.carretas) + ' · ' + val(l.e.fabrica) + (temValor(l.e.pedido) ? ' · pedido ' + esc(l.e.pedido) : '') + '</span>' : '';
+          return '<div class="falt-l falt-' + c[1] + '"><span class="falt-u">' + esc(l.e.usina) + '</span><span class="falt-st">' + c[0] + '</span>' + det + '</div>';
+        }).join("") : '<div class="faint" style="padding:14px;">Nenhuma usina nessa situação.</div>') + '</div>'
+      : '<div class="notice" style="margin-top:12px;">A Programação de ' + esc(brDate(dia)) + ' ainda não foi criada.</div>') +
+    '</div>';
+    if (!p.__faltEv){
+      p.__faltEv = true;
+      p.addEventListener("click", function(ev){
+        var d = ev.target.closest("[data-faltd]"), f = ev.target.closest("[data-faltf]");
+        if (d){ FALT.dia = toISO(addDays(fromISO(FALT.dia), +d.dataset.faltd)); faltPintar(); }
+        else if (f){ FALT.f = FALT.f === f.dataset.faltf ? "" : f.dataset.faltf; faltPintar(); }
+      });
+      p.addEventListener("change", function(ev){ if (ev.target.id === "faltDia" && ev.target.value){ FALT.dia = ev.target.value; faltPintar(); } });
+    }
   }
   async function vptCarregar(){
     if (!ME || !sb) return;
