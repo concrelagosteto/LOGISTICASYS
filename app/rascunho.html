@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-13-5">
+<meta name="app-versao" content="2026-11-13-6">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -569,7 +569,7 @@
   .dir-obs{margin:12px 2px 0; font-size:13px; color:var(--text-muted);}
   .dir-tab{width:100%; border-collapse:collapse; font-size:14px; margin-bottom:18px;} .dir-tab th{text-align:left; font-size:12px; color:var(--text-muted); padding:6px 10px; border-bottom:1px solid var(--border-strong);}
   .dir-tab td{padding:8px 10px; border-bottom:1px solid var(--border);} .dir-tab td:first-child{font-weight:600;}
-  .dir-pors{display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:14px;} .dir-por label{font-size:12.5px; font-weight:700; display:block; margin-bottom:4px;}
+  .dir-pors{display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:14px;} .dir-por label{font-size:12.5px; font-weight:700; display:block; margin-bottom:4px;} .dir-por-st{font-weight:500; color:var(--text-faint); font-size:11px;}
   .dir-por textarea{width:100%; border-radius:8px; border:1px solid var(--border); background:var(--surface-2); color:var(--text); padding:8px 10px; font:inherit; font-size:13px; resize:vertical;}
   .dir-por-print{display:none;} .dir-vazio{color:var(--text-faint); font-size:13px; padding:20px 0; text-align:center;}
   @media (max-width:1000px){ .dir-bigs, .dir-minis{grid-template-columns:repeat(2, minmax(0, 1fr));} .dir-lin, .dir-pors{grid-template-columns:1fr;} }
@@ -6980,7 +6980,10 @@
   function dirPintar(){
     var v = el("view-dash-diretoria"); if (!v) return;
     if (!DIR.a){ var h0 = TODAY; DIR.a = h0.getFullYear() + "-" + pad2(h0.getMonth() + 1); var p0 = new Date(h0.getFullYear(), h0.getMonth() - 1, 1); DIR.b = p0.getFullYear() + "-" + pad2(p0.getMonth() + 1); }
-    try { DIR.analise = JSON.parse(localStorage.getItem("dirAnalise") || "{}"); } catch (e) { DIR.analise = {}; }
+    if (!DIR.anCarregou && typeof sb !== "undefined" && sb && ME){
+      DIR.anCarregou = true;   // "Por quê?" fica no banco: todos veem a mesma análise
+      sb.from("painel_analises").select("chave,texto").then(function(r){ if (r && !r.error && r.data){ r.data.forEach(function(x){ DIR.analise[x.chave] = x.texto || ""; }); if (el("view-dash-diretoria") && el("view-dash-diretoria").classList.contains("active")) dirPintar(); } });
+    }
     var A = dirDados(DIR.a), B = dirDados(DIR.b), nA = dirMesNome(DIR.a), nB = dirMesNome(DIR.b);
     var pct = function(x, y){ return y ? x * 100 / y : null; }, fx = dirFx;
     var atA = pct(A.real, A.prog), atB = pct(B.real, B.prog);
@@ -7038,7 +7041,7 @@
 
     // 5. Comparativo e análise
     var linha = function(rot, a, b, d){ return '<tr><td>' + rot + '</td><td>' + a + '</td><td>' + b + '</td><td>' + d + '</td></tr>'; };
-    var txt = function(id, rot){ var an = DIR.analise[DIR.a + "|" + id] || ""; return '<div class="dir-por"><label>' + rot + '</label><textarea data-dirtxt="' + id + '" rows="2" placeholder="Por quê? Ex.: fábrica parou, feriado, mudança de rota…">' + esc(an) + '</textarea><div class="dir-por-print">' + (esc(an) || "—") + '</div></div>'; };
+    var txt = function(id, rot){ var an = DIR.analise[DIR.a + "|" + id] || ""; return '<div class="dir-por"><label>' + rot + ' <small class="dir-por-st"></small></label><textarea data-dirtxt="' + id + '" rows="2" placeholder="Por quê? Ex.: fábrica parou, feriado, mudança de rota…">' + esc(an) + '</textarea><div class="dir-por-print">' + (esc(an) || "—") + '</div></div>'; };
     var b5 = bloco(5, "Comparativo e análise", "O que mudou de um mês para o outro, e por quê",
       '<table class="dir-tab"><thead><tr><th></th><th>' + esc(nA) + '</th><th>' + esc(nB) + '</th><th>Variação</th></tr></thead><tbody>' +
         linha("Cargas programadas", fx(A.prog), fx(B.prog), dirDelta(A.prog, B.prog, true)) +
@@ -7066,8 +7069,12 @@
       window.addEventListener("afterprint", fim); setTimeout(function(){ window.print(); }, 50);
     });
     v.querySelectorAll("[data-dirtxt]").forEach(function(t){ t.addEventListener("input", function(){
-      DIR.analise[DIR.a + "|" + t.dataset.dirtxt] = t.value; var pr = t.parentNode.querySelector(".dir-por-print"); if (pr) pr.textContent = t.value || "—";
-      try { localStorage.setItem("dirAnalise", JSON.stringify(DIR.analise)); } catch (e) {} }); });
+      var chave = DIR.a + "|" + t.dataset.dirtxt; DIR.analise[chave] = t.value; var pr = t.parentNode.querySelector(".dir-por-print"); if (pr) pr.textContent = t.value || "—";
+      clearTimeout(t.__tm); t.__tm = setTimeout(function(){
+        if (!sb || !ME) return;
+        sb.from("painel_analises").upsert({ empresa_id: ME.empresa_id, chave: chave, texto: t.value, por_nome: ME.nome || "", atualizado_em: new Date().toISOString() }, { onConflict: "empresa_id,chave" })
+          .then(function(r){ var st = t.parentNode.querySelector(".dir-por-st"); if (st) st.textContent = r && r.error ? "não salvou: " + dbErr(r.error) : "salvo ✓"; });
+      }, 800); }); });
   }
   function dashPct(a, b){ return b ? Math.round(a * 100 / b) : 0; }
   function dashSeg(cls, n, tot, tip){

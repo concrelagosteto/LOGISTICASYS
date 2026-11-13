@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-13-5">
+<meta name="app-versao" content="2026-11-13-6">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -531,6 +531,60 @@
   .fab-cnpj td{padding:4px 6px !important;} .fab-cnpj input{width:100%;} .fab-cnpj input.mono{font-family:ui-monospace,monospace; min-width:160px;}
   .fab-rodape{margin-top:14px; padding-top:10px; border-top:1px solid var(--border); text-align:right;}
   .vpo-abas{position:sticky; top:-22px; z-index:5; display:flex; gap:4px; overflow-x:auto; background:var(--bg, var(--surface)); border-bottom:1px solid var(--border); margin:0 0 16px; padding-top:4px; scrollbar-width:thin;}
+
+  .dir-barra{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:18px;} .dir-barra label{display:flex; align-items:center; gap:8px; font-weight:700;} .dir-barra > span{color:var(--text-muted); font-size:13px;}
+  .dir-barra select{height:34px; border-radius:8px; border:1px solid var(--border-strong); background:var(--surface); color:var(--text); padding:0 10px; font-size:13.5px;}
+  .dir-folha{max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:22px;}
+  .dir-capa{display:flex; align-items:flex-end; justify-content:space-between; gap:16px; padding:6px 4px 14px; border-bottom:2px solid var(--accent);}
+  .dir-capa small{font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--text-muted);} .dir-capa h1{margin:2px 0 0; font-size:30px;}
+  .dir-capa span{font-size:16px; font-weight:700;} .dir-capa em{font-style:normal; color:var(--accent); margin:0 6px;}
+  .dir-bloco{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:22px 26px 24px; break-inside:avoid; page-break-inside:avoid;}
+  .dir-bloco > header{display:flex; align-items:center; gap:14px; margin-bottom:20px;}
+  .dir-n{width:34px; height:34px; border-radius:50%; background:var(--accent); color:#fff; font-weight:800; display:flex; align-items:center; justify-content:center; flex:0 0 auto;}
+  .dir-bloco h2{margin:0; font-size:19px;} .dir-bloco header p{margin:2px 0 0; font-size:13px; color:var(--text-muted);}
+  .dir-bigs{display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:16px;}
+  .dir-big{display:flex; flex-direction:column; gap:6px; padding:14px 16px; border-radius:12px; background:var(--surface-2); border-left:4px solid var(--k);}
+  .dir-big-r{font-size:12.5px; color:var(--text-muted); font-weight:600;} .dir-big-v{font-size:30px; font-weight:800; line-height:1.1;}
+  .dir-big-c{display:flex; align-items:center; gap:8px; flex-wrap:wrap;} .dir-big-c small{font-size:12px; color:var(--text-faint);}
+  .dir-d{font-weight:800; font-size:12px; padding:2px 8px; border-radius:999px; white-space:nowrap;} .dir-d.bom{color:var(--success); background:color-mix(in srgb, var(--success) 15%, transparent);}
+  .dir-d.ruim{color:var(--danger); background:color-mix(in srgb, var(--danger) 15%, transparent);} .dir-d.neutro{color:var(--text-faint); font-weight:600;}
+  .dir-lin{display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:18px; margin-bottom:18px;} .dir-lin:last-child{margin-bottom:0;}
+  .dir-cel{background:var(--surface-2); border-radius:12px; padding:16px 18px;} .dir-cel h3{margin:0 0 12px; font-size:13.5px; font-weight:700; color:var(--text-muted);}
+  .dir-pz{display:flex; align-items:center; gap:18px;} .dir-pz-svg{width:150px; height:150px; flex:0 0 auto;}
+  .dir-pz-c{font-size:26px; font-weight:800; fill:var(--text);} .dir-pz-s{font-size:12px; fill:var(--text-muted);}
+  .dir-pz-leg{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:7px; flex:1; min-width:0;}
+  .dir-pz-leg li{display:grid; grid-template-columns:12px 1fr auto; column-gap:8px; align-items:center; font-size:13px;} .dir-pz-leg i{width:12px; height:12px; border-radius:3px;}
+  .dir-pz-leg span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;} .dir-pz-leg small{grid-column:2 / 4; color:var(--text-faint); font-size:11.5px; margin-top:-3px;}
+  .dir-col-leg{display:flex; gap:14px; font-size:12px; color:var(--text-muted); margin-bottom:10px;} .dir-col-leg i{display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:5px; vertical-align:-1px;}
+  .dir-col-leg i.a{background:var(--accent);} .dir-col-leg i.b{background:var(--border-strong);} .dir-col-leg i.r{background:none; border-top:2px dashed var(--text); height:0; width:14px;}
+  .dir-cols{display:flex; gap:10px; align-items:flex-end; height:210px; padding-top:22px;}
+  .dir-cg{flex:1; min-width:0; display:flex; flex-direction:column; height:100%;}
+  .dir-cb{flex:1; display:flex; align-items:flex-end; justify-content:center; gap:4px; position:relative; border-bottom:1px solid var(--border-strong);}
+  .dir-c{width:min(30px, 38%); border-radius:4px 4px 0 0; position:relative;} .dir-c.a{background:var(--accent);} .dir-c.b{background:var(--border-strong);}
+  .dir-c span{position:absolute; z-index:2; bottom:calc(100% + 3px); left:50%; transform:translateX(-50%); font-size:11px; font-weight:700; white-space:nowrap; background:var(--surface-2); padding:0 3px; border-radius:3px;} .dir-c.b span{color:var(--text-muted); font-weight:500;}
+  .dir-ref{position:absolute; left:8%; right:8%; border-top:2px dashed var(--text); opacity:.75;}
+  .dir-cn{font-size:12px; font-weight:600; text-align:center; margin-top:6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .dir-minis{display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:12px; margin-bottom:18px;}
+  .dir-mini{background:var(--surface-2); border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; gap:4px; align-items:flex-start;} .dir-mini span{font-size:12px; color:var(--text-muted);} .dir-mini b{font-size:18px;}
+  .dir-obs{margin:12px 2px 0; font-size:13px; color:var(--text-muted);}
+  .dir-tab{width:100%; border-collapse:collapse; font-size:14px; margin-bottom:18px;} .dir-tab th{text-align:left; font-size:12px; color:var(--text-muted); padding:6px 10px; border-bottom:1px solid var(--border-strong);}
+  .dir-tab td{padding:8px 10px; border-bottom:1px solid var(--border);} .dir-tab td:first-child{font-weight:600;}
+  .dir-pors{display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:14px;} .dir-por label{font-size:12.5px; font-weight:700; display:block; margin-bottom:4px;} .dir-por-st{font-weight:500; color:var(--text-faint); font-size:11px;}
+  .dir-por textarea{width:100%; border-radius:8px; border:1px solid var(--border); background:var(--surface-2); color:var(--text); padding:8px 10px; font:inherit; font-size:13px; resize:vertical;}
+  .dir-por-print{display:none;} .dir-vazio{color:var(--text-faint); font-size:13px; padding:20px 0; text-align:center;}
+  @media (max-width:1000px){ .dir-bigs, .dir-minis{grid-template-columns:repeat(2, minmax(0, 1fr));} .dir-lin, .dir-pors{grid-template-columns:1fr;} }
+  @media print{
+    body.dir-imprimindo .sidebar, body.dir-imprimindo .topbar, body.dir-imprimindo .dir-noprint, body.dir-imprimindo #notaPainel, body.dir-imprimindo .aviso-versao{display:none !important;}
+    body.dir-imprimindo .main{height:auto !important;} body.dir-imprimindo .content{overflow:visible !important; padding:0 !important;}
+    body.dir-imprimindo .view:not(#view-dash-diretoria){display:none !important;}
+    body.dir-imprimindo{-webkit-print-color-adjust:exact; print-color-adjust:exact;} body.dir-imprimindo::before{display:none;}
+    body.dir-imprimindo .dir-por textarea{display:none;} body.dir-imprimindo .dir-por-print{display:block; font-size:13px; white-space:pre-wrap; min-height:20px;}
+    body.dir-imprimindo .dir-folha{max-width:none; display:block; zoom:.82;} body.dir-imprimindo .dir-folha > *{margin-bottom:10px;} body.dir-imprimindo .dir-bloco{padding:12px 16px;} body.dir-imprimindo .dir-bloco > header{margin-bottom:10px;}
+    body.dir-imprimindo .dir-cols{height:130px; padding-top:16px;} body.dir-imprimindo .dir-pz-svg{width:110px; height:110px;} body.dir-imprimindo .dir-cel{padding:10px 12px;}
+    body.dir-imprimindo .dir-lin{gap:10px; margin-bottom:10px;} body.dir-imprimindo .dir-big-v{font-size:24px;} body.dir-imprimindo .dir-minis{margin-bottom:10px;}
+    body.dir-imprimindo .dir-capa{padding-bottom:8px;} body.dir-imprimindo .dir-capa h1{font-size:24px;}
+    @page{size:A4 landscape; margin:10mm;}
+  }
   .falt-topo{display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:12px;} .falt-topo input{height:30px; border-radius:6px; border:1px solid var(--border-strong); background:var(--surface); color:var(--text); padding:0 8px;}
   .falt-stats{display:flex; gap:6px; flex-wrap:wrap; margin-left:10px;} .dstat.falt-s-branco{--dstat:var(--danger);}
   .falt-card{padding:0; overflow:hidden;}
@@ -1188,6 +1242,9 @@
       </div>
     </div>
     <nav class="nav" id="nav">
+      <div class="nav-group" id="navDash" data-group="dash">
+        <div class="nav-group-label" data-toggle="dash"><span class="nav-group-chevron">▾</span>Dashboard</div>
+      </div>
       <div class="nav-group" id="navCimento" data-group="cimento">
         <div class="nav-group-label" data-toggle="cimento"><span class="nav-group-chevron">▾</span>Cimento — em foco</div>
       </div>
@@ -1233,6 +1290,7 @@
       <section class="view" id="view-controle-pedidos-cimento"></section>
       <section class="view" id="view-consultas"></section>
       <section class="view" id="view-dashboard"></section>
+      <section class="view" id="view-dash-diretoria"></section>
       <section class="view" id="view-operacoes"></section>
       <section class="view" id="view-vpo"></section>
       <section class="view" id="view-exececoes"></section>
@@ -1744,6 +1802,10 @@
     {sub:"VPO"},
     {id:"vpo", label:"VPO", icon:"🧾"}
   ];
+  var NAV_DASH = [
+    {id:"dash-diretoria", label:"Painel Diretoria", icon:"🎯"},
+    {id:"dashboard", label:"Geral", icon:"📊"}
+  ];
   var NAV_DADOS = [
     {sub:"Importação"},
     {id:"base-dados-cimento", label:"Importar arquivos", icon:"📥"},
@@ -1757,7 +1819,6 @@
   ];
   var NAV = [
     {id:"anotacoes", label:"Anotações", icon:"📝"},
-    {id:"dashboard", label:"Dashboard", icon:"📊"},
     {id:"configuracoes", label:"Configurações", icon:"⚙️"}
   ];
   /* Módulos ainda em definição (telas com dados de exemplo) — grupo "Em breve". */
@@ -1768,7 +1829,7 @@
     "solicitacoes":"Solicitações de Cimento", "programacao-cimento":"Programação de Cimento", "faltantes":"Faltantes", "base-dados-cimento":"Importar arquivos", "bd-usinas":"Usinas e encarregados", "bd-fabricas":"Fábricas e cimentos",
     "notas-sefaz":"Efit", "lancamentos-puzl":"Notas Puzl", "silos":"Controle de cimento",
     "controle-pedidos-cimento":"Controle de Pedidos de Cimento", "consultas":"Consultas",
-    dashboard:"Dashboard", anotacoes:"Anotações", operacoes:"Operação do dia", vpo:"VPO — Vale Pedágio Obrigatório", exececoes:"Fila de Exceções",
+    dashboard:"Dashboard — Geral", "dash-diretoria":"Painel Diretoria", anotacoes:"Anotações", operacoes:"Operação do dia", vpo:"VPO — Vale Pedágio Obrigatório", exececoes:"Fila de Exceções",
     dados:"Transportadoras e frota", relatorios:"Relatórios", auditoria:"Auditoria", configuracoes:"Configurações", adm:"Administração"
   };
   var CRUMBS = {
@@ -2278,6 +2339,7 @@
       if (d && d.classList.contains("fechada")) d.click();
     });
   }
+  navMontar(el("navDash"), NAV_DASH, null);
   navMontar(navCimentoEl, NAV_CIMENTO, "programacao-cimento");
   var navDadosEl = el("navDados");
   navMontar(navDadosEl, NAV_DADOS, null);
@@ -2373,6 +2435,7 @@
     if (id === "adm") { if (typeof paintAdm === "function") paintAdm(); }
     else if (id === "controle-pedidos-cimento") paintPedidos();
     if (id === "dashboard") paintDashboard();
+    else if (id === "dash-diretoria") dirPintar();
     else if (id === "anotacoes") paintAnotacoes();
     else if (id === "base-dados-cimento") paintBaseDados();
     else if (id === "notas-sefaz") paintNFes();
@@ -6851,6 +6914,167 @@
     var p = Math.pow(10, Math.floor(Math.log(m) / Math.LN10)), n = m / p;
     return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 4 ? 4 : n <= 5 ? 5 : 10) * p;
   }
+
+  /* ===== Painel Diretoria — blocos limpos, sempre comparando dois meses; dá para salvar em PDF =====
+     Pedidos: Programação → Controle de Pedidos. Cimento e frete: Resumo de entradas (Fretes) da PUZL + frete base. */
+  var DIR = { a: null, b: null, analise: {} };
+  var DIR_CORES = ["#3b82f6", "#f59e0b", "#10b981", "#a855f7", "#ef4444", "#14b8a6", "#ec4899", "#84cc16", "#64748b"];
+  function dirMes(ym){ var p = ym.split("-").map(Number), ini = new Date(p[0], p[1] - 1, 1), fim = new Date(p[0], p[1], 0); if (fim > TODAY) fim = new Date(TODAY); return { ini: ini, fim: fim, ym: ym }; }
+  function dirMesNome(ym, longo){ var p = ym.split("-").map(Number), t = new Date(p[0], p[1] - 1, 1).toLocaleDateString("pt-BR", longo ? { month: "long", year: "numeric" } : { month: "short", year: "2-digit" }).replace(".", ""); return t.charAt(0).toUpperCase() + t.slice(1); }
+  function dirDados(ym){
+    var m = dirMes(ym), isoI = toISO(m.ini), isoF = toISO(m.fim);
+    var linhas = pedProgLinhas({ rangeStart: m.ini, rangeEnd: m.fim });
+    var fora = { adiado: 1, sem_necessidade: 1, cancelada: 1, nao_realizada: 1 };
+    var prog = linhas.filter(function(l){ return !fora[l.status]; });
+    var ok = function(l){ return l.status === "descarregada" || l.status === "conferida"; };
+    var real = prog.filter(ok), emi = prog.filter(function(l){ return l.status === "emitida"; });
+    var porFornPed = {};
+    prog.forEach(function(l){ var k = String(l.c.fabrica || "").split(" — ").pop().trim() || "(sem fábrica)"; var o = porFornPed[k] = porFornPed[k] || { p: 0, r: 0 }; o.p++; if (ok(l)) o.r++; });
+    var ent = consultaLinhas().filter(function(l){ return l.emis && l.emis >= isoI && l.emis <= isoF; });
+    var t = { peso: 0, valor: 0, pesoV: 0, frete: 0, pesoF: 0, pesoBase: 0, pesoAcima: 0, gastoAcima: 0 }, porForn = {};
+    ent.forEach(function(l){
+      var forn = String(l.fabKey || "").split("|")[0] || "(sem fornecedor)", o = porForn[forn] = porForn[forn] || { peso: 0, frete: 0, pesoF: 0, baseX: 0, pesoB: 0 };
+      if (l.peso){ t.peso += l.peso; o.peso += l.peso; }
+      if (l.valor != null && l.peso){ t.valor += l.valor; t.pesoV += l.peso; }
+      if (l.frete != null && l.peso){ t.frete += l.frete; t.pesoF += l.peso; o.frete += l.frete; o.pesoF += l.peso; }
+      if (l.base && l.peso){ o.baseX += Number(l.base.valor) * l.peso; o.pesoB += l.peso; }
+      if (l.base && l.freteU != null && l.peso){ t.pesoBase += l.peso; if (l.sit === "acima"){ t.pesoAcima += l.peso; t.gastoAcima += l.difTotal || 0; } }
+    });
+    return { ym: ym, prog: prog.length, real: real.length, emi: emi.length, pend: prog.length - real.length - emi.length, porFornPed: porFornPed, t: t, porForn: porForn, nEnt: ent.length };
+  }
+  // pp = a diferença já é em pontos percentuais (para números que já são %)
+  function dirDelta(a, b, bomSubir, pp){
+    if (b == null || !isFinite(b) || (b === 0 && !pp) || a == null) return '<span class="dir-d neutro">—</span>';
+    var d = pp ? a - b : (a - b) * 100 / Math.abs(b), sobe = d > 0.5, desce = d < -0.5;
+    var cls = !sobe && !desce ? "neutro" : (sobe === !!bomSubir ? "bom" : "ruim");
+    return '<span class="dir-d ' + cls + '">' + (sobe ? "▲ " : desce ? "▼ " : "= ") + Math.abs(d).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + (pp ? " p.p." : "%") + '</span>';
+  }
+  function dirFx(n, d){ return n == null ? "—" : Number(n).toLocaleString("pt-BR", { maximumFractionDigits: d == null ? 0 : d }); }
+  // pizza (rosca) em SVG + legenda
+  function dirPizza(fatias, centro, sub, fmt){
+    var tot = fatias.reduce(function(a, f){ return a + (f.v || 0); }, 0), R = 70, C = 2 * Math.PI * R, acc = 0;
+    var aneis = tot ? fatias.filter(function(f){ return f.v > 0; }).map(function(f){
+      var frac = f.v / tot, len = Math.max(frac * C - (fatias.length > 1 ? 2 : 0), 0.5);
+      var c = '<circle r="' + R + '" cx="90" cy="90" fill="none" stroke="' + f.cor + '" stroke-width="26" stroke-dasharray="' + len + ' ' + (C - len) + '" stroke-dashoffset="' + (-acc * C) + '" transform="rotate(-90 90 90)"/>';
+      acc += frac; return c;
+    }).join("") : '<circle r="' + R + '" cx="90" cy="90" fill="none" stroke="var(--border)" stroke-width="26"/>';
+    return '<div class="dir-pz"><svg viewBox="0 0 180 180" class="dir-pz-svg">' + aneis +
+      '<text x="90" y="88" text-anchor="middle" class="dir-pz-c">' + centro + '</text><text x="90" y="108" text-anchor="middle" class="dir-pz-s">' + sub + '</text></svg>' +
+      '<ul class="dir-pz-leg">' + fatias.map(function(f){ return '<li><i style="background:' + f.cor + '"></i><span>' + esc(f.n) + '</span><b>' + (tot ? dirFx(f.v * 100 / tot, 1) + "%" : "—") + '</b><small>' + (fmt ? fmt(f.v) : "") + '</small></li>'; }).join("") + '</ul></div>';
+  }
+  // colunas pareadas (mês escolhido × mês de comparação), com marca de referência opcional
+  function dirColunas(itens, fmt, nA, nB, refRot){
+    if (!itens.length) return '<div class="dir-vazio">Sem dados nesses meses.</div>';
+    var max = Math.max.apply(null, itens.map(function(i){ return Math.max(i.a || 0, i.b || 0, i.ref || 0); }).concat([1]));
+    var h = function(v){ return v ? Math.max(v * 100 / max, 1.5) : 0; };
+    return '<div class="dir-col-leg"><span><i class="a"></i>' + esc(nA) + '</span><span><i class="b"></i>' + esc(nB) + '</span>' + (refRot ? '<span><i class="r"></i>' + esc(refRot) + '</span>' : '') + '</div>' +
+      '<div class="dir-cols">' + itens.map(function(i){
+        return '<div class="dir-cg"><div class="dir-cb">' +
+          '<div class="dir-c a" style="height:' + h(i.a) + '%"><span>' + fmt(i.a) + '</span></div>' +
+          '<div class="dir-c b" style="height:' + h(i.b) + '%"><span>' + fmt(i.b) + '</span></div>' +
+          (i.ref ? '<div class="dir-ref" style="bottom:' + h(i.ref) + '%" title="' + esc(refRot) + ': ' + fmt(i.ref) + '"></div>' : '') +
+          '</div><div class="dir-cn" title="' + esc(i.n) + '">' + esc(i.n) + '</div></div>';
+      }).join("") + '</div>';
+  }
+  function dirPintar(){
+    var v = el("view-dash-diretoria"); if (!v) return;
+    if (!DIR.a){ var h0 = TODAY; DIR.a = h0.getFullYear() + "-" + pad2(h0.getMonth() + 1); var p0 = new Date(h0.getFullYear(), h0.getMonth() - 1, 1); DIR.b = p0.getFullYear() + "-" + pad2(p0.getMonth() + 1); }
+    if (!DIR.anCarregou && typeof sb !== "undefined" && sb && ME){
+      DIR.anCarregou = true;   // "Por quê?" fica no banco: todos veem a mesma análise
+      sb.from("painel_analises").select("chave,texto").then(function(r){ if (r && !r.error && r.data){ r.data.forEach(function(x){ DIR.analise[x.chave] = x.texto || ""; }); if (el("view-dash-diretoria") && el("view-dash-diretoria").classList.contains("active")) dirPintar(); } });
+    }
+    var A = dirDados(DIR.a), B = dirDados(DIR.b), nA = dirMesNome(DIR.a), nB = dirMesNome(DIR.b);
+    var pct = function(x, y){ return y ? x * 100 / y : null; }, fx = dirFx;
+    var atA = pct(A.real, A.prog), atB = pct(B.real, B.prog);
+    var fmA = A.t.pesoF ? A.t.frete / A.t.pesoF : null, fmB = B.t.pesoF ? B.t.frete / B.t.pesoF : null;
+    var pcA = A.t.pesoV ? A.t.valor / A.t.pesoV : null, pcB = B.t.pesoV ? B.t.valor / B.t.pesoV : null;
+    var acA = pct(A.t.pesoAcima, A.t.pesoBase), acB = pct(B.t.pesoAcima, B.t.pesoBase);
+    var forns = Object.keys(Object.assign({}, A.porForn, B.porForn)).sort(function(x, y){ return ((A.porForn[y] || {}).peso || 0) - ((A.porForn[x] || {}).peso || 0); });
+    var corDe = {}; forns.forEach(function(f, i){ corDe[f] = DIR_CORES[i % DIR_CORES.length]; });
+    var big = function(rot, val, delta, ant, cor){ return '<div class="dir-big" style="--k:' + cor + '"><span class="dir-big-r">' + rot + '</span><b class="dir-big-v">' + val + '</b><span class="dir-big-c">' + delta + '<small>' + esc(nB) + ': ' + ant + '</small></span></div>'; };
+    var bloco = function(n, tit, sub, corpo){ return '<section class="dir-bloco"><header><span class="dir-n">' + n + '</span><div><h2>' + tit + '</h2><p>' + sub + '</p></div></header>' + corpo + '</section>'; };
+    var mini = function(rot, val, delta){ return '<div class="dir-mini"><span>' + rot + '</span><b>' + val + '</b>' + (delta || "") + '</div>'; };
+
+    // 1. Resumo
+    var b1 = bloco(1, "O nosso serviço em números", "Resumo de " + esc(dirMesNome(DIR.a, true)) + ", comparado com " + esc(dirMesNome(DIR.b, true)),
+      '<div class="dir-bigs">' +
+        big("Pedidos atendidos", atA == null ? "—" : fx(atA, 1) + "%", dirDelta(atA, atB, true, true), atB == null ? "—" : fx(atB, 1) + "%", "var(--success)") +
+        big("Cimento recebido", fx(A.t.peso, 0) + " t", dirDelta(A.t.peso, B.t.peso, true), fx(B.t.peso, 0) + " t", "#3b82f6") +
+        big("Gasto com frete", brl(A.t.frete).replace(/,\d\d$/, ""), dirDelta(A.t.frete, B.t.frete, false), brl(B.t.frete).replace(/,\d\d$/, ""), "var(--warning)") +
+        big("Frete médio por tonelada", fmA == null ? "—" : brl(fmA), dirDelta(fmA, fmB, false), fmB == null ? "—" : brl(fmB), "#a855f7") +
+      '</div>');
+
+    // 2. Pedidos
+    var pedK = Object.keys(Object.assign({}, A.porFornPed, B.porFornPed)).sort(function(x, y){ return ((A.porFornPed[y] || {}).p || 0) - ((A.porFornPed[x] || {}).p || 0); });
+    var pedCols = pedK.slice(0, 8).map(function(f){ var a = A.porFornPed[f], b = B.porFornPed[f]; return { n: f, a: a && a.p ? a.r * 100 / a.p : null, b: b && b.p ? b.r * 100 / b.p : null }; });
+    var fatPed = function(D){ return [{ n: "Realizadas (descarregadas)", v: D.real, cor: "var(--success)" }, { n: "Emitidas, aguardando descarga", v: D.emi, cor: "var(--warning)" }, { n: "Sem nota", v: D.pend, cor: "var(--danger)" }]; };
+    var b2 = bloco(2, "KPI de pedidos — feitos × realizados", "Das cargas programadas, quantas descarregaram",
+      '<div class="dir-lin">' +
+        '<div class="dir-cel"><h3>' + esc(nA) + ' · ' + fx(A.prog) + ' cargas programadas</h3>' + dirPizza(fatPed(A), atA == null ? "—" : fx(atA, 0) + "%", "realizadas", function(x){ return fx(x) + " cargas"; }) + '</div>' +
+        '<div class="dir-cel"><h3>' + esc(nB) + ' · ' + fx(B.prog) + ' cargas programadas</h3>' + dirPizza(fatPed(B), atB == null ? "—" : fx(atB, 0) + "%", "realizadas", function(x){ return fx(x) + " cargas"; }) + '</div>' +
+      '</div>' +
+      '<div class="dir-cel"><h3>% realizado por fornecedor</h3>' + dirColunas(pedCols, function(x){ return x == null ? "" : fx(x, 0) + "%"; }, nA, nB) + '</div>');
+
+    // 3. Mapa de cimento
+    var cimF = forns.filter(function(f){ return (A.porForn[f] || {}).peso; }).map(function(f){ return { n: f, v: A.porForn[f].peso, cor: corDe[f] }; });
+    var cimCols = forns.slice(0, 8).map(function(f){ return { n: f, a: (A.porForn[f] || {}).peso || 0, b: (B.porForn[f] || {}).peso || 0 }; });
+    var b3 = bloco(3, "Mapa de cimento", "Quantidade de cimento recebida por fábrica (toneladas)",
+      '<div class="dir-lin">' +
+        '<div class="dir-cel"><h3>Participação em ' + esc(nA) + '</h3>' + dirPizza(cimF, fx(A.t.peso, 0), "toneladas", function(x){ return fx(x, 0) + " t"; }) + '</div>' +
+        '<div class="dir-cel dir-cel-l"><h3>Toneladas: ' + esc(nA) + ' × ' + esc(nB) + '</h3>' + dirColunas(cimCols, function(x){ return x ? fx(x, 0) : ""; }, nA, nB) + '</div>' +
+      '</div>');
+
+    // 4. Mapa de transporte
+    var freCols = forns.filter(function(f){ return (A.porForn[f] || {}).pesoF || (B.porForn[f] || {}).pesoF; }).slice(0, 8).map(function(f){
+      var a = A.porForn[f], b = B.porForn[f];
+      return { n: f, a: a && a.pesoF ? a.frete / a.pesoF : null, b: b && b.pesoF ? b.frete / b.pesoF : null, ref: a && a.pesoB ? a.baseX / a.pesoB : null }; });
+    var b4 = bloco(4, "Mapa de transporte", "Custos de frete e preço do cimento, sempre comparados",
+      '<div class="dir-minis">' +
+        mini("Gasto com frete", brl(A.t.frete), dirDelta(A.t.frete, B.t.frete, false)) +
+        mini("Frete médio", fmA == null ? "—" : brl(fmA) + "/t", dirDelta(fmA, fmB, false)) +
+        mini("Preço médio do cimento", pcA == null ? "—" : brl(pcA) + "/t", dirDelta(pcA, pcB, false)) +
+        mini("Frete acima da base", acA == null ? "—" : fx(acA, 1) + "% da tonelagem", dirDelta(acA, acB, false, true)) +
+      '</div>' +
+      '<div class="dir-cel"><h3>Frete médio por tonelada, por fornecedor</h3>' + dirColunas(freCols, function(x){ return x == null ? "" : "R$ " + fx(x, 0); }, nA, nB, "frete base") + '</div>' +
+      (A.t.gastoAcima > 0 ? '<p class="dir-obs">Em ' + esc(nA) + ', o frete acima da base custou <b>' + brl(A.t.gastoAcima) + '</b> a mais que o combinado.</p>' : ''));
+
+    // 5. Comparativo e análise
+    var linha = function(rot, a, b, d){ return '<tr><td>' + rot + '</td><td>' + a + '</td><td>' + b + '</td><td>' + d + '</td></tr>'; };
+    var txt = function(id, rot){ var an = DIR.analise[DIR.a + "|" + id] || ""; return '<div class="dir-por"><label>' + rot + ' <small class="dir-por-st"></small></label><textarea data-dirtxt="' + id + '" rows="2" placeholder="Por quê? Ex.: fábrica parou, feriado, mudança de rota…">' + esc(an) + '</textarea><div class="dir-por-print">' + (esc(an) || "—") + '</div></div>'; };
+    var b5 = bloco(5, "Comparativo e análise", "O que mudou de um mês para o outro, e por quê",
+      '<table class="dir-tab"><thead><tr><th></th><th>' + esc(nA) + '</th><th>' + esc(nB) + '</th><th>Variação</th></tr></thead><tbody>' +
+        linha("Cargas programadas", fx(A.prog), fx(B.prog), dirDelta(A.prog, B.prog, true)) +
+        linha("Cargas realizadas", fx(A.real), fx(B.real), dirDelta(A.real, B.real, true)) +
+        linha("Pedidos atendidos", atA == null ? "—" : fx(atA, 1) + "%", atB == null ? "—" : fx(atB, 1) + "%", dirDelta(atA, atB, true, true)) +
+        linha("Cimento recebido", fx(A.t.peso, 0) + " t", fx(B.t.peso, 0) + " t", dirDelta(A.t.peso, B.t.peso, true)) +
+        linha("Gasto com frete", brl(A.t.frete), brl(B.t.frete), dirDelta(A.t.frete, B.t.frete, false)) +
+        linha("Frete médio", fmA == null ? "—" : brl(fmA) + "/t", fmB == null ? "—" : brl(fmB) + "/t", dirDelta(fmA, fmB, false)) +
+        linha("Preço médio do cimento", pcA == null ? "—" : brl(pcA) + "/t", pcB == null ? "—" : brl(pcB) + "/t", dirDelta(pcA, pcB, false)) +
+      '</tbody></table>' +
+      '<div class="dir-pors">' + txt("pedidos", "Pedidos") + txt("cimento", "Cimento") + txt("frete", "Transporte") + '</div>');
+
+    var opts = function(sel){ var o = [], d = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1); for (var i = 0; i < 18; i++){ var ym = d.getFullYear() + "-" + pad2(d.getMonth() + 1); o.push('<option value="' + ym + '"' + (ym === sel ? " selected" : "") + '>' + d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" }) + '</option>'); d = new Date(d.getFullYear(), d.getMonth() - 1, 1); } return o.join(""); };
+    var semFrete = !A.nEnt && !B.nEnt ? '<div class="notice dir-noprint">Sem entradas/fretes nesses meses: importe o <b>Resumo de entradas (Fretes)</b> da PUZL para os blocos 3 e 4.</div>' : "";
+    v.innerHTML =
+      '<div class="dir-barra dir-noprint"><label>Mês <select id="dirA">' + opts(DIR.a) + '</select></label><span>comparado com</span><select id="dirB">' + opts(DIR.b) + '</select>' +
+        '<span class="grow"></span><button type="button" class="btn-primary btn-inline" id="dirPdf">📄 Salvar em PDF</button></div>' + semFrete +
+      '<div class="dir-folha"><div class="dir-capa"><div><small>Concrelagos · Logística</small><h1>Painel Diretoria</h1></div><span>' + esc(dirMesNome(DIR.a, true)) + ' <em>×</em> ' + esc(dirMesNome(DIR.b, true)) + '</span></div>' +
+      b1 + b2 + b3 + b4 + b5 + '</div>';
+    v.querySelector("#dirA").addEventListener("change", function(){ DIR.a = this.value; dirPintar(); });
+    v.querySelector("#dirB").addEventListener("change", function(){ DIR.b = this.value; dirPintar(); });
+    v.querySelector("#dirPdf").addEventListener("click", function(){
+      document.body.classList.add("dir-imprimindo");
+      var fim = function(){ document.body.classList.remove("dir-imprimindo"); window.removeEventListener("afterprint", fim); };
+      window.addEventListener("afterprint", fim); setTimeout(function(){ window.print(); }, 50);
+    });
+    v.querySelectorAll("[data-dirtxt]").forEach(function(t){ t.addEventListener("input", function(){
+      var chave = DIR.a + "|" + t.dataset.dirtxt; DIR.analise[chave] = t.value; var pr = t.parentNode.querySelector(".dir-por-print"); if (pr) pr.textContent = t.value || "—";
+      clearTimeout(t.__tm); t.__tm = setTimeout(function(){
+        if (!sb || !ME) return;
+        sb.from("painel_analises").upsert({ empresa_id: ME.empresa_id, chave: chave, texto: t.value, por_nome: ME.nome || "", atualizado_em: new Date().toISOString() }, { onConflict: "empresa_id,chave" })
+          .then(function(r){ var st = t.parentNode.querySelector(".dir-por-st"); if (st) st.textContent = r && r.error ? "não salvou: " + dbErr(r.error) : "salvo ✓"; });
+      }, 800); }); });
+  }
   function dashPct(a, b){ return b ? Math.round(a * 100 / b) : 0; }
   function dashSeg(cls, n, tot, tip){
     return n ? '<i class="dseg '+cls+'" style="flex:'+n+' 1 0;" data-tip="'+esc(tip)+'"></i>' : "";
@@ -8189,12 +8413,13 @@
   // administrador, ou usuário com a aba "Adm" liberada (tem os mesmos poderes do administrador)
   function ehAdminTela(){ return !!ME && (ME.papel === "admin" || (Array.isArray(ME.abas) && ME.abas.indexOf("adm") !== -1)); }
   function abasGrupos(){
-    var g = [["Cimento — em foco", NAV_CIMENTO], ["Base de Dados", NAV_DADOS], ["Administração", [{ id: "adm", label: "Adm (poderes de administrador)", icon: "🔐" }, { id: "relatorios", label: "Relatórios", icon: "📈" }, { id: "auditoria", label: "Auditoria", icon: "🔍" }]], ["Outros", NAV], ["Em breve", NAV_BREVE]];
+    var g = [["Dashboard", NAV_DASH], ["Cimento — em foco", NAV_CIMENTO], ["Base de Dados", NAV_DADOS], ["Administração", [{ id: "adm", label: "Adm (poderes de administrador)", icon: "🔐" }, { id: "relatorios", label: "Relatórios", icon: "📈" }, { id: "auditoria", label: "Auditoria", icon: "🔍" }]], ["Outros", NAV], ["Em breve", NAV_BREVE]];
     return g.map(function(x){ return { nome: x[0], itens: x[1].filter(function(i){ return i.id && ABAS_SEMPRE.indexOf(i.id) === -1; }) }; });
   }
   function podeVerAba(id){
     if (!ME || ME.papel === "admin" || !Array.isArray(ME.abas)) return true;
-    if (id === "faltantes" && ME.abas.indexOf("programacao-cimento") !== -1) return true;   // quem vê a Programação vê as Faltantes
+    if (id === "faltantes" && ME.abas.indexOf("programacao-cimento") !== -1) return true;
+    if (id === "dash-diretoria" && ME.abas.indexOf("dashboard") !== -1) return true;   // quem vê a Programação vê as Faltantes
     return ABAS_SEMPRE.indexOf(id) !== -1 || ME.abas.indexOf(id) !== -1;
   }
   function primeiraAbaPermitida(){
