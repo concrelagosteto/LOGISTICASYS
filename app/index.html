@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-13-3">
+<meta name="app-versao" content="2026-11-13-4">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -537,8 +537,11 @@
   .falt-cab{display:grid; grid-template-columns:minmax(150px, 22%) 1fr; align-items:end; background:var(--surface-2); border-bottom:1px solid var(--border-strong);}
   .falt-cab span{font-size:11px; font-weight:700; padding:8px 10px; text-align:center; border-right:1px solid var(--border-strong); color:var(--text-muted);}
   .falt-cab b{font-size:15px; text-align:center; padding:10px; letter-spacing:.02em;}
-  .falt-tab{width:100%; border-collapse:collapse; font-size:13px;} .falt-tab th{text-align:center; text-transform:uppercase;}
-  .falt-tab td{border-bottom:1px solid var(--border); border-right:1px solid var(--border); padding:5px 10px; white-space:nowrap;}
+  /* tabela inteira na tela (sem rolagem interna), para dar print de uma vez */
+  #view-faltantes .table-wrap{max-height:none !important; height:auto !important; overflow:visible !important;}
+  .falt-tab{width:100%; border-collapse:collapse; font-size:16px;} .falt-tab th{text-align:center; text-transform:uppercase; font-size:13px; padding:7px 10px;}
+  .falt-tab td{border-bottom:1px solid var(--border); border-right:1px solid var(--border); padding:4px 12px; white-space:nowrap; line-height:1.3;}
+  #view-faltantes .falt-tab td{font-size:16px; padding:3px 12px;} #view-faltantes .falt-tab td.falt-u{font-weight:700;} #view-faltantes .falt-tab .falt-st{font-size:13px; padding:1px 9px;} .falt-cab b{font-size:18px !important;} .falt-cab span{font-size:13px !important;}
   .falt-tab td.falt-u{font-weight:600; border-left:3px solid var(--fc);}
   .falt-tr.falt-branco{--fc:var(--danger);} .falt-tr.falt-adiada{--fc:var(--warning);} .falt-tr.falt-semnec{--fc:var(--roxo);} .falt-tr.falt-ok{--fc:var(--success);}
   .falt-tr.falt-semnec td{color:var(--text-muted);}
