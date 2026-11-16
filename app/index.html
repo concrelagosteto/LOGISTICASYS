@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-16-4">
+<meta name="app-versao" content="2026-11-16-5">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -2859,8 +2859,47 @@
     var on = tr.classList.contains("prog-row-semnec");
     tr.querySelectorAll('.multi-field[data-field="carretas"] input, .multi-field[data-field="pedido"] input:not(.ped-compl)').forEach(function(i){ i.placeholder = on ? SEMNEC_AST : ""; });
   }
+  /* Adiado → a carga vai sozinha para o próximo dia útil (mesma usina), sem status, com a observação "Adiada de dd/mm".
+     Desfazer o Adiado tira de lá a cópia, se ela ainda não foi mexida. */
+  function progProxDiaUtil(iso){ var d = fromISO(iso); do { d = addDays(d, 1); } while (!diaUtilProg(d)); return toISO(d); }
+  function progAvisoAdiado(msg){
+    var t = el("progAdiaToast"); if (t) t.remove();
+    t = document.createElement("div"); t.id = "progAdiaToast"; t.className = "adm-msg cc-toast ok"; t.setAttribute("role", "status");
+    t.innerHTML = '<span>' + msg + '</span><button type="button" class="btn-ghost" aria-label="Fechar aviso">✕</button>';
+    t.querySelector("button").addEventListener("click", function(){ t.remove(); });
+    document.body.appendChild(t); setTimeout(function(){ if (t.parentNode) t.remove(); }, 9000);
+  }
+  function progAdiarCargas(iso, entry, idxs, desfazer){
+    var cgs = cargasDaLinha(entry).filter(function(c){ return idxs.indexOf(c.idx) !== -1; }); if (!cgs.length) return;
+    var prox = progProxDiaUtil(iso), dest = getOrCreateEntry(prox, entryKey(entry)); if (!dest.usina) dest.usina = entry.usina;
+    var marca = "Adiada de " + fmtBR(fromISO(iso)).slice(0, 5);
+    var sp = function(x){ return String(x == null ? "" : x).split("/").map(function(y){ return y.trim(); }); };
+    var car = multiListFrom(dest.carretas), fab = multiListFrom(dest.fabrica), ped = multiListFrom(dest.pedido);
+    var n = cargasDaLinha(dest).length ? Math.max(car.length, fab.length, ped.length) : 0;
+    var sts = n ? progStatusLista(dest) : []; if (n && sts.length === 1 && n > 1){ sts = new Array(n).fill(sts[0]); }
+    var pad = function(l){ l = l.slice(0, n); while (l.length < n) l.push(""); return l; };
+    car = pad(car); fab = pad(fab); ped = pad(ped); sts = pad(sts);
+    var orig = { car: sp(entry.carretas), fab: sp(entry.fabrica), ped: sp(entry.pedido) }, mudou = 0;
+    var mesma = function(i, k){ return (car[i] || "") === (orig.car[k] || "") && (fab[i] || "") === (orig.fab[k] || "") && (ped[i] || "") === (orig.ped[k] || ""); };
+    cgs.forEach(function(c){
+      var k = c.idx, ja = -1; for (var i = 0; i < n; i++) if (mesma(i, k)){ ja = i; break; }
+      if (!desfazer){ if (ja !== -1) return; car.push(orig.car[k] || ""); fab.push(orig.fab[k] || ""); ped.push(orig.ped[k] || ""); sts.push(""); n++; mudou++; }
+      else if (ja !== -1 && !sts[ja]){ [car, fab, ped, sts].forEach(function(l){ l.splice(ja, 1); }); n--; mudou++; }   // só tira a cópia que ainda está sem status
+    });
+    if (!mudou) return;
+    dest.carretas = multiJoin(car); dest.fabrica = multiJoin(fab); dest.pedido = multiJoin(ped);
+    dest.statusCg = sts.length > 1 ? multiJoin(sts) : ""; dest.status = sts.length ? progStatusAgreg(sts) : "";
+    var resta = false; for (var i2 = 0; i2 < n; i2++) for (var k2 = 0; k2 < orig.car.length; k2++) if (!sts[i2] && mesma(i2, k2)) resta = true;
+    var obs = String(dest.obs || "").split("\n").filter(function(x){ return x.trim() && x.trim() !== marca; });
+    if (!desfazer || resta) obs.push(marca);
+    dest.obs = obs.join("\n");
+    progAvisoAdiado(desfazer
+      ? "Adiado desfeito: " + mudou + " carga(s) de <b>" + esc(entry.usina) + "</b> saíram de " + esc(fmtBR(fromISO(prox))) + "."
+      : "📅 " + mudou + " carga(s) de <b>" + esc(entry.usina) + "</b> foram para <b>" + esc(fmtBR(fromISO(prox))) + " (" + esc(weekdayLong(fromISO(prox))) + ")</b>, sem status. Confira lá.");
+    if (typeof scheduleSync === "function") setTimeout(function(){ scheduleSync(); }, 0);
+  }
   function progStatusSync(container, entry, vals){
-    var antes = entry.status || "";
+    var antes = entry.status || "", antesL = progStatusLista(entry);
     entry.statusCg = vals.length > 1 ? multiJoin(vals) : "";
     entry.status = progStatusAgreg(vals);
     container.querySelectorAll("select").forEach(function(sl, i){ sl.dataset.v = sl.value; sl.title = vals.length > 1 ? "Status da " + (i + 1) + "ª carga" : ""; });
@@ -2875,8 +2914,14 @@
     progSemNecAsteriscos(tr);
     var blk = container.closest(".prog-block[data-iso]"), box = blk && blk.querySelector(".prog-day-stats");
     if (box) box.innerHTML = progDayStatsHtml(progDayCounts(blk.dataset.iso));
+    // cargas que viraram Adiado (ou deixaram de ser) → vão para / saem do próximo dia útil
+    var isoL = container.dataset.iso, todas = cargasDaLinha(entry).map(function(c){ return c.idx; }), novas = [], volta = [];
+    if (vals.length <= 1){ var a0 = antesL.length <= 1 ? antesL[0] || "" : progStatusAgreg(antesL);
+      if (vals[0] === "adiado" && a0 !== "adiado") novas = todas; else if (vals[0] !== "adiado" && a0 === "adiado") volta = todas; }
+    else vals.forEach(function(v, i){ var a = antesL.length > 1 ? antesL[i] || "" : antesL[0] || ""; if (v === "adiado" && a !== "adiado") novas.push(i); else if (v !== "adiado" && a === "adiado") volta.push(i); });
+    if (isoL && container.closest("#progBlocks")){ if (novas.length) progAdiarCargas(isoL, entry, novas, false); if (volta.length) progAdiarCargas(isoL, entry, volta, true); }
     // adiado muda as ligações (a linha deixa de contar) → repinta a tela inteira
-    if ((st === "adiado") !== (antes === "adiado")) paintBlocks();
+    if ((st === "adiado") !== (antes === "adiado") || novas.length || volta.length) paintBlocks();
   }
 
   // Identificador estável por linha: nome da usina para linhas da lista mestre
