@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-16-8">
+<meta name="app-versao" content="2026-11-16-9">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -7040,9 +7040,10 @@
   // pp = a diferença já é em pontos percentuais (para números que já são %)
   function dirDelta(a, b, bomSubir, pp){
     if (b == null || !isFinite(b) || (b === 0 && !pp) || a == null) return '<span class="dir-d neutro">—</span>';
-    var d = pp ? a - b : (a - b) * 100 / Math.abs(b), sobe = d > 0.5, desce = d < -0.5;
+    var d = pp ? a - b : (a - b) * 100 / Math.abs(b), sobe = Math.round(d) > 0, desce = Math.round(d) < 0;
     var cls = !sobe && !desce ? "neutro" : (sobe === !!bomSubir ? "bom" : "ruim");
-    return '<span class="dir-d ' + cls + '">' + (sobe ? "▲ " : desce ? "▼ " : "= ") + Math.abs(d).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + (pp ? " p.p." : "%") + '</span>';
+    var tit = pp ? "p.p. = pontos percentuais: a diferença entre as duas porcentagens (ex.: de 90% para 94% = 4 p.p.)" : "variação em relação ao outro período";
+    return '<span class="dir-d ' + cls + '" title="' + tit + '">' + (sobe ? "▲ " : desce ? "▼ " : "= ") + Math.abs(d).toLocaleString("pt-BR", { maximumFractionDigits: 0 }) + (pp ? " p.p." : "%") + '</span>';
   }
   function dirFx(n, d){ return n == null ? "—" : Number(n).toLocaleString("pt-BR", { maximumFractionDigits: d == null ? 0 : d }); }
   // pizza (rosca) em SVG + legenda
@@ -7055,7 +7056,7 @@
     }).join("") : '<circle r="' + R + '" cx="90" cy="90" fill="none" stroke="var(--border)" stroke-width="26"/>';
     return '<div class="dir-pz"><svg viewBox="0 0 180 180" class="dir-pz-svg">' + aneis +
       '<text x="90" y="88" text-anchor="middle" class="dir-pz-c">' + centro + '</text><text x="90" y="108" text-anchor="middle" class="dir-pz-s">' + sub + '</text></svg>' +
-      '<ul class="dir-pz-leg">' + fatias.map(function(f){ return '<li><i style="background:' + f.cor + '"></i><span>' + esc(f.n) + '</span><b>' + (tot ? dirFx(f.v * 100 / tot, 1) + "%" : "—") + '</b><small>' + (fmt ? fmt(f.v) : "") + '</small></li>'; }).join("") + '</ul></div>';
+      '<ul class="dir-pz-leg">' + fatias.map(function(f){ return '<li><i style="background:' + f.cor + '"></i><span>' + esc(f.n) + '</span><b>' + (tot ? dirFx(f.v * 100 / tot, 0) + "%" : "—") + '</b><small>' + (fmt ? fmt(f.v) : "") + '</small></li>'; }).join("") + '</ul></div>';
   }
   // colunas pareadas (mês escolhido × mês de comparação), com marca de referência opcional
   function dirColunas(itens, fmt, nA, nB, refRot){
@@ -7097,7 +7098,7 @@
     // 1. Resumo
     var b1 = bloco(1, "O nosso serviço em números", "Resumo de " + esc(PER.A.longo) + ", comparado com " + esc(PER.B.longo),
       '<div class="dir-bigs">' +
-        big("Programações descarregadas", atA == null ? "—" : fx(atA, 1) + "%", dirDelta(atA, atB, true, true), atB == null ? "—" : fx(atB, 1) + "%", "var(--success)") +
+        big("Programações descarregadas", atA == null ? "—" : fx(atA, 0) + "%", dirDelta(atA, atB, true, true), atB == null ? "—" : fx(atB, 0) + "%", "var(--success)") +
         big("Cimento recebido", fx(A.t.peso, 0) + " t", dirDelta(A.t.peso, B.t.peso, true), fx(B.t.peso, 0) + " t", "#3b82f6") +
         big("Gasto com frete", brl(A.t.frete).replace(/,\d\d$/, ""), dirDelta(A.t.frete, B.t.frete, false), brl(B.t.frete).replace(/,\d\d$/, ""), "var(--warning)") +
         big("Frete médio por tonelada", fmA == null ? "—" : brl(fmA), dirDelta(fmA, fmB, false), fmB == null ? "—" : brl(fmB), "#a855f7") +
@@ -7139,7 +7140,7 @@
         mini("Gasto com frete", brl(A.t.frete), dirDelta(A.t.frete, B.t.frete, false)) +
         mini("Frete médio", fmA == null ? "—" : brl(fmA) + "/t", dirDelta(fmA, fmB, false)) +
         mini("Preço médio do cimento", pcA == null ? "—" : brl(pcA) + "/t", dirDelta(pcA, pcB, false)) +
-        mini("Frete acima da base", acA == null ? "—" : fx(acA, 1) + "% da tonelagem", dirDelta(acA, acB, false, true)) +
+        mini("Frete acima da base", acA == null ? "—" : fx(acA, 0) + "% da tonelagem", dirDelta(acA, acB, false, true)) +
       '</div>' +
       '<div class="dir-cel"><h3>Frete médio por tonelada, por fornecedor</h3>' + dirColunas(freCols, function(x){ return x == null ? "" : "R$ " + fx(x, 0); }, nA, nB, "frete base") + '</div>' +
       (A.t.gastoAcima > 0 ? '<p class="dir-obs">Em ' + esc(nA) + ', o frete acima da base custou <b>' + brl(A.t.gastoAcima) + '</b> a mais que o combinado.</p>' : ''));
@@ -7152,7 +7153,7 @@
         linha("Programadas (Tudo OK)", fx(A.prog), fx(B.prog), dirDelta(A.prog, B.prog, true)) +
         linha("Descarregadas", fx(A.real), fx(B.real), dirDelta(A.real, B.real, true)) +
         linha("Adiadas", fx(A.adia), fx(B.adia), dirDelta(A.adia, B.adia, false)) +
-        linha("% descarregado", atA == null ? "—" : fx(atA, 1) + "%", atB == null ? "—" : fx(atB, 1) + "%", dirDelta(atA, atB, true, true)) +
+        linha("% descarregado", atA == null ? "—" : fx(atA, 0) + "%", atB == null ? "—" : fx(atB, 0) + "%", dirDelta(atA, atB, true, true)) +
         linha("Cimento recebido", fx(A.t.peso, 0) + " t", fx(B.t.peso, 0) + " t", dirDelta(A.t.peso, B.t.peso, true)) +
         linha("Gasto com frete", brl(A.t.frete), brl(B.t.frete), dirDelta(A.t.frete, B.t.frete, false)) +
         linha("Frete médio", fmA == null ? "—" : brl(fmA) + "/t", fmB == null ? "—" : brl(fmB) + "/t", dirDelta(fmA, fmB, false)) +
