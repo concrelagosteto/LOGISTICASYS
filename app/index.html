@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-16-7">
+<meta name="app-versao" content="2026-11-16-8">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -568,7 +568,10 @@
   .dir-c span{position:absolute; z-index:2; bottom:calc(100% + 3px); left:50%; transform:translateX(-50%); font-size:11px; font-weight:700; white-space:nowrap; background:var(--surface-2); padding:0 3px; border-radius:3px;} .dir-c.b span{color:var(--text-muted); font-weight:500;}
   .dir-ref{position:absolute; left:8%; right:8%; border-top:2px dashed var(--text); opacity:.75;}
   .dir-cn{font-size:12px; font-weight:600; text-align:center; margin-top:6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .dir-pcts{display:grid; grid-template-columns:1fr 1fr; gap:12px; height:calc(100% - 30px); align-items:center;}
+  .dir-pcts{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .dir-pzc{background:var(--surface); border-radius:10px; padding:12px;} .dir-pzc h4{margin:0 0 8px; font-size:13px; display:flex; align-items:center; gap:8px;}
+  .dir-pzc .dir-pz{flex-direction:column; align-items:stretch; gap:10px;} .dir-pzc .dir-pz-svg{align-self:center; width:130px; height:130px;}
+  .dir-adi{margin-top:8px; font-size:12.5px; color:var(--warning);}
   .dir-pct{display:flex; flex-direction:column; align-items:flex-start; gap:4px; padding:14px; border-radius:10px; background:var(--surface);} .dir-pct span{font-size:12.5px; color:var(--text-muted); font-weight:700;}
   .dir-pct b{font-size:34px; font-weight:800; line-height:1.1;} .dir-pct:first-child b{color:var(--accent);} .dir-pct small{font-size:12px; color:var(--text-faint);}
   .dir-minis{display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:12px; margin-bottom:18px;}
@@ -582,7 +585,7 @@
   @media (max-width:1000px){ .dir-bigs, .dir-minis{grid-template-columns:repeat(2, minmax(0, 1fr));} .dir-lin, .dir-pors{grid-template-columns:1fr;} }
   @media print{
     /* PDF do Painel Diretoria: fundo do tema na página inteira, 1+2 na 1ª página, 3+4 na 2ª, 5 na 3ª */
-    html:has(body.dir-imprimindo), body.dir-imprimindo{background:var(--bg) !important; -webkit-print-color-adjust:exact; print-color-adjust:exact;}
+    html.dir-imprimindo, body.dir-imprimindo{background:var(--bg) !important; -webkit-print-color-adjust:exact; print-color-adjust:exact;}
     body.dir-imprimindo .sidebar, body.dir-imprimindo .topbar, body.dir-imprimindo .dir-noprint, body.dir-imprimindo #notaPainel, body.dir-imprimindo .aviso-versao{display:none !important;}
     body.dir-imprimindo #app, body.dir-imprimindo .main, body.dir-imprimindo .content{display:block !important; height:auto !important; min-height:0 !important; overflow:visible !important; background:var(--bg) !important; background-image:none !important;}
     body.dir-imprimindo .content{padding:0 !important;}
@@ -596,7 +599,7 @@
     body.dir-imprimindo .dir-lin{grid-template-columns:repeat(2, minmax(0, 1fr)) !important; gap:10px; margin-bottom:10px;}
     body.dir-imprimindo .dir-pors{grid-template-columns:repeat(3, minmax(0, 1fr)) !important;}
     body.dir-imprimindo .dir-cols{height:120px; padding-top:16px;} body.dir-imprimindo .dir-pz-svg{width:100px; height:100px;} body.dir-imprimindo .dir-cel{padding:10px 12px;}
-    body.dir-imprimindo .dir-pz-leg{gap:3px;} body.dir-imprimindo .dir-big{padding:10px 12px;} body.dir-imprimindo .dir-big-v{font-size:22px;} body.dir-imprimindo .dir-minis{margin-bottom:10px;}
+    body.dir-imprimindo .dir-pz-leg{gap:3px;} body.dir-imprimindo .dir-pzc .dir-pz{flex-direction:row; align-items:center;} body.dir-imprimindo .dir-pzc .dir-pz-svg{width:84px; height:84px;} body.dir-imprimindo .dir-pzc{padding:8px;} body.dir-imprimindo .dir-big{padding:10px 12px;} body.dir-imprimindo .dir-big-v{font-size:22px;} body.dir-imprimindo .dir-minis{margin-bottom:10px;}
     body.dir-imprimindo .dir-capa{padding-bottom:8px;} body.dir-imprimindo .dir-capa h1{font-size:24px;}
     @page{size:A4 landscape; margin:8mm;}
   }
@@ -2449,8 +2452,9 @@
     if (window.__onView) window.__onView(id);
     if (id === "adm") { if (typeof paintAdm === "function") paintAdm(); }
     else if (id === "controle-pedidos-cimento") paintPedidos();
-    if (id === "dashboard") paintDashboard();
-    else if (id === "dash-diretoria") dirPintar();
+    // os painéis fazem bastante conta: troca de tela na hora e desenha logo em seguida
+    if (id === "dashboard") setTimeout(paintDashboard, 30);
+    else if (id === "dash-diretoria"){ var vd = el("view-dash-diretoria"); if (vd && !vd.innerHTML.trim()) vd.innerHTML = '<div class="notice">Calculando o painel…</div>'; setTimeout(function(){ dirPintar(); }, 30); }
     else if (id === "anotacoes") paintAnotacoes();
     else if (id === "base-dados-cimento") paintBaseDados();
     else if (id === "notas-sefaz") paintNFes();
@@ -7102,13 +7106,18 @@
     // 2. Pedidos
     var pedK = Object.keys(Object.assign({}, A.porFornPed, B.porFornPed)).sort(function(x, y){ return ((A.porFornPed[y] || {}).p || 0) - ((A.porFornPed[x] || {}).p || 0); });
     var pedCols = pedK.slice(0, 8).map(function(f){ var a = A.porFornPed[f], b = B.porFornPed[f]; return { n: f, a: a && a.p ? a.r * 100 / a.p : null, b: b && b.p ? b.r * 100 / b.p : null }; });
-    var pctBig = function(D, nome, val, ant){ return '<div class="dir-pct"><span>' + esc(nome) + '</span><b>' + (val == null ? "—" : fx(val, 1) + "%") + '</b><small>' + fx(D.real) + ' de ' + fx(D.prog) + ' programadas</small>' + (ant !== undefined ? dirDelta(val, ant, true, true) : '') + '</div>'; };
+    var pizPed = function(D, nome, val, ant){
+      return '<div class="dir-pzc"><h4>' + esc(nome) + (ant !== undefined ? ' ' + dirDelta(val, ant, true, true) : '') + '</h4>' +
+        dirPizza([{ n: "Descarregadas", v: D.real, cor: "var(--success)" }, { n: "Programadas sem descarga", v: Math.max(D.prog - D.real, 0), cor: "var(--border-strong)" }],
+          val == null ? "—" : fx(val, 0) + "%", "descarregado", function(x){ return fx(x) + " cargas"; }) +
+        '<div class="dir-adi">Adiadas: <b>' + fx(D.adia) + '</b></div></div>';
+    };
     var b2 = bloco(2, "KPI de pedidos — programadas × descarregadas", "Base: pedidos da Programação com status Tudo OK. A diferença entre programadas e descarregadas é o que ficou sem descarregar.",
       '<div class="dir-lin">' +
         '<div class="dir-cel"><h3>Programadas, descarregadas e adiadas</h3>' + dirColunas([
           { n: "Programadas (Tudo OK)", a: A.prog, b: B.prog }, { n: "Descarregadas", a: A.real, b: B.real }, { n: "Adiadas", a: A.adia, b: B.adia }
         ], function(x){ return x ? fx(x) : "0"; }, nA, nB) + '</div>' +
-        '<div class="dir-cel"><h3>% descarregado das programadas</h3><div class="dir-pcts">' + pctBig(A, nA, atA, atB) + pctBig(B, nB, atB) + '</div></div>' +
+        '<div class="dir-cel"><h3>% descarregado das programadas</h3><div class="dir-pcts">' + pizPed(A, nA, atA, atB) + pizPed(B, nB, atB) + '</div></div>' +
       '</div>' +
       '<div class="dir-cel"><h3>% descarregado por fornecedor</h3>' + dirColunas(pedCols, function(x){ return x == null ? "" : fx(x, 0) + "%"; }, nA, nB) + '</div>');
 
@@ -7176,8 +7185,8 @@
       DIR.bi = toISO(dia(mi, ai.getDate())); DIR.bf = toISO(dia(mf, af.getDate())); dirPintar();
     });
     v.querySelector("#dirPdf").addEventListener("click", function(){
-      document.body.classList.add("dir-imprimindo");
-      var fim = function(){ document.body.classList.remove("dir-imprimindo"); window.removeEventListener("afterprint", fim); };
+      document.body.classList.add("dir-imprimindo"); document.documentElement.classList.add("dir-imprimindo");
+      var fim = function(){ document.body.classList.remove("dir-imprimindo"); document.documentElement.classList.remove("dir-imprimindo"); window.removeEventListener("afterprint", fim); };
       window.addEventListener("afterprint", fim); setTimeout(function(){ window.print(); }, 50);
     });
     v.querySelectorAll("[data-dirtxt]").forEach(function(t){ t.addEventListener("input", function(){
@@ -10555,7 +10564,7 @@
     renderNotasSefaz = comPasso(renderNotasSefaz); paintNFes = comPasso(paintNFes); renderLancamentosPuzl = comPasso(renderLancamentosPuzl); paintPuzl = comPasso(paintPuzl);
     renderControlePedidos = comPasso(renderControlePedidos); paintPedidos = comPasso(paintPedidos); paintPedidosStats = comPasso(paintPedidosStats);
     paintPedidosProg = comPasso(paintPedidosProg); paintPedidosNotas = comPasso(paintPedidosNotas); paintPedidosSemNF = comPasso(paintPedidosSemNF);
-    renderConsultas = comPasso(renderConsultas); paintConsulta = comPasso(paintConsulta); renderDashboard = comPasso(renderDashboard); paintDashboard = comPasso(paintDashboard);
+    renderConsultas = comPasso(renderConsultas); paintConsulta = comPasso(paintConsulta); renderDashboard = comPasso(renderDashboard); paintDashboard = comPasso(paintDashboard); dirPintar = comPasso(dirPintar);
   })();
   // Notas que podem se ligar a uma linha da Programação: pelo pedido (qualquer pedido da linha) ou, sem pedido, pela usina.
   // É só um pré-filtro (as funções que usam aplicam o filtro completo de antes); mantém a ordem original das notas.
