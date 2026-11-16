@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-16-1">
+<meta name="app-versao" content="2026-11-16-2">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -574,16 +574,24 @@
   .dir-por-print{display:none;} .dir-vazio{color:var(--text-faint); font-size:13px; padding:20px 0; text-align:center;}
   @media (max-width:1000px){ .dir-bigs, .dir-minis{grid-template-columns:repeat(2, minmax(0, 1fr));} .dir-lin, .dir-pors{grid-template-columns:1fr;} }
   @media print{
+    /* PDF do Painel Diretoria: fundo do tema na página inteira, 1+2 na 1ª página, 3+4 na 2ª, 5 na 3ª */
+    html:has(body.dir-imprimindo), body.dir-imprimindo{background:var(--bg) !important; -webkit-print-color-adjust:exact; print-color-adjust:exact;}
     body.dir-imprimindo .sidebar, body.dir-imprimindo .topbar, body.dir-imprimindo .dir-noprint, body.dir-imprimindo #notaPainel, body.dir-imprimindo .aviso-versao{display:none !important;}
-    body.dir-imprimindo .main{height:auto !important;} body.dir-imprimindo .content{overflow:visible !important; padding:0 !important;}
+    body.dir-imprimindo #app, body.dir-imprimindo .main, body.dir-imprimindo .content{display:block !important; height:auto !important; min-height:0 !important; overflow:visible !important; background:var(--bg) !important; background-image:none !important;}
+    body.dir-imprimindo .content{padding:0 !important;}
     body.dir-imprimindo .view:not(#view-dash-diretoria){display:none !important;}
-    body.dir-imprimindo{-webkit-print-color-adjust:exact; print-color-adjust:exact;} body.dir-imprimindo::before{display:none;}
+    body.dir-imprimindo::before{display:none;}
     body.dir-imprimindo .dir-por textarea{display:none;} body.dir-imprimindo .dir-por-print{display:block; font-size:13px; white-space:pre-wrap; min-height:20px;}
-    body.dir-imprimindo .dir-folha{max-width:none; display:block; zoom:.82;} body.dir-imprimindo .dir-folha > *{margin-bottom:10px;} body.dir-imprimindo .dir-bloco{padding:12px 16px;} body.dir-imprimindo .dir-bloco > header{margin-bottom:10px;}
-    body.dir-imprimindo .dir-cols{height:130px; padding-top:16px;} body.dir-imprimindo .dir-pz-svg{width:110px; height:110px;} body.dir-imprimindo .dir-cel{padding:10px 12px;}
-    body.dir-imprimindo .dir-lin{gap:10px; margin-bottom:10px;} body.dir-imprimindo .dir-big-v{font-size:24px;} body.dir-imprimindo .dir-minis{margin-bottom:10px;}
+    body.dir-imprimindo .dir-folha{max-width:none; width:1180px; display:block; zoom:.86;} body.dir-imprimindo .dir-folha > *{margin-bottom:10px;}
+    body.dir-imprimindo .dir-bloco{padding:12px 16px;} body.dir-imprimindo .dir-bloco > header{margin-bottom:10px;}
+    body.dir-imprimindo .dir-bloco[data-n="3"]{break-before:page; page-break-before:always;}
+    body.dir-imprimindo .dir-bigs, body.dir-imprimindo .dir-minis{grid-template-columns:repeat(4, minmax(0, 1fr)) !important;}
+    body.dir-imprimindo .dir-lin{grid-template-columns:repeat(2, minmax(0, 1fr)) !important; gap:10px; margin-bottom:10px;}
+    body.dir-imprimindo .dir-pors{grid-template-columns:repeat(3, minmax(0, 1fr)) !important;}
+    body.dir-imprimindo .dir-cols{height:120px; padding-top:16px;} body.dir-imprimindo .dir-pz-svg{width:100px; height:100px;} body.dir-imprimindo .dir-cel{padding:10px 12px;}
+    body.dir-imprimindo .dir-pz-leg{gap:3px;} body.dir-imprimindo .dir-big{padding:10px 12px;} body.dir-imprimindo .dir-big-v{font-size:22px;} body.dir-imprimindo .dir-minis{margin-bottom:10px;}
     body.dir-imprimindo .dir-capa{padding-bottom:8px;} body.dir-imprimindo .dir-capa h1{font-size:24px;}
-    @page{size:A4 landscape; margin:10mm;}
+    @page{size:A4 landscape; margin:8mm;}
   }
   .falt-topo{display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:12px;} .falt-topo input{height:30px; border-radius:6px; border:1px solid var(--border-strong); background:var(--surface); color:var(--text); padding:0 8px;}
   .falt-stats{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;} .falt-bloco{margin-bottom:28px;} .dstat.falt-s-branco{--dstat:var(--danger);}
@@ -6992,7 +7000,7 @@
     var forns = Object.keys(Object.assign({}, A.porForn, B.porForn)).sort(function(x, y){ return ((A.porForn[y] || {}).peso || 0) - ((A.porForn[x] || {}).peso || 0); });
     var corDe = {}; forns.forEach(function(f, i){ corDe[f] = DIR_CORES[i % DIR_CORES.length]; });
     var big = function(rot, val, delta, ant, cor){ return '<div class="dir-big" style="--k:' + cor + '"><span class="dir-big-r">' + rot + '</span><b class="dir-big-v">' + val + '</b><span class="dir-big-c">' + delta + '<small>' + esc(nB) + ': ' + ant + '</small></span></div>'; };
-    var bloco = function(n, tit, sub, corpo){ return '<section class="dir-bloco"><header><span class="dir-n">' + n + '</span><div><h2>' + tit + '</h2><p>' + sub + '</p></div></header>' + corpo + '</section>'; };
+    var bloco = function(n, tit, sub, corpo){ return '<section class="dir-bloco" data-n="' + n + '"><header><span class="dir-n">' + n + '</span><div><h2>' + tit + '</h2><p>' + sub + '</p></div></header>' + corpo + '</section>'; };
     var mini = function(rot, val, delta){ return '<div class="dir-mini"><span>' + rot + '</span><b>' + val + '</b>' + (delta || "") + '</div>'; };
 
     // 1. Resumo
