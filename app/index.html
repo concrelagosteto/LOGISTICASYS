@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-16-2">
+<meta name="app-versao" content="2026-11-16-3">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -6942,11 +6942,19 @@
     var t = { peso: 0, valor: 0, pesoV: 0, frete: 0, pesoF: 0, pesoBase: 0, pesoAcima: 0, gastoAcima: 0 }, porForn = {};
     ent.forEach(function(l){
       var forn = String(l.fabKey || "").split("|")[0] || "(sem fornecedor)", o = porForn[forn] = porForn[forn] || { peso: 0, frete: 0, pesoF: 0, baseX: 0, pesoB: 0 };
-      if (l.peso){ t.peso += l.peso; o.peso += l.peso; }
       if (l.valor != null && l.peso){ t.valor += l.valor; t.pesoV += l.peso; }
       if (l.frete != null && l.peso){ t.frete += l.frete; t.pesoF += l.peso; o.frete += l.frete; o.pesoF += l.peso; }
       if (l.base && l.peso){ o.baseX += Number(l.base.valor) * l.peso; o.pesoB += l.peso; }
       if (l.base && l.freteU != null && l.peso){ t.pesoBase += l.peso; if (l.sit === "acima"){ t.pesoAcima += l.peso; t.gastoAcima += l.difTotal || 0; } }
+    });
+    // toneladas recebidas: pesagens dos lançamentos da PUZL (Notas Puzl), pela data de entrada
+    (typeof puzlEntradas !== "undefined" ? puzlEntradas : []).forEach(function(pz){
+      var d = toIsoDate(pz.dataEntrada) || ""; if (!d || d < isoI || d > isoF) return;
+      if (pz.unCompra && !/^t/i.test(String(pz.unCompra).trim())) return;   // só o que vem em tonelada
+      var q = parseQtd(pz.quantidade); if (!q) return;
+      var fe = fabricaEntryForFornecedor(pz.fornecedor), forn = fe ? fe.fornecedor : (String(pz.fornecedor || "").trim() || "(sem fornecedor)");
+      var o = porForn[forn] = porForn[forn] || { peso: 0, frete: 0, pesoF: 0, baseX: 0, pesoB: 0 };
+      o.peso += q; t.peso += q;
     });
     return { ym: ym, prog: prog.length, real: real.length, emi: emi.length, pend: prog.length - real.length - emi.length, porFornPed: porFornPed, t: t, porForn: porForn, nEnt: ent.length };
   }
@@ -7026,7 +7034,7 @@
     // 3. Mapa de cimento
     var cimF = forns.filter(function(f){ return (A.porForn[f] || {}).peso; }).map(function(f){ return { n: f, v: A.porForn[f].peso, cor: corDe[f] }; });
     var cimCols = forns.slice(0, 8).map(function(f){ return { n: f, a: (A.porForn[f] || {}).peso || 0, b: (B.porForn[f] || {}).peso || 0 }; });
-    var b3 = bloco(3, "Mapa de cimento", "Quantidade de cimento recebida por fábrica (toneladas)",
+    var b3 = bloco(3, "Mapa de cimento", "Quantidade de cimento recebida por fábrica (toneladas, pelas pesagens das Notas Puzl)",
       '<div class="dir-lin">' +
         '<div class="dir-cel"><h3>Participação em ' + esc(nA) + '</h3>' + dirPizza(cimF, fx(A.t.peso, 0), "toneladas", function(x){ return fx(x, 0) + " t"; }) + '</div>' +
         '<div class="dir-cel dir-cel-l"><h3>Toneladas: ' + esc(nA) + ' × ' + esc(nB) + '</h3>' + dirColunas(cimCols, function(x){ return x ? fx(x, 0) : ""; }, nA, nB) + '</div>' +
@@ -7062,7 +7070,7 @@
       '<div class="dir-pors">' + txt("pedidos", "Pedidos") + txt("cimento", "Cimento") + txt("frete", "Transporte") + '</div>');
 
     var opts = function(sel){ var o = [], d = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1); for (var i = 0; i < 18; i++){ var ym = d.getFullYear() + "-" + pad2(d.getMonth() + 1); o.push('<option value="' + ym + '"' + (ym === sel ? " selected" : "") + '>' + d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" }) + '</option>'); d = new Date(d.getFullYear(), d.getMonth() - 1, 1); } return o.join(""); };
-    var semFrete = !A.nEnt && !B.nEnt ? '<div class="notice dir-noprint">Sem entradas/fretes nesses meses: importe o <b>Resumo de entradas (Fretes)</b> da PUZL para os blocos 3 e 4.</div>' : "";
+    var semFrete = !A.nEnt || !B.nEnt ? '<div class="notice dir-noprint">Sem <b>Resumo de entradas (Fretes)</b> da PUZL importado em ' + esc([!A.nEnt ? dirMesNome(DIR.a, true) : "", !B.nEnt ? dirMesNome(DIR.b, true) : ""].filter(Boolean).join(" e ")) + ': os custos de frete e preço do cimento (bloco 4) ficam vazios nesse mês. As toneladas (bloco 3) vêm das Notas Puzl.</div>' : "";
     v.innerHTML =
       '<div class="dir-barra dir-noprint"><label>Mês <select id="dirA">' + opts(DIR.a) + '</select></label><span>comparado com</span><select id="dirB">' + opts(DIR.b) + '</select>' +
         '<span class="grow"></span><button type="button" class="btn-primary btn-inline" id="dirPdf">📄 Salvar em PDF</button></div>' + semFrete +
