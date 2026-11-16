@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-13-6">
+<meta name="app-versao" content="2026-11-16-1">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -586,7 +586,7 @@
     @page{size:A4 landscape; margin:10mm;}
   }
   .falt-topo{display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:12px;} .falt-topo input{height:30px; border-radius:6px; border:1px solid var(--border-strong); background:var(--surface); color:var(--text); padding:0 8px;}
-  .falt-stats{display:flex; gap:6px; flex-wrap:wrap; margin-left:10px;} .dstat.falt-s-branco{--dstat:var(--danger);}
+  .falt-stats{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;} .falt-bloco{margin-bottom:28px;} .dstat.falt-s-branco{--dstat:var(--danger);}
   .falt-card{padding:0; overflow:hidden;}
   .falt-cab{display:grid; grid-template-columns:minmax(150px, 22%) 1fr; align-items:end; background:var(--surface-2); border-bottom:1px solid var(--border-strong);}
   .falt-cab span{font-size:11px; font-weight:700; padding:8px 10px; text-align:center; border-right:1px solid var(--border-strong); color:var(--text-muted);}
@@ -11088,6 +11088,10 @@
   // só estas usinas, nesta ordem (a planilha de Faltantes da Logística)
   var FALT_USINAS = ["SÃO GONÇALO", "MARICÁ", "TANGUÁ", "SAQUAREMA", "ARARUAMA", "SÃO PEDRO", "RIO DAS OSTRAS", "MACAE", "CAMPOS", "BOM JESUS", "ITALVA", "PÁDUA",
     "CANTAGALO", "SERRA", "CARIACICA", "VILA VELHA", "ITAPERUNA", "CARANGOLA", "GUAÇUI", "IBATIBA", "REDUTO", "S.J. MANHUAÇU", "UBAPORANGA", "IPATINGA", "MURIAÉ"];
+  // segunda tabela das Faltantes (outra planilha da Logística), também nesta ordem
+  var FALT_USINAS2 = ["TAQUARA", "GARDÊNIA", "BANGU", "SANTA CRUZ", "DUQUE DE CAXIAS", "BELFORD ROXO", "CHÁCARAS", "SÃO GONÇALO", "PARAÍBA DO SUL", "PETRÓPOLIS", "UBÁ",
+    "PATY ALFERES", "POUSO ALTO", "SÃO LOURENÇO", "BARRA DO PIRAI", "VALENÇA", "VOLTA REDONDA", "RESENDE", "GUARATINGUETÁ", "JACAREÍ", "S. JOSÉ DOS CAMPOS", "POÁ",
+    "GUARULHOS", "CAIEIRAS", "ITAQUERA", "ITAQUAQUECETUBA", "DIADEMA"];
   var FALT_COND = { branco: ["Sem resposta", "branco"], adiada: ["Adiada", "adiada"], semnec: ["Sem necessidade", "semnec"], ok: ["Tudo OK", "ok"] };
   function faltSoAst(x){ x = String(x || ""); return /\*/.test(x) && !/[^\s*\/—–-]/.test(x); }
   function faltCond(e){
@@ -11099,32 +11103,32 @@
   function faltPintar(){
     var v = el("view-faltantes"); if (!v) return;
     if (!FALT.dia) FALT.dia = toISO(progPeriodoPadrao().de);
-    // só as usinas da lista das Faltantes, na ordem da lista, com o que estiver na Programação do dia
+    // cada tabela: só as usinas da sua lista, na ordem da lista, com o que estiver na Programação do dia
     var dia = FALT.dia, dd = cementDayData(dia), byKey = {};
     var nk = function(x){ return String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim().toUpperCase(); };
     dd.entries.forEach(function(e){ var k = nk(e.usina); if (!byKey[k]) byKey[k] = e; });
-    var ents = FALT_USINAS.map(function(u){ return byKey[nk(u)] || { usina: u, carretas: "", fabrica: "", pedido: "" }; });
-    var cont = { branco: 0, adiada: 0, semnec: 0, ok: 0 };
     var AST = "********************";
     var cel = function(x, c){ return temValor(x) ? esc(x) : (c === "semnec" ? AST : ""); };
-    var linhas = ents.map(function(e){
-      var c = faltCond(e), k = FALT_COND[c]; cont[c]++;
-      return '<tr class="falt-tr falt-' + k[1] + '"><td class="falt-u">' + esc(e.usina) + '</td><td>' + cel(e.carretas, c) + '</td><td>' + cel(e.fabrica, c) + '</td><td>' + (temValor(e.pedido) ? esc(e.pedido) : '') + '</td>' +
-        '<td><span class="falt-st">' + k[0] + '</span></td></tr>';
-    }).join("");
     var d0 = fromISO(dia), ontem = addDays(d0, -1);
-    var stat = function(k, cls){ return '<div class="dstat ' + cls + '"><b>' + cont[k] + '</b><span>' + FALT_COND[k][0] + '</span></div>'; };
-    var scroll = (v.querySelector(".table-wrap") || {}).scrollTop || 0;
+    var tabela = function(lista){
+      var cont = { branco: 0, adiada: 0, semnec: 0, ok: 0 };
+      var linhas = lista.map(function(u){
+        var e = byKey[nk(u)] || { usina: u, carretas: "", fabrica: "", pedido: "" }, c = faltCond(e), k = FALT_COND[c]; cont[c]++;
+        return '<tr class="falt-tr falt-' + k[1] + '"><td class="falt-u">' + esc(e.usina) + '</td><td>' + cel(e.carretas, c) + '</td><td>' + cel(e.fabrica, c) + '</td><td>' + (temValor(e.pedido) ? esc(e.pedido) : '') + '</td>' +
+          '<td><span class="falt-st">' + k[0] + '</span></td></tr>';
+      }).join("");
+      var stat = function(k, cls){ return '<div class="dstat ' + cls + '"><b>' + cont[k] + '</b><span>' + FALT_COND[k][0] + '</span></div>'; };
+      return '<div class="falt-bloco"><div class="falt-stats">' + stat("branco", "falt-s-branco") + stat("adiada", "adi") + stat("semnec", "semnec") + stat("ok", "ok") + '</div>' +
+        '<div class="card falt-card">' +
+          '<div class="falt-cab"><span>' + esc(fmtBR(ontem)) + ' (' + esc(weekdayLong(ontem).toUpperCase()) + ')</span><b>PROGRAMAÇÃO PARA O DIA ' + esc(fmtBR(d0)) + ' (' + esc(weekdayLong(d0).toUpperCase()) + ')</b></div>' +
+          '<div class="table-wrap"><table class="falt-tab"><thead><tr><th>Usina</th><th>Placa</th><th>Fábrica</th><th>Pedido</th><th>Situação</th></tr></thead><tbody>' + linhas + '</tbody></table></div>' +
+        '</div></div>';
+    };
     v.innerHTML =
       '<div class="falt-topo"><button type="button" class="btn-ghost btn-xs" data-faltd="-1" title="Dia anterior">◀</button>' +
-        '<input type="date" id="faltDia" value="' + dia + '"><button type="button" class="btn-ghost btn-xs" data-faltd="1" title="Próximo dia">▶</button>' +
-        '<div class="falt-stats">' + stat("branco", "falt-s-branco") + stat("adiada", "adi") + stat("semnec", "semnec") + stat("ok", "ok") + '</div></div>' +
-      '<div class="card falt-card">' +
-        '<div class="falt-cab"><span>' + esc(fmtBR(ontem)) + ' (' + esc(weekdayLong(ontem).toUpperCase()) + ')</span><b>PROGRAMAÇÃO PARA O DIA ' + esc(fmtBR(d0)) + ' (' + esc(weekdayLong(d0).toUpperCase()) + ')</b></div>' +
-        '<div class="table-wrap"><table class="falt-tab"><thead><tr><th>Usina</th><th>Placa</th><th>Fábrica</th><th>Pedido</th><th>Situação</th></tr></thead><tbody>' + linhas + '</tbody></table></div>' +
-      '</div>';
-    xlEnhance(v.querySelector(".falt-card"), "faltantes");
-    var tw = v.querySelector(".table-wrap"); if (tw && scroll) tw.scrollTop = scroll;
+        '<input type="date" id="faltDia" value="' + dia + '"><button type="button" class="btn-ghost btn-xs" data-faltd="1" title="Próximo dia">▶</button></div>' +
+      tabela(FALT_USINAS) + tabela(FALT_USINAS2);
+    v.querySelectorAll(".falt-card").forEach(function(c, i){ xlEnhance(c, i ? "faltantes-" + (i + 1) : "faltantes"); });
     if (!v.__faltEv){
       v.__faltEv = true;
       v.addEventListener("click", function(ev){ var d = ev.target.closest("[data-faltd]"); if (d){ FALT.dia = toISO(addDays(fromISO(FALT.dia), +d.dataset.faltd)); faltPintar(); } });
