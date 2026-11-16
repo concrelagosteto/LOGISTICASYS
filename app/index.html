@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-16-3">
+<meta name="app-versao" content="2026-11-16-4">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -533,6 +533,10 @@
   .vpo-abas{position:sticky; top:-22px; z-index:5; display:flex; gap:4px; overflow-x:auto; background:var(--bg, var(--surface)); border-bottom:1px solid var(--border); margin:0 0 16px; padding-top:4px; scrollbar-width:thin;}
 
   .dir-barra{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:18px;} .dir-barra label{display:flex; align-items:center; gap:8px; font-weight:700;} .dir-barra > span{color:var(--text-muted); font-size:13px;}
+  .dir-modo{display:inline-flex; border:1px solid var(--border-strong); border-radius:8px; overflow:hidden;} .dir-modo button{border:0; background:var(--surface); color:var(--text-muted); padding:7px 12px; font-size:13px; cursor:pointer;}
+  .dir-modo button + button{border-left:1px solid var(--border-strong);} .dir-modo button.on{background:var(--accent); color:#fff; font-weight:700;}
+  .dir-chk{font-weight:600 !important; font-size:13px; cursor:pointer;} .dir-chk small{color:var(--text-faint); font-weight:500;}
+  .dir-per{display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--text-muted);} .dir-per input{height:34px; border-radius:8px; border:1px solid var(--border-strong); background:var(--surface); color:var(--text); padding:0 8px;}
   .dir-barra select{height:34px; border-radius:8px; border:1px solid var(--border-strong); background:var(--surface); color:var(--text); padding:0 10px; font-size:13.5px;}
   .dir-folha{max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:22px;}
   .dir-capa{display:flex; align-items:flex-end; justify-content:space-between; gap:16px; padding:6px 4px 14px; border-bottom:2px solid var(--accent);}
@@ -6929,8 +6933,30 @@
   var DIR_CORES = ["#3b82f6", "#f59e0b", "#10b981", "#a855f7", "#ef4444", "#14b8a6", "#ec4899", "#84cc16", "#64748b"];
   function dirMes(ym){ var p = ym.split("-").map(Number), ini = new Date(p[0], p[1] - 1, 1), fim = new Date(p[0], p[1], 0); if (fim > TODAY) fim = new Date(TODAY); return { ini: ini, fim: fim, ym: ym }; }
   function dirMesNome(ym, longo){ var p = ym.split("-").map(Number), t = new Date(p[0], p[1] - 1, 1).toLocaleDateString("pt-BR", longo ? { month: "long", year: "numeric" } : { month: "short", year: "2-digit" }).replace(".", ""); return t.charAt(0).toUpperCase() + t.slice(1); }
-  function dirDados(ym){
-    var m = dirMes(ym), isoI = toISO(m.ini), isoF = toISO(m.fim);
+  // os dois períodos comparados: por mês (opção "mesmo período": só até o mesmo dia nos dois) ou datas específicas
+  function dirPeriodos(){
+    var A, B, br = function(d){ return pad2(d.getDate()) + "/" + pad2(d.getMonth() + 1) + "/" + d.getFullYear(); }, dm = function(d){ return pad2(d.getDate()) + "/" + pad2(d.getMonth() + 1); };
+    if (DIR.modo === "datas"){
+      A = { ini: fromISO(DIR.ai), fim: fromISO(DIR.af) }; B = { ini: fromISO(DIR.bi), fim: fromISO(DIR.bf) };
+      [A, B].forEach(function(P){ if (P.fim < P.ini){ var x = P.ini; P.ini = P.fim; P.fim = x; } P.curto = dm(P.ini) + "–" + dm(P.fim) + "/" + String(P.fim.getFullYear()).slice(2); P.longo = br(P.ini) + " a " + br(P.fim); });
+      A.chave = "d:" + toISO(A.ini) + "_" + toISO(A.fim);
+    } else {
+      A = dirMes(DIR.a); B = dirMes(DIR.b);
+      if (DIR.mesmo){
+        var d = Math.min(A.fim.getDate(), B.fim.getDate());   // os dois do dia 1 até o mesmo dia (o mês em andamento manda)
+        A.fim = new Date(A.ini.getFullYear(), A.ini.getMonth(), d); B.fim = new Date(B.ini.getFullYear(), B.ini.getMonth(), d);
+      }
+      [[A, DIR.a], [B, DIR.b]].forEach(function(x){
+        var P = x[0], cheio = P.ini.getDate() === 1 && P.fim.getDate() === new Date(P.ini.getFullYear(), P.ini.getMonth() + 1, 0).getDate();
+        P.curto = dirMesNome(x[1]) + (DIR.mesmo && !cheio ? " (1–" + P.fim.getDate() + ")" : "");
+        P.longo = DIR.mesmo && !cheio ? "1 a " + P.fim.getDate() + " de " + dirMesNome(x[1], true).toLowerCase() : dirMesNome(x[1], true);
+      });
+      A.chave = DIR.a;
+    }
+    return { A: A, B: B };
+  }
+  function dirDados(m){
+    var isoI = toISO(m.ini), isoF = toISO(m.fim), ym = isoI.slice(0, 7);
     var linhas = pedProgLinhas({ rangeStart: m.ini, rangeEnd: m.fim });
     var fora = { adiado: 1, sem_necessidade: 1, cancelada: 1, nao_realizada: 1 };
     var prog = linhas.filter(function(l){ return !fora[l.status]; });
@@ -6994,12 +7020,16 @@
   }
   function dirPintar(){
     var v = el("view-dash-diretoria"); if (!v) return;
-    if (!DIR.a){ var h0 = TODAY; DIR.a = h0.getFullYear() + "-" + pad2(h0.getMonth() + 1); var p0 = new Date(h0.getFullYear(), h0.getMonth() - 1, 1); DIR.b = p0.getFullYear() + "-" + pad2(p0.getMonth() + 1); }
+    if (!DIR.a){ var h0 = TODAY; DIR.a = h0.getFullYear() + "-" + pad2(h0.getMonth() + 1); var p0 = new Date(h0.getFullYear(), h0.getMonth() - 1, 1); DIR.b = p0.getFullYear() + "-" + pad2(p0.getMonth() + 1); DIR.modo = "mes"; DIR.mesmo = false; }
+    if (!DIR.ai){   // datas específicas: começa em "dia 1 até hoje" × os mesmos dias do mês anterior
+      var hj = TODAY, ia = new Date(hj.getFullYear(), hj.getMonth(), 1), ib = new Date(hj.getFullYear(), hj.getMonth() - 1, 1);
+      DIR.ai = toISO(ia); DIR.af = toISO(hj); DIR.bi = toISO(ib); DIR.bf = toISO(new Date(ib.getFullYear(), ib.getMonth(), Math.min(hj.getDate(), new Date(ib.getFullYear(), ib.getMonth() + 1, 0).getDate())));
+    }
     if (!DIR.anCarregou && typeof sb !== "undefined" && sb && ME){
       DIR.anCarregou = true;   // "Por quê?" fica no banco: todos veem a mesma análise
       sb.from("painel_analises").select("chave,texto").then(function(r){ if (r && !r.error && r.data){ r.data.forEach(function(x){ DIR.analise[x.chave] = x.texto || ""; }); if (el("view-dash-diretoria") && el("view-dash-diretoria").classList.contains("active")) dirPintar(); } });
     }
-    var A = dirDados(DIR.a), B = dirDados(DIR.b), nA = dirMesNome(DIR.a), nB = dirMesNome(DIR.b);
+    var PER = dirPeriodos(), A = dirDados(PER.A), B = dirDados(PER.B), nA = PER.A.curto, nB = PER.B.curto, CH = PER.A.chave;
     var pct = function(x, y){ return y ? x * 100 / y : null; }, fx = dirFx;
     var atA = pct(A.real, A.prog), atB = pct(B.real, B.prog);
     var fmA = A.t.pesoF ? A.t.frete / A.t.pesoF : null, fmB = B.t.pesoF ? B.t.frete / B.t.pesoF : null;
@@ -7012,7 +7042,7 @@
     var mini = function(rot, val, delta){ return '<div class="dir-mini"><span>' + rot + '</span><b>' + val + '</b>' + (delta || "") + '</div>'; };
 
     // 1. Resumo
-    var b1 = bloco(1, "O nosso serviço em números", "Resumo de " + esc(dirMesNome(DIR.a, true)) + ", comparado com " + esc(dirMesNome(DIR.b, true)),
+    var b1 = bloco(1, "O nosso serviço em números", "Resumo de " + esc(PER.A.longo) + ", comparado com " + esc(PER.B.longo),
       '<div class="dir-bigs">' +
         big("Pedidos atendidos", atA == null ? "—" : fx(atA, 1) + "%", dirDelta(atA, atB, true, true), atB == null ? "—" : fx(atB, 1) + "%", "var(--success)") +
         big("Cimento recebido", fx(A.t.peso, 0) + " t", dirDelta(A.t.peso, B.t.peso, true), fx(B.t.peso, 0) + " t", "#3b82f6") +
@@ -7056,7 +7086,7 @@
 
     // 5. Comparativo e análise
     var linha = function(rot, a, b, d){ return '<tr><td>' + rot + '</td><td>' + a + '</td><td>' + b + '</td><td>' + d + '</td></tr>'; };
-    var txt = function(id, rot){ var an = DIR.analise[DIR.a + "|" + id] || ""; return '<div class="dir-por"><label>' + rot + ' <small class="dir-por-st"></small></label><textarea data-dirtxt="' + id + '" rows="2" placeholder="Por quê? Ex.: fábrica parou, feriado, mudança de rota…">' + esc(an) + '</textarea><div class="dir-por-print">' + (esc(an) || "—") + '</div></div>'; };
+    var txt = function(id, rot){ var an = DIR.analise[CH + "|" + id] || ""; return '<div class="dir-por"><label>' + rot + ' <small class="dir-por-st"></small></label><textarea data-dirtxt="' + id + '" rows="2" placeholder="Por quê? Ex.: fábrica parou, feriado, mudança de rota…">' + esc(an) + '</textarea><div class="dir-por-print">' + (esc(an) || "—") + '</div></div>'; };
     var b5 = bloco(5, "Comparativo e análise", "O que mudou de um mês para o outro, e por quê",
       '<table class="dir-tab"><thead><tr><th></th><th>' + esc(nA) + '</th><th>' + esc(nB) + '</th><th>Variação</th></tr></thead><tbody>' +
         linha("Cargas programadas", fx(A.prog), fx(B.prog), dirDelta(A.prog, B.prog, true)) +
@@ -7070,21 +7100,36 @@
       '<div class="dir-pors">' + txt("pedidos", "Pedidos") + txt("cimento", "Cimento") + txt("frete", "Transporte") + '</div>');
 
     var opts = function(sel){ var o = [], d = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1); for (var i = 0; i < 18; i++){ var ym = d.getFullYear() + "-" + pad2(d.getMonth() + 1); o.push('<option value="' + ym + '"' + (ym === sel ? " selected" : "") + '>' + d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" }) + '</option>'); d = new Date(d.getFullYear(), d.getMonth() - 1, 1); } return o.join(""); };
-    var semFrete = !A.nEnt || !B.nEnt ? '<div class="notice dir-noprint">Sem <b>Resumo de entradas (Fretes)</b> da PUZL importado em ' + esc([!A.nEnt ? dirMesNome(DIR.a, true) : "", !B.nEnt ? dirMesNome(DIR.b, true) : ""].filter(Boolean).join(" e ")) + ': os custos de frete e preço do cimento (bloco 4) ficam vazios nesse mês. As toneladas (bloco 3) vêm das Notas Puzl.</div>' : "";
+    var semFrete = !A.nEnt || !B.nEnt ? '<div class="notice dir-noprint">Sem <b>Resumo de entradas (Fretes)</b> da PUZL importado em ' + esc([!A.nEnt ? PER.A.longo : "", !B.nEnt ? PER.B.longo : ""].filter(Boolean).join(" e ")) + ': os custos de frete e preço do cimento (bloco 4) ficam vazios nesse período. As toneladas (bloco 3) vêm das Notas Puzl.</div>' : "";
     v.innerHTML =
-      '<div class="dir-barra dir-noprint"><label>Mês <select id="dirA">' + opts(DIR.a) + '</select></label><span>comparado com</span><select id="dirB">' + opts(DIR.b) + '</select>' +
+      '<div class="dir-barra dir-noprint"><div class="dir-modo"><button type="button" data-dirmodo="mes" class="' + (DIR.modo !== "datas" ? "on" : "") + '">Por mês</button><button type="button" data-dirmodo="datas" class="' + (DIR.modo === "datas" ? "on" : "") + '">Datas específicas</button></div>' +
+        (DIR.modo !== "datas"
+          ? '<label><select id="dirA">' + opts(DIR.a) + '</select></label><span>comparado com</span><select id="dirB">' + opts(DIR.b) + '</select>' +
+            '<label class="dir-chk" title="Compara só os mesmos dias nos dois meses (ex.: dia 1 ao 16 de cada um)"><input type="checkbox" id="dirMesmo"' + (DIR.mesmo ? " checked" : "") + '> Mesmo período' + (DIR.mesmo ? ' <small>(1 a ' + PER.A.fim.getDate() + ')</small>' : '') + '</label>'
+          : '<span class="dir-per"><input type="date" id="dirAi" value="' + DIR.ai + '"> a <input type="date" id="dirAf" value="' + DIR.af + '"></span><span>comparado com</span>' +
+            '<span class="dir-per"><input type="date" id="dirBi" value="' + DIR.bi + '"> a <input type="date" id="dirBf" value="' + DIR.bf + '"></span>' +
+            '<button type="button" class="btn-ghost btn-xs" id="dirMesmosDias" title="Coloca no 2º período os mesmos dias do mês anterior ao 1º">mesmos dias do mês anterior</button>') +
         '<span class="grow"></span><button type="button" class="btn-primary btn-inline" id="dirPdf">📄 Salvar em PDF</button></div>' + semFrete +
-      '<div class="dir-folha"><div class="dir-capa"><div><small>Concrelagos · Logística</small><h1>Painel Diretoria</h1></div><span>' + esc(dirMesNome(DIR.a, true)) + ' <em>×</em> ' + esc(dirMesNome(DIR.b, true)) + '</span></div>' +
+      '<div class="dir-folha"><div class="dir-capa"><div><small>Concrelagos · Logística</small><h1>Painel Diretoria</h1></div><span>' + esc(PER.A.longo) + ' <em>×</em> ' + esc(PER.B.longo) + '</span></div>' +
       b1 + b2 + b3 + b4 + b5 + '</div>';
-    v.querySelector("#dirA").addEventListener("change", function(){ DIR.a = this.value; dirPintar(); });
-    v.querySelector("#dirB").addEventListener("change", function(){ DIR.b = this.value; dirPintar(); });
+    var liga = function(sel, ev, fn){ var e = v.querySelector(sel); if (e) e.addEventListener(ev, fn); };
+    v.querySelectorAll("[data-dirmodo]").forEach(function(b){ b.addEventListener("click", function(){ DIR.modo = b.dataset.dirmodo; dirPintar(); }); });
+    liga("#dirA", "change", function(){ DIR.a = this.value; dirPintar(); });
+    liga("#dirB", "change", function(){ DIR.b = this.value; dirPintar(); });
+    liga("#dirMesmo", "change", function(){ DIR.mesmo = this.checked; dirPintar(); });
+    ["Ai", "Af", "Bi", "Bf"].forEach(function(k){ liga("#dir" + k, "change", function(){ if (this.value){ DIR[k.toLowerCase()] = this.value; dirPintar(); } }); });
+    liga("#dirMesmosDias", "click", function(){
+      var ai = fromISO(DIR.ai), af = fromISO(DIR.af), mi = new Date(ai.getFullYear(), ai.getMonth() - 1, 1), mf = new Date(af.getFullYear(), af.getMonth() - 1, 1);
+      var dia = function(m, d){ return new Date(m.getFullYear(), m.getMonth(), Math.min(d, new Date(m.getFullYear(), m.getMonth() + 1, 0).getDate())); };
+      DIR.bi = toISO(dia(mi, ai.getDate())); DIR.bf = toISO(dia(mf, af.getDate())); dirPintar();
+    });
     v.querySelector("#dirPdf").addEventListener("click", function(){
       document.body.classList.add("dir-imprimindo");
       var fim = function(){ document.body.classList.remove("dir-imprimindo"); window.removeEventListener("afterprint", fim); };
       window.addEventListener("afterprint", fim); setTimeout(function(){ window.print(); }, 50);
     });
     v.querySelectorAll("[data-dirtxt]").forEach(function(t){ t.addEventListener("input", function(){
-      var chave = DIR.a + "|" + t.dataset.dirtxt; DIR.analise[chave] = t.value; var pr = t.parentNode.querySelector(".dir-por-print"); if (pr) pr.textContent = t.value || "—";
+      var chave = CH + "|" + t.dataset.dirtxt; DIR.analise[chave] = t.value; var pr = t.parentNode.querySelector(".dir-por-print"); if (pr) pr.textContent = t.value || "—";
       clearTimeout(t.__tm); t.__tm = setTimeout(function(){
         if (!sb || !ME) return;
         sb.from("painel_analises").upsert({ empresa_id: ME.empresa_id, chave: chave, texto: t.value, por_nome: ME.nome || "", atualizado_em: new Date().toISOString() }, { onConflict: "empresa_id,chave" })
