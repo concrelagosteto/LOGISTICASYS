@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-16-6">
+<meta name="app-versao" content="2026-11-16-7">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -568,6 +568,9 @@
   .dir-c span{position:absolute; z-index:2; bottom:calc(100% + 3px); left:50%; transform:translateX(-50%); font-size:11px; font-weight:700; white-space:nowrap; background:var(--surface-2); padding:0 3px; border-radius:3px;} .dir-c.b span{color:var(--text-muted); font-weight:500;}
   .dir-ref{position:absolute; left:8%; right:8%; border-top:2px dashed var(--text); opacity:.75;}
   .dir-cn{font-size:12px; font-weight:600; text-align:center; margin-top:6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .dir-pcts{display:grid; grid-template-columns:1fr 1fr; gap:12px; height:calc(100% - 30px); align-items:center;}
+  .dir-pct{display:flex; flex-direction:column; align-items:flex-start; gap:4px; padding:14px; border-radius:10px; background:var(--surface);} .dir-pct span{font-size:12.5px; color:var(--text-muted); font-weight:700;}
+  .dir-pct b{font-size:34px; font-weight:800; line-height:1.1;} .dir-pct:first-child b{color:var(--accent);} .dir-pct small{font-size:12px; color:var(--text-faint);}
   .dir-minis{display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:12px; margin-bottom:18px;}
   .dir-mini{background:var(--surface-2); border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; gap:4px; align-items:flex-start;} .dir-mini span{font-size:12px; color:var(--text-muted);} .dir-mini b{font-size:18px;}
   .dir-obs{margin:12px 2px 0; font-size:13px; color:var(--text-muted);}
@@ -7003,13 +7006,11 @@
   function dirDados(m){
     var isoI = toISO(m.ini), isoF = toISO(m.fim), ym = isoI.slice(0, 7);
     var linhas = pedProgLinhas({ rangeStart: m.ini, rangeEnd: m.fim });
-    // programações feitas = cargas da Programação (sem as "sem necessidade"/canceladas); entregues = descarregadas
-    // dessas cargas (só conta entrega de carga programada); adiadas = marcadas Adiado
-    var fora = { sem_necessidade: 1, cancelada: 1 };
-    var prog = linhas.filter(function(l){ return !fora[l.status]; });
+    // base = pedidos da Programação (não as notas): programação feita = carga com status "Tudo OK";
+    // descarregadas = dessas, as que descarregaram; adiadas = cargas marcadas Adiado
+    var prog = linhas.filter(function(l){ return l.progSt === "ok"; });
     var ok = function(l){ return l.status === "descarregada" || l.status === "conferida"; };
-    var adi = function(l){ return l.status === "adiado" || (l.conf && l.conf.tipo === "adiada"); };
-    var real = prog.filter(ok), adia = prog.filter(function(l){ return !ok(l) && adi(l); });
+    var real = prog.filter(ok), adia = linhas.filter(function(l){ return l.progSt === "adiado" || l.status === "adiado"; });
     var porFornPed = {};
     prog.forEach(function(l){ var k = fornDe(l.c.fabrica) || "(sem fábrica)"; var o = porFornPed[k] = porFornPed[k] || { p: 0, r: 0 }; o.p++; if (ok(l)) o.r++; });
     var ent = consultaLinhas().filter(function(l){ return l.emis && l.emis >= isoI && l.emis <= isoF; });
@@ -7092,7 +7093,7 @@
     // 1. Resumo
     var b1 = bloco(1, "O nosso serviço em números", "Resumo de " + esc(PER.A.longo) + ", comparado com " + esc(PER.B.longo),
       '<div class="dir-bigs">' +
-        big("Programações entregues", atA == null ? "—" : fx(atA, 1) + "%", dirDelta(atA, atB, true, true), atB == null ? "—" : fx(atB, 1) + "%", "var(--success)") +
+        big("Programações descarregadas", atA == null ? "—" : fx(atA, 1) + "%", dirDelta(atA, atB, true, true), atB == null ? "—" : fx(atB, 1) + "%", "var(--success)") +
         big("Cimento recebido", fx(A.t.peso, 0) + " t", dirDelta(A.t.peso, B.t.peso, true), fx(B.t.peso, 0) + " t", "#3b82f6") +
         big("Gasto com frete", brl(A.t.frete).replace(/,\d\d$/, ""), dirDelta(A.t.frete, B.t.frete, false), brl(B.t.frete).replace(/,\d\d$/, ""), "var(--warning)") +
         big("Frete médio por tonelada", fmA == null ? "—" : brl(fmA), dirDelta(fmA, fmB, false), fmB == null ? "—" : brl(fmB), "#a855f7") +
@@ -7101,13 +7102,15 @@
     // 2. Pedidos
     var pedK = Object.keys(Object.assign({}, A.porFornPed, B.porFornPed)).sort(function(x, y){ return ((A.porFornPed[y] || {}).p || 0) - ((A.porFornPed[x] || {}).p || 0); });
     var pedCols = pedK.slice(0, 8).map(function(f){ var a = A.porFornPed[f], b = B.porFornPed[f]; return { n: f, a: a && a.p ? a.r * 100 / a.p : null, b: b && b.p ? b.r * 100 / b.p : null }; });
-    var fatPed = function(D){ return [{ n: "Entregues (descarregadas)", v: D.real, cor: "var(--success)" }, { n: "Adiadas", v: D.adia, cor: "var(--warning)" }, { n: "Ainda não entregues", v: D.pend, cor: "var(--danger)" }]; };
-    var b2 = bloco(2, "KPI de pedidos — programações × entregas", "Das programações feitas, quantas foram entregues e quantas foram adiadas (só conta entrega de carga programada)",
+    var pctBig = function(D, nome, val, ant){ return '<div class="dir-pct"><span>' + esc(nome) + '</span><b>' + (val == null ? "—" : fx(val, 1) + "%") + '</b><small>' + fx(D.real) + ' de ' + fx(D.prog) + ' programadas</small>' + (ant !== undefined ? dirDelta(val, ant, true, true) : '') + '</div>'; };
+    var b2 = bloco(2, "KPI de pedidos — programadas × descarregadas", "Base: pedidos da Programação com status Tudo OK. A diferença entre programadas e descarregadas é o que ficou sem descarregar.",
       '<div class="dir-lin">' +
-        '<div class="dir-cel"><h3>' + esc(nA) + ' · ' + fx(A.prog) + ' programações feitas</h3>' + dirPizza(fatPed(A), atA == null ? "—" : fx(atA, 0) + "%", "entregues", function(x){ return fx(x) + " cargas"; }) + '</div>' +
-        '<div class="dir-cel"><h3>' + esc(nB) + ' · ' + fx(B.prog) + ' programações feitas</h3>' + dirPizza(fatPed(B), atB == null ? "—" : fx(atB, 0) + "%", "entregues", function(x){ return fx(x) + " cargas"; }) + '</div>' +
+        '<div class="dir-cel"><h3>Programadas, descarregadas e adiadas</h3>' + dirColunas([
+          { n: "Programadas (Tudo OK)", a: A.prog, b: B.prog }, { n: "Descarregadas", a: A.real, b: B.real }, { n: "Adiadas", a: A.adia, b: B.adia }
+        ], function(x){ return x ? fx(x) : "0"; }, nA, nB) + '</div>' +
+        '<div class="dir-cel"><h3>% descarregado das programadas</h3><div class="dir-pcts">' + pctBig(A, nA, atA, atB) + pctBig(B, nB, atB) + '</div></div>' +
       '</div>' +
-      '<div class="dir-cel"><h3>% entregue por fornecedor</h3>' + dirColunas(pedCols, function(x){ return x == null ? "" : fx(x, 0) + "%"; }, nA, nB) + '</div>');
+      '<div class="dir-cel"><h3>% descarregado por fornecedor</h3>' + dirColunas(pedCols, function(x){ return x == null ? "" : fx(x, 0) + "%"; }, nA, nB) + '</div>');
 
     // 3. Mapa de cimento
     var cimF = forns.filter(function(f){ return (A.porForn[f] || {}).peso; }).map(function(f){ return { n: f, v: A.porForn[f].peso, cor: corDe[f] }; });
@@ -7137,10 +7140,10 @@
     var txt = function(id, rot){ var an = DIR.analise[CH + "|" + id] || ""; return '<div class="dir-por"><label>' + rot + ' <small class="dir-por-st"></small></label><textarea data-dirtxt="' + id + '" rows="2" placeholder="Por quê? Ex.: fábrica parou, feriado, mudança de rota…">' + esc(an) + '</textarea><div class="dir-por-print">' + (esc(an) || "—") + '</div></div>'; };
     var b5 = bloco(5, "Comparativo e análise", "O que mudou de um mês para o outro, e por quê",
       '<table class="dir-tab"><thead><tr><th></th><th>' + esc(nA) + '</th><th>' + esc(nB) + '</th><th>Variação</th></tr></thead><tbody>' +
-        linha("Programações feitas", fx(A.prog), fx(B.prog), dirDelta(A.prog, B.prog, true)) +
-        linha("Entregues", fx(A.real), fx(B.real), dirDelta(A.real, B.real, true)) +
+        linha("Programadas (Tudo OK)", fx(A.prog), fx(B.prog), dirDelta(A.prog, B.prog, true)) +
+        linha("Descarregadas", fx(A.real), fx(B.real), dirDelta(A.real, B.real, true)) +
         linha("Adiadas", fx(A.adia), fx(B.adia), dirDelta(A.adia, B.adia, false)) +
-        linha("% entregue", atA == null ? "—" : fx(atA, 1) + "%", atB == null ? "—" : fx(atB, 1) + "%", dirDelta(atA, atB, true, true)) +
+        linha("% descarregado", atA == null ? "—" : fx(atA, 1) + "%", atB == null ? "—" : fx(atB, 1) + "%", dirDelta(atA, atB, true, true)) +
         linha("Cimento recebido", fx(A.t.peso, 0) + " t", fx(B.t.peso, 0) + " t", dirDelta(A.t.peso, B.t.peso, true)) +
         linha("Gasto com frete", brl(A.t.frete), brl(B.t.frete), dirDelta(A.t.frete, B.t.frete, false)) +
         linha("Frete médio", fmA == null ? "—" : brl(fmA) + "/t", fmB == null ? "—" : brl(fmB) + "/t", dirDelta(fmA, fmB, false)) +
