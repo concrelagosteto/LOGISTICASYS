@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-16-9">
+<meta name="app-versao" content="2026-11-17-1">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -262,6 +262,9 @@
   .vpo-stats{display:flex; flex-wrap:wrap; gap:6px;} .vpo-st{display:inline-flex; align-items:center; gap:4px; font-size:12px; color:var(--text-muted); padding:3px 9px; border-radius:12px; border:1px solid var(--border); border-left:3px solid var(--c);} .vpo-st b{color:var(--text); font-size:13px;}
   .vpo-diainfo{font-size:11.5px;}
   .vpo-topo .vpo-tbar{margin:0; padding:0; border:0; background:none; display:flex; gap:6px; align-items:center;} .vpo-topo .vpo-tbar .btn-ghost{padding:5px 10px; font-size:12px;}
+  /* VPO por transportadora: tudo alinhado no topo da linha (as dicas da Programação abaixo da usina não empurram mais os campos) */
+  .vpo-tbl td{vertical-align:top !important;} #vpoBlocks td.vpo-rota-td{width:230px; min-width:230px; max-width:230px;}
+  .vpo-tbl .vpo-rota-in{min-width:0; width:100%; box-sizing:border-box;} .vpo-tbl .vpo-prog{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:230px;}
   .vpo-tbl td{padding-top:2px !important; padding-bottom:2px !important;} .vpo-tbl .vpo-cel{padding:4px 8px;} .vpo-tbl .vpo-rota-in{padding:4px 8px;}
   .vpo-tbl td > div{line-height:1.25;} .vpo-tbl td > div + div{margin-top:1px !important;} .vpo-tbl .badge{padding:1px 7px; font-size:10.5px;} .vpo-tbl .status-select{height:28px;}
   #vpoBlocks .prog-block-head{padding-top:6px; padding-bottom:6px;}
@@ -906,6 +909,8 @@
   tr.prog-row-ok td{background:var(--success-soft) !important;}
   tr.prog-row-conferir td, tr.prog-row-adiado td{background:var(--warning-soft) !important;}
   tr.prog-row-ok:hover td{background:var(--success-soft) !important; filter:brightness(1.12);}
+  tr.prog-row-futura td{background:color-mix(in srgb, var(--info) 10%, transparent);}
+  .st-multi .status-select[data-v="futura"]{border-color:var(--info); color:var(--info); font-weight:700;}
   tr.prog-row-conferir:hover td, tr.prog-row-adiado:hover td{background:var(--warning-soft) !important; filter:brightness(1.12);}
   tr.prog-row-ok td:first-child{box-shadow:inset 4px 0 0 var(--success);}
   tr.prog-row-conferir td:first-child, tr.prog-row-adiado td:first-child{box-shadow:inset 4px 0 0 var(--warning);}
@@ -1753,7 +1758,7 @@
   // sem_certeza; (4) fábrica aparece em programação de até 3 dias de distância
   // (outra data) -> data_incorreta; (5) nada encontrado -> nao_realizado.
   // Linhas marcadas como "Adiado" não entram em nenhuma ligação (nota, entrada, PUZL)
-  function progAtivos(day){ return day.entries.filter(function(e){ return e.status !== "adiado"; }); }
+  function progAtivos(day){ return day.entries.filter(function(e){ return !stAdia(e.status); }); }
   // Ligações desfeitas pela Logística (Controle de Pedidos › Situação › Desconectar): "esta NF não é desta linha (dia + usina)".
   // Ficam em ligacoes_desfeitas; o sistema passa a ignorar essa ligação e procura outra carga (ou deixa sem ligação).
   var LIG_DESF = new Map();   // chave nf|dia|USINA -> {nf, data, usina, por}
@@ -1764,7 +1769,7 @@
     if (!LIG_MAN.size || !nf) return null;
     var v = LIG_MAN.get(nfNumNorm(nf.numero)); if (!v) return null;
     var day = cementScheduleByDate[v.data]; if (!day) return null;
-    var e = day.entries.find(function(x){ return x.status !== "adiado" && usinaIgual(x.usina, v.usina) && progLinhaN(v.data, x) === v.linha; });
+    var e = day.entries.find(function(x){ return !stAdia(x.status) && usinaIgual(x.usina, v.usina) && progLinhaN(v.data, x) === v.linha; });
     if (!e) return null;
     var c = cargasDaLinha(e).find(function(x){ return x.idx === v.ordem - 1; });
     return c ? { entry: e, iso: v.data, idx: c.idx, man: v } : null;
@@ -2697,7 +2702,7 @@
     var c = {programadas:0, descarregadas:0, emitidas:0, pendentes:0, semStatus:0, adiado:0, semNec:0};
     cementDayData(iso).entries.forEach(function(e){
       if (e.status === "sem_necessidade"){ c.semNec++; return; }
-      var adiado = e.status === "adiado";
+      var adiado = stAdia(e.status);
       if (!temValor(e.carretas) && !adiado) return;
       c.programadas++;
       if (adiado){ c.adiado++; return; }
@@ -2751,11 +2756,11 @@
       var dc = {programadas:0, ok:0, conferir:0, adiado:0, pendentes:0};
       var rows = entries.map(function(e){
         var key = entryKey(e);
-        if (temValor(e.carretas) || e.status === "adiado"){
+        if (temValor(e.carretas) || stAdia(e.status)){
           agg.programadas++; dc.programadas++;
           if (e.status === "ok"){ agg.ok++; dc.ok++; }
           else if (e.status === "conferir"){ agg.conferir++; dc.conferir++; }
-          else if (e.status === "adiado"){ dc.adiado++; }
+          else if (stAdia(e.status)){ dc.adiado++; }
           else { agg.pendentes++; dc.pendentes++; }
         }
         var statusClass = e.status === "ok" ? "usina-ok" : (e.status === "conferir" ? "usina-conferir" : "");
@@ -2777,7 +2782,7 @@
         )) + '</td>';
         var nfCell = progNFCelulaMulti(e, nfCanc, nfSt) || nfCell0;
         if (nfSt === "none" && cargasDaLinha(e).length < 2 && linhaCompleta(e) && progLinhaSituacao(e) === "pendente") nfCell = '<td style="padding:4px 6px;">' + nfCanc + BADGE_PENDENTE + '</td>';
-        var rowCls = e.status === "ok" ? "prog-row-ok" : (e.status === "conferir" ? "prog-row-conferir" : (e.status === "adiado" ? "prog-row-adiado" : (e.status === "sem_necessidade" ? "prog-row-semnec" : "")));
+        var rowCls = e.status === "ok" ? "prog-row-ok" : (e.status === "conferir" ? "prog-row-conferir" : (e.status === "futura" ? "prog-row-futura" : stAdia(e.status) ? "prog-row-adiado" : (e.status === "sem_necessidade" ? "prog-row-semnec" : "")));
         return '<tr class="'+rowCls+'" data-pk="'+esc(iso+"|"+key)+'">' + usinaCell +
           progMultiInput(iso, key, "carretas", e.carretas) +
           progMultiFabricaSelect(iso, key, e.fabrica, 99, e.usina) +
@@ -2837,14 +2842,17 @@
   // de Carretas / Fábrica / Pedido), porque cargas da mesma usina podem estar em situações diferentes.
   // e.status continua sendo o status da LINHA (usado nas contagens, cores e ligações); com mais de uma caixa,
   // e.statusCg guarda cada uma ("ok / conferir") e e.status vira o resumo delas (progStatusAgreg).
-  var PROG_ST_OPTS = [["", "—"], ["ok", "Tudo OK"], ["conferir", "Conferir"], ["adiado", "Adiado"], ["sem_necessidade", "Sem necessidade"]];
+  var PROG_ST_OPTS = [["", "—"], ["ok", "Tudo OK"], ["conferir", "Conferir"], ["adiado", "Adiado"], ["futura", "Viagem futura"], ["sem_necessidade", "Sem necessidade"]];
+  // "Viagem futura": a viagem desta linha vai para o próximo dia útil (cópia automática); neste dia ela não conta, como o Adiado
+  function stAdia(st){ return st === "adiado" || st === "futura"; }
   function progStatusLista(e){ var l = multiListFrom(e.statusCg); return l.length > 1 ? l : [e.status || ""]; }
   function progStatusAgreg(l){
     if (!l.length) return "";
     if (l.every(function(v){ return v === l[0]; })) return l[0];
     if (l.indexOf("conferir") !== -1) return "conferir";          // alguma carga para conferir: a linha pede atenção
     if (l.indexOf("") !== -1) return "";                          // alguma ainda sem status
-    if (l.some(function(v){ return v === "ok"; })) return "ok";   // o resto adiado / sem necessidade
+    if (l.some(function(v){ return v === "ok"; })) return "ok";   // o resto adiado / viagem futura / sem necessidade
+    if (l.indexOf("adiado") === -1 && l.indexOf("futura") !== -1) return "futura";
     return "adiado";
   }
   // status de uma carga (posição idx): a caixa dela, se houver várias; senão o da linha
@@ -2879,7 +2887,7 @@
   function progAdiarCargas(iso, entry, idxs, desfazer){
     var cgs = cargasDaLinha(entry).filter(function(c){ return idxs.indexOf(c.idx) !== -1; }); if (!cgs.length) return;
     var prox = progProxDiaUtil(iso), dest = getOrCreateEntry(prox, entryKey(entry)); if (!dest.usina) dest.usina = entry.usina;
-    var marca = "Adiada de " + fmtBR(fromISO(iso)).slice(0, 5);
+    var marca = "Viagem futura de " + fmtBR(fromISO(iso)).slice(0, 5);
     var sp = function(x){ return String(x == null ? "" : x).split("/").map(function(y){ return y.trim(); }); };
     var car = multiListFrom(dest.carretas), fab = multiListFrom(dest.fabrica), ped = multiListFrom(dest.pedido);
     var n = cargasDaLinha(dest).length ? Math.max(car.length, fab.length, ped.length) : 0;
@@ -2901,7 +2909,7 @@
     if (!desfazer || resta) obs.push(marca);
     dest.obs = obs.join("\n");
     progAvisoAdiado(desfazer
-      ? "Adiado desfeito: " + mudou + " carga(s) de <b>" + esc(entry.usina) + "</b> saíram de " + esc(fmtBR(fromISO(prox))) + "."
+      ? "Viagem futura desfeita: " + mudou + " carga(s) de <b>" + esc(entry.usina) + "</b> saíram de " + esc(fmtBR(fromISO(prox))) + "."
       : "📅 " + mudou + " carga(s) de <b>" + esc(entry.usina) + "</b> foram para <b>" + esc(fmtBR(fromISO(prox))) + " (" + esc(weekdayLong(fromISO(prox))) + ")</b>, sem status. Confira lá.");
     if (typeof scheduleSync === "function") setTimeout(function(){ scheduleSync(); }, 0);
   }
@@ -2913,10 +2921,11 @@
     var tr = container.closest("tr"); if (!tr) return;
     var usinaTd = tr.querySelector("td:first-child"), st = entry.status;
     usinaTd.classList.remove("usina-ok", "usina-conferir");
-    tr.classList.remove("prog-row-ok", "prog-row-conferir", "prog-row-adiado", "prog-row-semnec");
+    tr.classList.remove("prog-row-ok", "prog-row-conferir", "prog-row-adiado", "prog-row-futura", "prog-row-semnec");
     if (st === "ok"){ usinaTd.classList.add("usina-ok"); tr.classList.add("prog-row-ok"); }
     else if (st === "conferir"){ usinaTd.classList.add("usina-conferir"); tr.classList.add("prog-row-conferir"); }
     else if (st === "adiado"){ usinaTd.classList.add("usina-conferir"); tr.classList.add("prog-row-adiado"); }
+    else if (st === "futura"){ tr.classList.add("prog-row-futura"); }
     else if (st === "sem_necessidade"){ tr.classList.add("prog-row-semnec"); }
     progSemNecAsteriscos(tr);
     var blk = container.closest(".prog-block[data-iso]"), box = blk && blk.querySelector(".prog-day-stats");
@@ -2924,11 +2933,11 @@
     // cargas que viraram Adiado (ou deixaram de ser) → vão para / saem do próximo dia útil
     var isoL = container.dataset.iso, todas = cargasDaLinha(entry).map(function(c){ return c.idx; }), novas = [], volta = [];
     if (vals.length <= 1){ var a0 = antesL.length <= 1 ? antesL[0] || "" : progStatusAgreg(antesL);
-      if (vals[0] === "adiado" && a0 !== "adiado") novas = todas; else if (vals[0] !== "adiado" && a0 === "adiado") volta = todas; }
-    else vals.forEach(function(v, i){ var a = antesL.length > 1 ? antesL[i] || "" : antesL[0] || ""; if (v === "adiado" && a !== "adiado") novas.push(i); else if (v !== "adiado" && a === "adiado") volta.push(i); });
+      if (vals[0] === "futura" && a0 !== "futura") novas = todas; else if (vals[0] !== "futura" && a0 === "futura") volta = todas; }
+    else vals.forEach(function(v, i){ var a = antesL.length > 1 ? antesL[i] || "" : antesL[0] || ""; if (v === "futura" && a !== "futura") novas.push(i); else if (v !== "futura" && a === "futura") volta.push(i); });
     if (isoL && container.closest("#progBlocks")){ if (novas.length) progAdiarCargas(isoL, entry, novas, false); if (volta.length) progAdiarCargas(isoL, entry, volta, true); }
     // adiado muda as ligações (a linha deixa de contar) → repinta a tela inteira
-    if ((st === "adiado") !== (antes === "adiado") || novas.length || volta.length) paintBlocks();
+    if (stAdia(st) !== stAdia(antes) || novas.length || volta.length) paintBlocks();
   }
 
   // Identificador estável por linha: nome da usina para linhas da lista mestre
@@ -3806,7 +3815,7 @@
   }
   // Todos os desvios de uma linha da Programação (pela nota → entrada, e pelas entradas que conferem com a linha)
   function progDesvios(progEntry){
-    if (!progEntry || progEntry.status === "adiado") return [];
+    if (!progEntry || stAdia(progEntry.status)) return [];
     var out = [], vistos = {};
     var add = function(d){ if (d && !vistos[d.doc + "|" + d.para]){ vistos[d.doc + "|" + d.para] = 1; out.push(d); } };
     var resD = progNFPorCarga(progEntry);
@@ -3847,7 +3856,7 @@
     res.forEach(function(r){ if (r.local && r.desvio){ r.desviada = r.desvio; r.desvio = null; } });   // a nota desviada foi reposta por outra que chegou aqui
     // Desvio por reprogramação: o pedido desta carga foi reprogramado para OUTRA usina e a nota (emitida para esta usina) descarregou lá
     res.forEach(function(r){
-      if (r.status !== "none" || progEntry.status === "adiado" || progConfDe(progEntry, r.carga.idx)) return;
+      if (r.status !== "none" || stAdia(progEntry.status) || progConfDe(progEntry, r.carga.idx)) return;
       var d = desvioPorReprog(progEntry, r.carga);
       if (d){ r.status = "confirmada"; r.desvio = d.desvio; r.nfs.push({ nf: d.nf, st: "confirmada", reprog: true }); }
     });
@@ -3894,7 +3903,7 @@
   // e ainda não tem nota emitida no Efit nem correspondência na PUZL.
   function cargaCompleta(c){ return !!(c && c.placa && c.fabrica && c.pedido); }
   function linhaCompleta(e){
-    if (!e || e.status === "adiado") return false;
+    if (!e || stAdia(e.status)) return false;
     var cs = cargasDaLinha(e);
     return cs.length > 0 && cs.every(cargaCompleta);
   }
@@ -3910,7 +3919,7 @@
   }
   // notas ligadas a uma linha (pela cadeia da nota; sem ela, pelas entradas da PUZL que batem com a linha)
   function progNotasDaLinha(e, nfSt){
-    if (e.status === "adiado" || nfSt === "none") return [];
+    if (stAdia(e.status) || nfSt === "none") return [];
     var out = [];
     progNFPorCarga(e).forEach(function(r){ r.nfs.forEach(function(x){ if (out.indexOf(x.nf) === -1) out.push(x.nf); }); });
     if (!out.length) entradasParaProgEntry(e).forEach(function(en){ var nf = entradaNFStatus(en).nf; if (nf && out.indexOf(nf) === -1) out.push(nf); });
@@ -3931,11 +3940,11 @@
   }
   function progNFCelulaMulti(progEntry, nfCanc, nfStLinha){
     var cs = cargasDaLinha(progEntry);
-    var temConf = progEntry.status !== "adiado" && cs.some(function(c){ return progConfDe(progEntry, c.idx); });
+    var temConf = !stAdia(progEntry.status) && cs.some(function(c){ return progConfDe(progEntry, c.idx); });
     if (cs.length < 2 && !temConf) return null;
     var res = progNFPorCarga(progEntry);
-    res.forEach(function(r){ if (r.status !== "confirmada" && progEntry.status !== "adiado") r.conf = progConfDe(progEntry, r.carga.idx); });
-    var algumaCompleta = progEntry.status !== "adiado" && res.some(function(r){ return cargaCompleta(r.carga); });
+    res.forEach(function(r){ if (r.status !== "confirmada" && !stAdia(progEntry.status)) r.conf = progConfDe(progEntry, r.carga.idx); });
+    var algumaCompleta = !stAdia(progEntry.status) && res.some(function(r){ return cargaCompleta(r.carga); });
     if (res.every(function(r){ return r.status === "none"; }) && !algumaCompleta && !temConf) return null;      // nada pela cadeia da nota e nada a sinalizar: segue o selo único
     var badge = function(st, cargaOk, desv){
       return st === "confirmada" && desv ? badgeDesvio(desv) : st === "confirmada" ? '<span class="badge success">✅ Descarregada</span>'
@@ -3945,12 +3954,12 @@
     var linhas = res.map(function(r, i){
       var nome = r.carga.pedido || r.carga.placa || ("carga " + (i + 1));
       var dica = [r.carga.placa, r.carga.fabrica].filter(Boolean).join(" · ") + (r.nfs.length ? " — NF " + r.nfs.map(function(x){ return x.nf.numero; }).join(", ") : "");
-      return '<div style="display:flex;align-items:center;gap:6px;white-space:nowrap;" title="'+esc(dica)+'"><span class="faint" style="font-size:10.5px;min-width:64px;">'+esc(nome)+'</span>'+(r.conf ? progRzBtn(r.conf.nf && nfByNumero(r.conf.nf) ? [nfByNumero(r.conf.nf)] : [], BADGE_CONF(r.conf)) : progRzBtn(r.nfs.map(function(x){ return x.nf; }), badge(r.status, r.status === "none" && r.carga.placa && r.carga.fabrica && r.carga.pedido && progEntry.status !== "adiado", r.desvio)))+'</div>';
+      return '<div style="display:flex;align-items:center;gap:6px;white-space:nowrap;" title="'+esc(dica)+'"><span class="faint" style="font-size:10.5px;min-width:64px;">'+esc(nome)+'</span>'+(r.conf ? progRzBtn(r.conf.nf && nfByNumero(r.conf.nf) ? [nfByNumero(r.conf.nf)] : [], BADGE_CONF(r.conf)) : progRzBtn(r.nfs.map(function(x){ return x.nf; }), badge(r.status, r.status === "none" && r.carga.placa && r.carga.fabrica && r.carga.pedido && !stAdia(progEntry.status), r.desvio)))+'</div>';
     }).join("");
     return '<td style="padding:4px 6px;">' + nfCanc + '<div style="display:flex;flex-direction:column;gap:3px;">' + linhas + '</div></td>';
   }
   function progEntryNFStatus(progEntry){
-    if (progEntry.status === "adiado") return "none";
+    if (stAdia(progEntry.status)) return "none";
     var best = "none";
     entradasParaProgEntry(progEntry).forEach(function(en){
       var st = entradaNFStatus(en).status;
@@ -5229,7 +5238,7 @@
     Object.keys(cementScheduleByDate).sort().forEach(function(iso){
       if (!dateInPickerRange(iso, st)) return;
       cementScheduleByDate[iso].entries.forEach(function(e){
-        var adiado = e.status === "adiado";
+        var adiado = stAdia(e.status);
         var cs = cargasDaLinha(e);
         if (!cs.length){ if (!adiado) return; cs = [{placa:"", fabrica:"", pedido:"", idx:0}]; }
         var res = adiado ? null : progNFPorCarga(e);
@@ -5240,7 +5249,8 @@
           if (!String(c.fabrica || "").trim()) return;     // sem fábrica/material: fica só na Programação, não vai pro Controle
           var r = res && res.find(function(x){ return x.carga.idx === c.idx; });
           var nfs = r ? r.nfs.map(function(x){ return x.nf; }) : [];
-          var cst = progStatusCarga(e, c.idx), adC = adiado || cst === "adiado";
+          var cst = progStatusCarga(e, c.idx), adC = adiado || stAdia(cst);
+          var futura = adC && (cst === "futura" || e.status === "futura");
           var status = adC ? "adiado" : (r && r.status === "confirmada" ? "descarregada" : (r && r.status === "emitida" ? "emitida" : "sem_nota"));
           var descarga = "", desvio = r && r.desvio ? r.desvio : null, ents = [];
           nfs.forEach(function(nf){ var en = nfEntradaMatch(nf); if (en && en.data && en.data > descarga) descarga = en.data; });
@@ -5285,7 +5295,7 @@
           var atraso = "";
           if ((status === "descarregada" || status === "conferida") && descarga){ var d = diasEntre(iso, descarga); atraso = d === 0 ? "no dia" : (d > 0 ? "+" + d + " dia(s)" : Math.abs(d) + " dia(s) antes"); }
           else if ((status === "sem_nota" || status === "emitida" || status === "parcial") && iso < hoje){ var a2 = diasEntre(iso, hoje); atraso = "atrasada " + a2 + " dia(s)"; }
-          out.push({iso: iso, e: e, c: c, status: status, progSt: cst, conf: conf, nfs: nfs, ents: ents, partes: partes, incertas: incertas, canc: canc, desviada: r && r.desviada ? r.desviada : null, descarga: descarga, atraso: atraso, atrasada: /^atrasada/.test(atraso), desvio: status === "descarregada" ? desvio : null});
+          out.push({iso: iso, e: e, c: c, status: status, futura: futura, progSt: cst, conf: conf, nfs: nfs, ents: ents, partes: partes, incertas: incertas, canc: canc, desviada: r && r.desviada ? r.desviada : null, descarga: descarga, atraso: atraso, atrasada: /^atrasada/.test(atraso), desvio: status === "descarregada" ? desvio : null});
         });
       });
     });
@@ -5331,7 +5341,7 @@
   }
   var PED_PROG_ABAS = [
     ["todas", "Todas", function(){ return true; }],
-    ["acomp", "Acompanhamento", function(l){ return l.status !== "adiado" && l.status !== "sem_necessidade" && !(l.progSt === "ok" && l.status === "sem_nota"); }],
+    ["acomp", "Acompanhamento", function(l){ return !stAdia(l.status) && l.status !== "sem_necessidade" && !(l.progSt === "ok" && l.status === "sem_nota"); }],
     ["descarregada", "Descarregadas", function(l){ return l.status === "descarregada" && !l.desvio; }],
     ["desviada", "🔀 Desviadas", function(l){ return !!l.desvio; }],
     ["conferida", "✋ Conferência manual", function(l){ return l.status === "conferida"; }],
@@ -5340,14 +5350,14 @@
     ["semnota", "Sem nota", function(l){ return l.status === "sem_nota" || l.status === "cancelada"; }],
     ["atrasada", "⏰ Atrasadas", function(l){ return l.atrasada; }],
     ["oksem", "Tudo OK sem nota", function(l){ return l.progSt === "ok" && l.status === "sem_nota"; }],
-    ["adiado", "Adiadas", function(l){ return l.status === "adiado"; }],
+    ["adiado", "Adiadas", function(l){ return stAdia(l.status); }],
     ["semnec", "Sem necessidade", function(l){ return l.status === "sem_necessidade"; }]
   ];
   function paintPedidosProg(){
     pedidosPicker.updateLabel();
     var linhas = pedProgLinhas();
-    var ativas = linhas.filter(function(l){ return l.status !== "adiado"; });
-    el("pedDayInfo").textContent = ativas.length + " carga(s) programada(s) no período · " + linhas.filter(function(l){ return l.status === "adiado"; }).length + " adiada(s)";
+    var ativas = linhas.filter(function(l){ return !stAdia(l.status); });
+    el("pedDayInfo").textContent = ativas.length + " carga(s) programada(s) no período · " + linhas.filter(function(l){ return stAdia(l.status); }).length + " adiada(s)";
     var cnt = function(f){ return linhas.filter(f).length; };
     el("pedProgStats").innerHTML = "";
     var aba = PED_PROG_ABAS.find(function(a){ return a[0] === pedProgFiltro; }) || PED_PROG_ABAS[0];
@@ -5362,15 +5372,15 @@
     };
     var statusBadge0 = function(l){
       return l.desvio ? badgeDesvio(l.desvio) : l.status === "descarregada" ? '<span class="badge success">✅ Descarregada</span>' + (l.desviada ? ' <span class="badge info" title="Uma nota desta carga foi desviada para ' + esc(l.desviada.para) + '; outra nota foi ligada e descarregou aqui">🔀 +1 desviada</span>' : '')
-        : l.status === "conferida" || l.status === "nao_realizada" || (l.status === "adiado" && l.conf && l.conf.tipo === "adiada") ? BADGE_CONF(l.conf)
+        : l.status === "conferida" || l.status === "nao_realizada" || (stAdia(l.status) && l.conf && l.conf.tipo === "adiada") ? BADGE_CONF(l.conf)
         : l.status === "emitida" ? '<span class="badge warning">Emitida</span>'
         : l.status === "parcial" ? '<span class="badge warning" title="Carga com pedido complementar: só uma das duas partes descarregou">◐ Parcial</span>'
         : l.status === "cancelada" ? '<span class="badge danger">🚫 NF cancelada</span>'
-        : l.status === "adiado" ? '<span class="badge warning">Adiado</span>'
+        : stAdia(l.status) ? (l.futura ? '<span class="badge info">Viagem futura</span>' : '<span class="badge warning">Adiado</span>')
         : l.status === "sem_necessidade" ? '<span class="badge semnec" title="Marcada como Sem necessidade na Programação">Sem necessidade</span>'
         : '<span class="badge '+(l.atrasada ? 'danger' : 'neutral')+'">Sem nota</span>';
     };
-    var progBadge = function(s){ return s === "ok" ? '<span class="badge success">Tudo OK</span>' : (s === "conferir" ? '<span class="badge warning">Conferir</span>' : (s === "adiado" ? '<span class="badge warning">Adiado</span>' : s === "sem_necessidade" ? '<span class="badge semnec">Sem necessidade</span>' : '<span class="faint">—</span>')); };
+    var progBadge = function(s){ return s === "ok" ? '<span class="badge success">Tudo OK</span>' : (s === "conferir" ? '<span class="badge warning">Conferir</span>' : (s === "adiado" ? '<span class="badge warning">Adiado</span>' : s === "futura" ? '<span class="badge info">Viagem futura</span>' : s === "sem_necessidade" ? '<span class="badge semnec">Sem necessidade</span>' : '<span class="faint">—</span>')); };
     var podeConf = modPodeEditar();
     if (PED_CONF.lista !== lista && PED_CONF.aberto >= 0){ var lAnt = PED_CONF.lista[PED_CONF.aberto]; PED_CONF.aberto = lAnt ? lista.findIndex(function(x){ return x.e === lAnt.e && x.c.idx === lAnt.c.idx && x.iso === lAnt.iso; }) : -1; }
     PED_CONF.lista = lista;
@@ -5380,7 +5390,7 @@
       if (l.incertas && l.incertas.length) nfTxt = (l.nfs.length || l.ents.length || l.conf ? nfTxt + " " : "") + l.incertas.map(function(nf){ return '<button type="button" class="nf-rastro-link xl-ignore" data-rastronum="' + esc(nf.numero) + '" title="Nota do pedido desta carga, mas a placa é diferente da programada: confira">⚠️ ' + esc(nf.numero) + '</button><span style="display:none">' + esc(nf.numero) + '</span>'; }).join(", ");
       var emis = l.nfs.length ? esc(brDate(l.nfs.map(function(nf){ return nf.emissao; }).sort()[0])) : '<span class="faint">—</span>';
       var fixa = PED_CONF.fixas[pedConfChave(l)] || PED_CONF.aberto === i;
-      return '<tr data-xlid="pc' + i + '"' + (fixa ? ' data-xlfixa="1"' : '') + (l.status === "adiado" ? ' class="prog-row-adiado"' : '') + '>' +
+      return '<tr data-xlid="pc' + i + '"' + (fixa ? ' data-xlfixa="1"' : '') + (stAdia(l.status) ? ' class="prog-row-adiado"' : '') + '>' +
         '<td style="white-space:nowrap;">'+esc(brDate(l.iso))+'</td>' +
         '<td class="cell-strong">'+esc(l.e.usina)+'</td>' +
         '<td>'+esc(l.c.fabrica)+'</td>' +
@@ -5390,7 +5400,7 @@
         '<td>'+progBadge(l.progSt)+'</td>' +
         '<td style="white-space:nowrap;">'+nfTxt+'</td>' +
         '<td style="white-space:nowrap;">'+emis+'</td>' +
-        '<td><div style="display:flex;align-items:center;gap:6px;white-space:nowrap;"><button type="button" class="nf-rastro-btn" data-cglig="' + i + '" title="Ver a ligação desta carga (nota, entrada e como ligou)">'+statusBadge(l)+'</button>' + (!podeConf ? '' : l.status === "conferida" || l.status === "nao_realizada" || (l.conf && (l.status === "descarregada" || l.status === "adiado")) ? '<button class="btn-ghost btn-xs xl-ignore" data-conf="' + i + '" title="Editar ou desfazer a conferência">✏️</button>'
+        '<td><div style="display:flex;align-items:center;gap:6px;white-space:nowrap;"><button type="button" class="nf-rastro-btn" data-cglig="' + i + '" title="Ver a ligação desta carga (nota, entrada e como ligou)">'+statusBadge(l)+'</button>' + (!podeConf ? '' : l.status === "conferida" || l.status === "nao_realizada" || (l.conf && (l.status === "descarregada" || stAdia(l.status))) ? '<button class="btn-ghost btn-xs xl-ignore" data-conf="' + i + '" title="Editar ou desfazer a conferência">✏️</button>'
           : (["sem_nota", "emitida", "cancelada", "parcial"].indexOf(l.status) !== -1 ? '<button class="btn-ghost btn-xs xl-ignore" data-conf="' + i + '" title="Marcar como descarregada (conferida pela Logística), com o nº da NF">✋ Conferir</button>' : '')) + '</div>' + pedPartesHtml(l) + '</td>' +
         '<td style="white-space:nowrap;">'+(l.descarga ? esc(brDate(l.descarga)) : '<span class="faint">—</span>')+'</td>' +
         '<td style="white-space:nowrap;'+(l.atrasada ? 'color:var(--danger);font-weight:700;' : '')+'">'+(esc(l.atraso) || '<span class="faint">—</span>')+'</td>' +
@@ -5685,11 +5695,11 @@
     else if (l.desvio && pode) blocos.push({ ic: "🔀", t: "Desvio detectado — confirmar?", ok: false, corpo:
       '<div class="rz-aviso">O sistema detectou: NF ' + esc(l.desvio.doc || "") + ' descarregou em <b>' + esc(l.desvio.para) + '</b>' + (l.desvio.data ? ' em ' + esc(brDate(l.desvio.data)) : '') + '. Confirmando, o desvio passa a aparecer também em Notas Puzl, no caminho da nota e na Programação.</div>' +
       '<div class="lg-man"><input id="lgDesvObs" placeholder="Observação (opcional)"><button class="btn-primary btn-xs" data-lg="desv-ok" data-nf="' + esc(l.desvio.doc || "") + '" data-para="' + esc(l.desvio.para) + '" data-pdata="' + esc(l.desvio.data || "") + '">✔ Confirmar desvio</button></div>' });
-    else if (pode && l.status !== "adiado") blocos.push({ mais: true, ic: "🔀", t: "Marcar como desviada", ok: true, corpo:
+    else if (pode && !stAdia(l.status)) blocos.push({ mais: true, ic: "🔀", t: "Marcar como desviada", ok: true, corpo:
       '<div class="faint" style="font-size:11.5px;">A nota desta carga descarregou em outra usina e o sistema não percebeu? Informe a NF; a usina de destino vem da entrada na PUZL (ou escreva).</div>' +
       '<div class="lg-man"><input id="lgDesvNF" placeholder="Nº da NF" inputmode="numeric"><input id="lgDesvPara" placeholder="Usina de destino"><input id="lgDesvObs" placeholder="Observação (opcional)"><button class="btn-primary btn-xs" data-lg="desv-man">Marcar desviada</button></div><div id="lgDesvAviso"></div>' });
     if (l.desviada) blocos.push({ ic: "🔀", t: "Nota desviada", ok: true, corpo: '<div class="rz-aviso info">A NF ' + esc(l.desviada.doc) + ' desta carga descarregou em ' + esc(l.desviada.para) + (l.desviada.data ? ' em ' + esc(brDate(l.desviada.data)) : '') + '. Outra nota foi ligada e descarregou aqui, então a carga conta como descarregada.</div>' });
-    if (pode && l.status !== "adiado") blocos.push({ mais: true, ic: "➕", t: "Ligar outra nota a esta carga", ok: true, corpo:
+    if (pode && !stAdia(l.status)) blocos.push({ mais: true, ic: "➕", t: "Ligar outra nota a esta carga", ok: true, corpo:
       '<div class="faint" style="font-size:11.5px;">Ex.: a nota do pedido foi desviada e a usina recebeu outra nota. A nota informada fica ligada a esta carga (as duas aparecem).</div>' +
       '<div class="lg-man"><input id="lgManNF" placeholder="Nº da NF (Efit)" inputmode="numeric"><input id="lgManObs" placeholder="Observação (opcional)"><button class="btn-primary btn-xs" data-lg="man">Ligar</button></div>' +
       '<div id="lgManAviso"></div>' });
@@ -7014,7 +7024,7 @@
     // descarregadas = dessas, as que descarregaram; adiadas = cargas marcadas Adiado
     var prog = linhas.filter(function(l){ return l.progSt === "ok"; });
     var ok = function(l){ return l.status === "descarregada" || l.status === "conferida"; };
-    var real = prog.filter(ok), adia = linhas.filter(function(l){ return l.progSt === "adiado" || l.status === "adiado"; });
+    var real = prog.filter(ok), adia = linhas.filter(function(l){ return l.progSt === "adiado" || (l.status === "adiado" && !l.futura); });
     var porFornPed = {};
     prog.forEach(function(l){ var k = fornDe(l.c.fabrica) || "(sem fábrica)"; var o = porFornPed[k] = porFornPed[k] || { p: 0, r: 0 }; o.p++; if (ok(l)) o.r++; });
     var ent = consultaLinhas().filter(function(l){ return l.emis && l.emis >= isoI && l.emis <= isoF; });
@@ -7206,7 +7216,7 @@
     if (!dashPicker) return;
     dashPicker.updateLabel();
     var linhas = pedProgLinhas(dashPicker.state);
-    var ativas = linhas.filter(function(l){ return l.status !== "adiado"; });
+    var ativas = linhas.filter(function(l){ return !stAdia(l.status); });
     var adiadas = linhas.length - ativas.length;
     var entregues = ativas.filter(function(l){ return l.status === "descarregada" || l.status === "conferida"; });
     var emitidas = ativas.filter(function(l){ return l.status === "emitida"; });
@@ -9719,7 +9729,7 @@
       var sug = progFabricasSugeridas(iso, usina).filter(Boolean); if (!sug.length) return;
       var assin = multiJoin(sug); if (PROG_AUTO_FEITO[k] === assin) return;   // já aplicado para ESTE pedido (versão nova da usina = assinatura nova)
       var day = cementScheduleByDate[iso], e = day && day.entries.find(function(x){ return entryKey(x) === usina; });
-      if (e && e.status === "adiado"){ PROG_AUTO_FEITO[k] = assin; return; }
+      if (e && stAdia(e.status)){ PROG_AUTO_FEITO[k] = assin; return; }
       var atual = e ? multiListFrom(e.fabrica).filter(Boolean) : [];
       if (atual.length){
         // a usina mandou nova solicitação (ex.: de CP2 ×1 + POZ ×2 para CP2 ×2 + POZ ×1): refaz as fábricas pré-preenchidas,
@@ -10995,7 +11005,7 @@
   var OPR = { dia: null, d: null, atras: null, carregando: false, msg: "", ruim: false };
   var OPR_ETAPA = { prog: ["warning", "Em programação", 1], ok: ["info", "Programada", 2], nf: ["nfe", "Nota emitida", 3], desc: ["success", "Descarregada", 4], adiado: ["neutral", "Adiada", 0] };
   function oprEtapa(c){
-    if (c.status === "adiado") return "adiado";
+    if (stAdia(c.status)) return "adiado";
     if (c.descarregada_em) return "desc";
     if (c.nf) return "nf";
     if (c.status === "ok" && c.placa) return "ok";
@@ -11288,7 +11298,7 @@
       '<div class="sol-barra"><button class="btn-ghost" data-vpt="ant">◀</button><input type="date" data-vpt="dia" value="' + esc(dia) + '"><button class="btn-ghost" data-vpt="prox">▶</button><button class="btn-ghost" data-vpt="padrao" title="Próximo dia útil, como na Programação">Dia do VPO</button><button class="btn-ghost" data-vpt="atualizar">↻</button></div></div>' +
       '<div class="adm-pad sol-nota"><b>' + esc(brDate(dia)) + '</b> · ' + esc(weekdayLong(fromISO(dia))) + '</div>' + (VPT.erro ? '<div class="adm-msg bad">' + esc(VPT.erro) + '</div>' : "") + '</div>';
     if (!VPT.d || VPT.diaD !== dia){ p.innerHTML = h + '<div class="adm-pad faint">' + (VPT.carregando ? "Carregando…" : "Sem dados.") + '</div>'; return; }
-    var cargas = (VPT.d.cargas || []).filter(function(c){ if (!c.placa || c.status === "adiado") return false; var vc = frtVeicPorPlaca(c.placa); return t ? (vc && vc.transportadora_id === tid) : !vc; });
+    var cargas = (VPT.d.cargas || []).filter(function(c){ if (!c.placa || stAdia(c.status)) return false; var vc = frtVeicPorPlaca(c.placa); return t ? (vc && vc.transportadora_id === tid) : !vc; });
     var comP = cargas.filter(function(c){ return vptPedagio(c)[2] === "com"; }).length, duv = cargas.filter(function(c){ var x = vptPedagio(c)[2]; return x === "?" || x === "incerto"; }).length;
     h += '<div class="card" id="vpt-' + esc(id.replace(":", "-")) + '" style="margin-bottom:16px"><div class="card-head"><div><h2>' + cargas.length + ' carga(s) · ' + comP + ' com pedágio (VPO)' + (duv ? ' · <span style="color:var(--warning)">' + duv + ' a conferir</span>' : "") + '</h2></div></div>';
     if (!cargas.length) h += '<div class="adm-pad faint">Nenhuma carga desta ' + (t ? "transportadora" : "lista") + ' na Programação de ' + esc(brDate(dia)) + '.</div>';
