@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-17-4">
+<meta name="app-versao" content="2026-11-17-5">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -265,7 +265,15 @@
   /* VPO por transportadora: tudo alinhado no topo da linha (as dicas da Programação abaixo da usina não empurram mais os campos) */
   .vpo-tbl td{vertical-align:top !important;} #vpoBlocks td.vpo-rota-td{width:230px; min-width:230px; max-width:230px;}
   .vpo-tbl .vpo-rota-in{min-width:0; width:100%; box-sizing:border-box;} .vpo-tbl .vpo-prog{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:230px;}
-  .vpo-tbl td{padding-top:2px !important; padding-bottom:2px !important;} .vpo-tbl .vpo-cel{padding:4px 8px;} .vpo-tbl .vpo-rota-in{padding:4px 8px;}
+  .vpo-tbl td{padding-top:2px !important; padding-bottom:2px !important;}
+  /* VPO por transportadora: grade visível, linha em destaque enquanto se copia dela, colunas mais justas para caber na tela */
+  .vpo-tbl{border-collapse:collapse;} .vpo-tbl th, .vpo-tbl td{border:1px solid var(--border-strong) !important;}
+  .vpo-tbl tbody tr:focus-within td{background:color-mix(in srgb, var(--accent) 16%, var(--surface)) !important;}
+  .vpo-tbl tbody tr:focus-within td:first-child{box-shadow:inset 3px 0 0 var(--accent);}
+  .vpo-tbl.sem-u3 .vpo-u3, .vpo-tbl.sem-u4 .vpo-u4{display:none;}
+  .vpo-tbl th{padding:7px 8px !important; font-size:11px;} .vpo-tbl td{padding-left:4px !important; padding-right:4px !important;}
+  .vpo-tbl .vpo-ro[data-vf=motorista]{min-width:150px; max-width:190px; text-overflow:ellipsis;} .vpo-tbl .vpo-ro[data-vf=carreta]{min-width:118px;}
+  .vpo-tbl .vpo-ro[data-vf=fabrica]{min-width:90px;} #vpoBlocks .vpo-tbl td.vpo-rota-td{width:190px; min-width:190px; max-width:190px;} .vpo-tbl .vpo-prog{max-width:190px;} .vpo-tbl .vpo-cel{padding:4px 8px;} .vpo-tbl .vpo-rota-in{padding:4px 8px;}
   .vpo-tbl td > div{line-height:1.25;} .vpo-tbl td > div + div{margin-top:1px !important;} .vpo-tbl .badge{padding:1px 7px; font-size:10.5px;} .vpo-tbl .status-select{height:28px;}
   #vpoBlocks .prog-block-head{padding-top:6px; padding-bottom:6px;}
   .aviso-versao{position:fixed; left:50%; bottom:18px; transform:translateX(-50%); z-index:9999; display:flex; gap:10px; align-items:center; padding:10px 14px; background:var(--surface); color:var(--text); border:1px solid var(--accent); border-radius:10px; box-shadow:0 8px 30px rgba(0,0,0,.35); font-size:13.5px;}
@@ -7743,6 +7751,7 @@
       if (sunday) linhas = linhas.filter(function(x){ return byKey[vpoEntryKey(x.e)]; });
 
       var refText = fmtBR(addDays(day,-1)) + " (" + weekdayLong(addDays(day,-1)) + ")";
+      var usa3 = false, usa4 = false;   // Usina 3 / Usina 4 só aparecem quando alguém do dia usa
       var rows = linhas.map(function(x){
         var e = x.e, v = x.v, key = vpoEntryKey(e);
         // sugestão pela Programação (placa do cavalo): Usina 1 = 1ª carga, Usina 2 = 2ª
@@ -7753,6 +7762,7 @@
             var en = vpoGetOrCreateEntry(iso, key); en["usina" + n] = d.key; if (n === 1 && !en.status) applyAutoVpoStatus(en); e = en; mudou = true;
           }
         });
+        if (e.usina3 || dicas[2]) usa3 = true; if (e.usina4 || dicas[3]) usa4 = true;
         var statusMeta = VPO_STATUS_OPTS.find(function(o){ return o.value === (e.status||""); }) || VPO_STATUS_OPTS[0];
         var statusClass = statusMeta.tone || "";
         if (e.status === "emitido") vagg.emitido++;
@@ -7770,13 +7780,13 @@
           // eixos para o VPO: ida (carregado), volta (vazio) e suspensos (levantados na volta = ida − volta)
           var ei = v.eixos_ida, ev = v.eixos_volta, su = (ei != null && ev != null) ? ei - ev : null;
           var eixoCel = function(f, val, tit){ return '<td style="padding:4px 6px;"><input class="vpo-cel vpo-ro vpo-eixo" readonly data-iso="' + iso + '" data-vid="' + esc(v.id) + '" data-vf="' + f + '" value="' + esc(val == null ? "" : val) + '" placeholder="—" title="' + tit + ' — clique para copiar"></td>'; };
-          eixos = eixoCel("eixos_ida", ei, "Eixos na ida (carregado)") + eixoCel("eixos_volta", ev, "Eixos na volta (vazio)") + eixoCel("suspensos", su, "Eixos suspensos (levantados) na volta");
+          eixos = eixoCel("suspensos", su, "Eixos suspensos (levantados) na volta");   // ida e volta ficam ocultos: no VPO só entra o suspenso
         } else {
           placa = vpoInput(iso, key, "placaLivre", e.placaLivre||"", "Placa (avulsa)", statusClass);
           motorista = vpoInput(iso, key, "motoristaLivre", e.motoristaLivre||"", "Nome do motorista");
           carretas = vpoInput(iso, key, "carretasLivre", e.carretasLivre||"", "Carreta(s), separadas por /");
           fabrica = vpoInput(iso, key, "fabricaLivre", e.fabricaLivre||"", "Fábrica");
-          eixos = vpoInput(iso, key, "eixosIdaLivre", e.eixosIdaLivre||"", "Ida") + vpoInput(iso, key, "eixosVoltaLivre", e.eixosVoltaLivre||"", "Volta") + vpoInput(iso, key, "suspensosLivre", e.suspensosLivre||"", "Susp.");
+          eixos = vpoInput(iso, key, "suspensosLivre", e.suspensosLivre||"", "Susp.");
         }
         var statusSelect = '<td style="padding:4px 6px;"><select data-iso="'+iso+'" data-key="'+esc(key)+'" data-field="status" class="status-select"'+(ME && ME.papel === "leitura" ? " disabled" : "")+'>' +
           VPO_STATUS_OPTS.map(function(o){ return '<option value="'+o.value+'"'+(o.value===(e.status||"")?" selected":"")+'>'+esc(o.label)+'</option>'; }).join("") +
@@ -7793,8 +7803,8 @@
         return '<tr>' + placa + motorista + carretas + eixos + fabrica +
           vpoUsinaSelect(iso, key, "usina1", e.usina1, dicas[0], vemCelula(iso, key, 1, e, v)) +
           vpoUsinaSelect(iso, key, "usina2", e.usina2, dicas[1], vemCelula(iso, key, 2, e, v)) +
-          vpoUsinaSelect(iso, key, "usina3", e.usina3 || "", dicas[2], vemCelula(iso, key, 3, e, v)) +
-          vpoUsinaSelect(iso, key, "usina4", e.usina4 || "", dicas[3], vemCelula(iso, key, 4, e, v)) +
+          vpoUsinaSelect(iso, key, "usina3", e.usina3 || "", dicas[2], vemCelula(iso, key, 3, e, v)).replace('class="vpo-rota-td"', 'class="vpo-rota-td vpo-u3"') +
+          vpoUsinaSelect(iso, key, "usina4", e.usina4 || "", dicas[3], vemCelula(iso, key, 4, e, v)).replace('class="vpo-rota-td"', 'class="vpo-rota-td vpo-u4"') +
           rotaCell + statusSelect +
           vpoInput(iso, key, "obs", e.obs, "ex: pedágio confirmado por telefone") + '</tr>';
       }).join("");
@@ -7802,7 +7812,7 @@
       return '<div class="prog-block'+(data.isException?" exception":"")+'" data-iso="'+iso+'">' +
         '<div class="prog-block-head"><div class="ref">'+esc(refText)+'</div><div class="title">'+esc(T.nome.toUpperCase())+' — VPO DA PROGRAMAÇÃO DO DIA '+esc(fmtBR(day).toUpperCase())+' ('+esc(weekdayLong(day).toUpperCase())+')'+(data.isException?' · EXCEÇÃO':'')+'</div></div>' +
         (linhas.length
-          ? '<div class="table-wrap"><table class="vpo-tbl"><thead><tr><th>Placa</th><th>Motorista</th><th>Carreta(s)</th><th title="Eixos na ida (carregado)">Eixos ida</th><th title="Eixos na volta (vazio)">Eixos volta</th><th title="Eixos suspensos (levantados) na volta">Susp.</th><th>Fábrica</th><th>Usina 1 (roteiro)</th><th>Usina 2 (roteiro)</th><th>Usina 3 (roteiro)</th><th>Usina 4 (roteiro)</th><th>Pedágio</th><th>Status VPO</th><th>Observação</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+          ? '<div class="table-wrap"><table class="vpo-tbl' + (usa3 ? '' : ' sem-u3') + (usa4 ? '' : ' sem-u4') + '"><thead><tr><th>Placa</th><th>Motorista</th><th>Carreta(s)</th><th title="Eixos suspensos (levantados) na volta">Susp.</th><th>Fábrica</th><th>Usina 1 (roteiro)</th><th>Usina 2 (roteiro)</th><th class="vpo-u3">Usina 3 (roteiro)</th><th class="vpo-u4">Usina 4 (roteiro)</th><th>Pedágio</th><th>Status VPO</th><th>Observação</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
           : '<p class="prog-empty">Nenhum veículo ativo nesta transportadora. Adicione acima.</p>') +
         (ME && ME.papel !== "leitura" ? '<div class="prog-add" data-iso="'+iso+'">+ linha avulsa (só neste dia)</div>' : "") +
         '</div>';
