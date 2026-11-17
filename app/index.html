@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-17-1">
+<meta name="app-versao" content="2026-11-17-2">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -2424,8 +2424,10 @@
     var z = zoomLer(ZOOM_VIEW); v.style.zoom = z === 1 ? "" : String(z);
     var lab = document.querySelector("#zoomCtl .zoom-val"); if (lab) lab.textContent = Math.round(z * 100) + "%";
   }
+  // a tela que abre primeiro (Programação de Cimento) não passa por showView: pega a tela ativa
+  function zoomTelaAtual(){ if (!ZOOM_VIEW){ var a = document.querySelector("main .view.active, .content .view.active"); if (a && a.id) ZOOM_VIEW = a.id.replace(/^view-/, ""); } return ZOOM_VIEW; }
   function zoomMudar(acao){
-    if (!ZOOM_VIEW) return;
+    if (!zoomTelaAtual()) return;
     var z = zoomLer(ZOOM_VIEW), passos = [0.5, 0.6, 0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.35, 1.5];
     var i = passos.reduce(function(best, p, k){ return Math.abs(p - z) < Math.abs(passos[best] - z) ? k : best; }, 6);
     z = acao === "0" ? 1 : passos[Math.max(0, Math.min(passos.length - 1, i + (acao === "+" ? 1 : -1)))];
@@ -8383,7 +8385,7 @@
     if (typeof frtCarregar === "function") frtCarregar();   // as abas do VPO são as transportadoras
     if (typeof rotasCarregar === "function") rotasCarregar();
     if (typeof vemCarregar === "function") vemCarregar();
-    if (!bootJa) { el("viewCrumb").innerHTML = CRUMBS["programacao-cimento"]; bootJa = true; }
+    if (!bootJa) { el("viewCrumb").innerHTML = CRUMBS["programacao-cimento"]; bootJa = true; if (zoomTelaAtual()) zoomAplicar(); }
   }
   async function entrar(user){
     var r = await sb.from("membros").select("empresa_id,papel,nome,abas").eq("user_id", user.id).maybeSingle();
