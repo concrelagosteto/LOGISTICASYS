@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-17-2">
+<meta name="app-versao" content="2026-11-17-3">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -7119,18 +7119,20 @@
     // 2. Pedidos
     var pedK = Object.keys(Object.assign({}, A.porFornPed, B.porFornPed)).sort(function(x, y){ return ((A.porFornPed[y] || {}).p || 0) - ((A.porFornPed[x] || {}).p || 0); });
     var pedCols = pedK.slice(0, 8).map(function(f){ var a = A.porFornPed[f], b = B.porFornPed[f]; return { n: f, a: a && a.p ? a.r * 100 / a.p : null, b: b && b.p ? b.r * 100 / b.p : null }; });
-    var pizPed = function(D, nome, val, ant){
-      return '<div class="dir-pzc"><h4>' + esc(nome) + (ant !== undefined ? ' ' + dirDelta(val, ant, true, true) : '') + '</h4>' +
-        dirPizza([{ n: "Descarregadas", v: D.real, cor: "var(--success)" }, { n: "Programadas sem descarga", v: Math.max(D.prog - D.real, 0), cor: "var(--border-strong)" }],
-          val == null ? "—" : fx(val, 0) + "%", "descarregado", function(x){ return fx(x) + " cargas"; }) +
-        '<div class="dir-adi">Adiadas: <b>' + fx(D.adia) + '</b></div></div>';
+    // pizza: programadas (Tudo OK) × adiadas, sobre o total das duas
+    var pAdi = function(D){ var t = D.prog + D.adia; return t ? D.adia * 100 / t : null; };
+    var pizPed = function(D, nome, ant){
+      var val = pAdi(D);
+      return '<div class="dir-pzc"><h4>' + esc(nome) + (ant !== undefined ? ' ' + dirDelta(val, ant, false, true) : '') + '</h4>' +
+        dirPizza([{ n: "Programadas", v: D.prog, cor: "var(--success)" }, { n: "Adiadas", v: D.adia, cor: "var(--warning)" }],
+          val == null ? "—" : fx(val, 0) + "%", "adiadas", function(x){ return fx(x) + " cargas"; }) + '</div>';
     };
     var b2 = bloco(2, "KPI de pedidos — programadas × descarregadas", "Base: pedidos da Programação com status Tudo OK. A diferença entre programadas e descarregadas é o que ficou sem descarregar.",
       '<div class="dir-lin">' +
         '<div class="dir-cel"><h3>Programadas, descarregadas e adiadas</h3>' + dirColunas([
           { n: "Programadas (Tudo OK)", a: A.prog, b: B.prog }, { n: "Descarregadas", a: A.real, b: B.real }, { n: "Adiadas", a: A.adia, b: B.adia }
         ], function(x){ return x ? fx(x) : "0"; }, nA, nB) + '</div>' +
-        '<div class="dir-cel"><h3>% descarregado das programadas</h3><div class="dir-pcts">' + pizPed(A, nA, atA, atB) + pizPed(B, nB, atB) + '</div></div>' +
+        '<div class="dir-cel"><h3>Programadas × adiadas</h3><div class="dir-pcts">' + pizPed(A, nA, pAdi(B)) + pizPed(B, nB) + '</div></div>' +
       '</div>' +
       '<div class="dir-cel"><h3>% descarregado por fornecedor</h3>' + dirColunas(pedCols, function(x){ return x == null ? "" : fx(x, 0) + "%"; }, nA, nB) + '</div>');
 
