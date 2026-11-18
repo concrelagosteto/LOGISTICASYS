@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://xargvcvyqzcevbgcjbnx.supabase.co wss://xargvcvyqzcevbgcjbnx.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>if(window.top!==window.self){document.documentElement.style.display='none';}</script>
 <meta name="robots" content="noindex,nofollow">
-<meta name="app-versao" content="2026-11-17-5">
+<meta name="app-versao" content="2026-11-18-1">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -6581,7 +6581,9 @@
       var P = NOTA_PRIO[n.prioridade] || NOTA_PRIO.media, venc = notaVencida(n);
       html += '<div class="nota-card prio-' + n.prioridade + (n.status === "feita" ? ' feita' : '') + (venc ? ' tocando' : '') + '" data-notaid="' + n.id + '">' +
         '<div class="nota-l1"><span class="nt-dot prio-' + n.prioridade + '" title="Prioridade ' + P.r + '"></span><b class="nota-tit">' + (esc(n.titulo) || '<span class="faint">(sem título)</span>') + '</b>' +
-        (n.privada ? '<span class="badge neutral" title="Só você vê">🔒 privada</span>' : '') +
+        ((n.visibilidade || (n.privada ? "privada" : "")) === "privada" ? '<span class="badge neutral" title="Só quem escreveu vê">🔒 só eu</span>'
+          : n.visibilidade === "aberta" ? '<span class="badge neutral" title="Toda a equipe vê">👥 todos</span>'
+          : (ME && ME.supervisor && n.criado_por && n.criado_por !== ME.id ? '<span class="badge neutral" title="Você vê como supervisor">👁 supervisão</span>' : '')) +
         (n.alarme_em && n.status === "aberta" ? '<span class="badge ' + (venc ? 'danger' : 'info') + '">⏰ ' + esc(notaQuando(n.alarme_em)) + (n.repetir ? ' · 🔁 ' + esc(NOTA_REP[n.repetir]) : '') + '</span>' : '') +
         (n.para ? '<span class="badge neutral">👤 ' + esc(n.para) + '</span>' : '') + '</div>' +
         (n.texto ? '<div class="nota-txt">' + esc(n.texto) + '</div>' : '') +
@@ -6619,7 +6621,8 @@
   }
   function notaLocalInput(iso){ if (!iso) return ""; var d = new Date(iso); return toISO(d) + "T" + pad2(d.getHours()) + ":" + pad2(d.getMinutes()); }
   function notaFormHtml(f){
-    var maisAberto = !!(f.repetir || f.para || f.privada);
+    var vis = f.visibilidade || (f.privada ? "privada" : "supervisao");
+    var maisAberto = !!(f.repetir || f.para);
     return '<div class="nt-form">' +
       '<input id="notaTit" class="nt-tit" placeholder="Título" value="' + esc(f.titulo || "") + '" maxlength="140">' +
       '<textarea id="notaTxt" rows="3" placeholder="Escreva a anotação…">' + esc(f.texto || "") + '</textarea>' +
@@ -6627,17 +6630,19 @@
         return '<label class="nota-pchip' + (f.prioridade === p ? ' on' : '') + '"><input type="radio" name="notaPrio" value="' + p + '"' + (f.prioridade === p ? ' checked' : '') + '><span class="nt-dot prio-' + p + '"></span>' + NOTA_PRIO[p].r + '</label>'; }).join("") + '</span></div>' +
       '<div class="nt-row"><span class="nt-lbl">Alarme</span><input type="datetime-local" id="notaAlarme" value="' + esc(notaLocalInput(f.alarme_em)) + '"></div>' +
       '<div class="nt-row nt-atalhos"><span class="nt-lbl"></span>' + [["30", "+30 min"], ["60", "+1 h"], ["amanha", "Amanhã 8h"], ["limpar", "Sem alarme"]].map(function(x){ return '<button type="button" class="nt-chip" data-notaat="' + x[0] + '">' + x[1] + '</button>'; }).join("") + '</div>' +
+      '<div class="nt-row"><span class="nt-lbl">Quem vê</span><span class="nt-seg">' + [["supervisao", "Eu e a supervisão"], ["privada", "Só eu"], ["aberta", "Todos"]].map(function(o){
+        return '<label class="nota-pchip' + (vis === o[0] ? ' on' : '') + '" title="' + (o[0] === "supervisao" ? "Você e o supervisor (Jhonathan) veem" : o[0] === "privada" ? "Só você vê" : "Toda a equipe vê") + '"><input type="radio" name="notaVis" value="' + o[0] + '"' + (vis === o[0] ? ' checked' : '') + '>' + o[1] + '</label>'; }).join("") + '</span></div>' +
       '<details class="nt-mais"' + (maisAberto ? ' open' : '') + '><summary>Mais opções</summary>' +
         '<div class="nt-row"><span class="nt-lbl">Repetir</span><select id="notaRep">' + Object.keys(NOTA_REP).map(function(k){ return '<option value="' + k + '"' + ((f.repetir || "") === k ? ' selected' : '') + '>' + NOTA_REP[k] + '</option>'; }).join("") + '</select></div>' +
         '<div class="nt-row"><span class="nt-lbl">Para</span><input id="notaPara" placeholder="quem vai resolver (opcional)" value="' + esc(f.para || "") + '"></div>' +
-        '<label class="nt-row nt-priv"><span class="nt-lbl"></span><input type="checkbox" id="notaPriv"' + (f.privada ? ' checked' : '') + '> Privada (só eu vejo)</label>' +
+
       '</details>' +
       '<div class="nt-pe"><span class="vpo-erro" id="notaErro"></span><button class="btn-ghost btn-xs" data-notafm="cancelar">Cancelar</button><button class="btn-primary btn-inline" data-notafm="salvar">Salvar</button></div>' +
     '</div>';
   }
   function notaFormEventos(){
     var v = el("view-anotacoes"); if (!v || !NOTAS_ST.form) return;
-    v.querySelectorAll('input[name="notaPrio"]').forEach(function(r){ r.addEventListener("change", function(){ v.querySelectorAll(".nota-pchip").forEach(function(c){ c.classList.toggle("on", c.querySelector("input").checked); }); }); });
+    v.querySelectorAll('input[name="notaPrio"], input[name="notaVis"]').forEach(function(r){ r.addEventListener("change", function(){ v.querySelectorAll(".nota-pchip").forEach(function(c){ var i = c.querySelector("input"); if (i) c.classList.toggle("on", i.checked); }); }); });
     v.querySelectorAll("[data-notaat]").forEach(function(b){ b.addEventListener("click", function(){
       var a = b.dataset.notaat, inp = el("notaAlarme");
       if (a === "limpar"){ inp.value = ""; return; }
@@ -6649,7 +6654,9 @@
       var f = NOTAS_ST.form, tit = el("notaTit").value.trim(), txt = el("notaTxt").value.trim(), al = el("notaAlarme").value;
       if (!tit && !txt){ el("notaErro").textContent = "Escreva um título ou a anotação."; return; }
       var pr = (v.querySelector('input[name="notaPrio"]:checked') || {}).value || "media";
-      var campos = { titulo: tit, texto: txt, prioridade: pr, alarme_em: al ? new Date(al).toISOString() : null, repetir: el("notaRep").value, para: el("notaPara").value.trim(), privada: el("notaPriv").checked };
+      var campos = { titulo: tit, texto: txt, prioridade: pr, alarme_em: al ? new Date(al).toISOString() : null, repetir: el("notaRep").value, para: el("notaPara").value.trim() };
+      var visSel = (v.querySelector('input[name="notaVis"]:checked') || {}).value || "supervisao";
+      campos.visibilidade = visSel; campos.privada = visSel === "privada";
       if (campos.repetir && !campos.alarme_em){ el("notaErro").textContent = "Para repetir, coloque o horário do alarme."; return; }
       b.disabled = true;
       var r;
@@ -8405,14 +8412,14 @@
     if (!bootJa) { el("viewCrumb").innerHTML = CRUMBS["programacao-cimento"]; bootJa = true; if (zoomTelaAtual()) zoomAplicar(); }
   }
   async function entrar(user){
-    var r = await sb.from("membros").select("empresa_id,papel,nome,abas").eq("user_id", user.id).maybeSingle();
+    var r = await sb.from("membros").select("empresa_id,papel,nome,abas,supervisor").eq("user_id", user.id).maybeSingle();
     if (r.error || !r.data){
       await sb.auth.signOut({ scope: "local" });
       el("login").style.display = "flex"; el("app").classList.remove("active");
       loginMsg(r.error ? dbErr(r.error) : "Este usuário não tem acesso. Fale com o administrador.", true);
       return false;
     }
-    ME = { id: user.id, nome: r.data.nome || user.email, papel: r.data.papel, empresa_id: r.data.empresa_id, login: String(user.email || "").split("@")[0], abas: Array.isArray(r.data.abas) ? r.data.abas : null };
+    ME = { id: user.id, nome: r.data.nome || user.email, papel: r.data.papel, empresa_id: r.data.empresa_id, login: String(user.email || "").split("@")[0], abas: Array.isArray(r.data.abas) ? r.data.abas : null, supervisor: !!r.data.supervisor };
     el("whoName").textContent = ME.nome;
     el("whoRole").textContent = { admin: "Administrador", operador: "Operador", leitura: "Somente leitura" }[ME.papel] || ME.papel;
     el("whoAvatar").textContent = ME.nome.slice(0, 2).toUpperCase();
@@ -8569,7 +8576,7 @@
     return g.map(function(x){ return { nome: x[0], itens: x[1].filter(function(i){ return i.id && ABAS_SEMPRE.indexOf(i.id) === -1; }) }; });
   }
   function podeVerAba(id){
-    if (!ME || ME.papel === "admin" || !Array.isArray(ME.abas)) return true;
+    if (!ME || ME.papel === "admin" || ME.supervisor || !Array.isArray(ME.abas)) return true;   // supervisor confere tudo
     if (id === "faltantes" && ME.abas.indexOf("programacao-cimento") !== -1) return true;
     if (id === "dash-diretoria" && ME.abas.indexOf("dashboard") !== -1) return true;   // quem vê a Programação vê as Faltantes
     return ABAS_SEMPRE.indexOf(id) !== -1 || ME.abas.indexOf(id) !== -1;
